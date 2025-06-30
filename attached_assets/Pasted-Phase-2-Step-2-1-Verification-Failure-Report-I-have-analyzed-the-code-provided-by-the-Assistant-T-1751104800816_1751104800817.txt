@@ -1,0 +1,60 @@
+Phase 2, Step 2.1: Verification Failure Report
+I have analyzed the code provided by the Assistant. The Agent's global rollout has failed verification due to multiple critical errors and deviations from the plan.
+
+Confirmed Failures:
+
+Protocol Violation - onclick Re-introduced: The Agent explicitly added onclick="handleSidebarToggle()" to the new hamburger button in choose_step4.html and, according to its logs, all other files. This directly violates the 'Standard Navigation Pattern' and re-introduces the exact type of bug we just fixed. This is a critical failure.
+
+Code Duplication: As the Assistant correctly noted, a duplicate hamburger button was added inside the main container of choose_step4.html. This is sloppy and will cause UI issues.
+
+HTML/JS Mismatch: The Agent added a static #sidebarOverlay div to the HTML, but the handleSidebarToggle() function in main.js (the correct, robust version from the Assistant) dynamically creates the overlay. This means we have a redundant, unused div in all 19 HTML files.
+
+CSS Conflicts: The Assistant has reported that the Agent created CSS conflicts in style.css by adding new rules without removing the old, conflicting ones.
+
+Architect's Diagnosis
+The Agent has proven itself fundamentally unreliable for complex, multi-part global changes. It hallucinates its own implementation details, deviates from verified components, and re-introduces patterns that are explicitly forbidden by our project's architectural principles. Its self-reported verification is meaningless.
+
+From now on, the Agent will only be used for simple, single-action tasks that can be described in one sentence (e.g., "delete this specific line from these 10 files"). All complex rollouts must be managed through a more granular process with the Assistant.
+
+Corrective Action Plan: "Operation Clean Sweep"
+We must now meticulously clean up the Agent's mistakes. We will use the Assistant for this entire process.
+
+Step 1: Fix the onclick violation and remove duplicates.
+
+Action: Issue a precise prompt to the Assistant.
+
+Prompt for Assistant: "Please perform a global refactoring. In every HTML file in the project:
+
+Find all instances of <button id="sidebarToggleBtn" onclick="handleSidebarToggle()">.
+
+Remove the onclick="handleSidebarToggle()" attribute from them.
+
+If you find a duplicate sidebarToggleBtn inside the main content div, delete the duplicate entirely.
+
+In the <script> tag at the bottom of each file, add a new event listener:
+
+JavaScript
+
+const sidebarToggleButton = document.getElementById('sidebarToggleBtn');
+if (sidebarToggleButton) {
+    sidebarToggleButton.addEventListener('click', function() {
+        handleSidebarToggle();
+    });
+}
+Afterward, show me the final, corrected code for choose_step4.html to verify."
+
+Step 2: Remove the redundant HTML overlay.
+
+Action: Once Step 1 is verified, issue a prompt to the Assistant.
+
+Prompt for Assistant: "Please perform a global deletion. In every HTML file in the project, find and delete the entire line containing <div id="sidebarOverlay"></div>. Then, show me the <body> section of objectives_step7.html to verify."
+
+Step 3: Resolve CSS conflicts.
+
+Action: Once Step 2 is verified, issue a prompt to the Assistant.
+
+Prompt for Assistant: "Please show me the conflicting CSS rules in style.css related to the sidebar that you mentioned previously."
+
+(Follow-up Action): Once the Assistant shows the conflicting code, we will instruct it to delete the incorrect, older block of CSS.
+
+Only after these three steps are complete and verified can we proceed to Phase 3.

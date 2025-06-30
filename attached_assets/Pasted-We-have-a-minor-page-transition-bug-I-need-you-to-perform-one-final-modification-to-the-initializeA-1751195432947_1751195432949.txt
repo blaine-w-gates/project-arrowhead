@@ -1,0 +1,76 @@
+We have a minor page transition bug. I need you to perform one final modification to the initializeApp() function in main.js.
+
+Open main.js.
+
+Find the initializeApp() function.
+
+Delete the entire setTimeout(...) block. We are removing the fixed timer.
+
+Replace it with a new structure that hides the loading screen immediately after the essential work is done. The final initializeApp function should look exactly like this:
+
+JavaScript
+
+/**
+ * Initializes the application - should be called on page load
+ */
+function initializeApp() {
+    console.log('Initializing The Objective Builder');
+
+    // Show loading screen immediately
+    showLoadingScreen();
+
+    // Initialize connectivity monitoring
+    initializeConnectivityMonitoring();
+
+    // Load session data to initialize the global state
+    loadSessionData();
+
+    // Add global error handler
+    window.addEventListener('error', function(e) {
+        console.error('Global error:', e.error);
+    });
+
+    // Add unload handler to save any pending data
+    window.addEventListener('beforeunload', function(e) {
+        if (sessionState) {
+            try {
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionState));
+            } catch (error) {
+                console.error('Error saving session data on unload:', error);
+            }
+        }
+    });
+
+    // Set up global sidebar event listeners
+    const sidebarToggleButton = document.getElementById('sidebarToggleBtn');
+    if (sidebarToggleButton) {
+        sidebarToggleButton.addEventListener('click', function() {
+            handleSidebarToggle();
+        });
+    }
+
+    const globalSidebar = document.getElementById('globalSidebar');
+    if (globalSidebar) {
+        globalSidebar.addEventListener('click', function(event) {
+            if (event.target.tagName === 'A') {
+                event.preventDefault();
+                handleSidebarNavigation(event);
+            }
+        });
+    }
+
+    const modalGoHomeButton = document.getElementById('modalGoHomeButton');
+    if(modalGoHomeButton) {
+        modalGoHomeButton.addEventListener('click', function() {
+            goHome();
+        });
+    }
+
+    // Hide loading screen *after* all setup is complete
+    // We use a very short timeout to ensure the browser has a moment to render, preventing flashes.
+    setTimeout(() => {
+        hideLoadingScreen();
+        console.log('The Objective Builder initialized successfully');
+    }, 50); // A small delay for rendering smoothness
+}
+After replacing the function, provide the complete, final source code for the initializeApp function for my verification.

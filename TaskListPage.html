@@ -1,0 +1,555 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task List | Project Arrowhead | Project Arrowhead</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <h3>Loading Task Management</h3>
+            <p>Loading your tasks...</p>
+            <div class="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offline Banner -->
+    <div id="offlineBanner" class="offline-banner">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-wifi-slash me-2"></i>
+                    <span>You're offline. Don't worry - your work is saved locally and will sync when you reconnect.</span>
+                </div>
+                <button class="btn btn-sm btn-outline-light" onclick="checkConnection()">
+                    <i class="fas fa-sync me-1"></i>Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Navigation Sidebar -->
+    <div id="globalSidebar">
+        <div class="sidebar-header">
+            <h4><i class="fas fa-bullseye me-2"></i>Project Arrowhead</h4>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-section">
+                <h6>Main Navigation</h6>
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i>Home
+                </a>
+            </div>
+            <div class="nav-section">
+                <h6>Brainstorm Module</h6>
+                <a href="brainstorm_step1.html" class="nav-link">
+                    <i class="fas fa-lightbulb"></i>Step 1: Imitate
+                </a>
+                <a href="brainstorm_step2.html" class="nav-link">
+                    <i class="fas fa-lightbulb"></i>Step 2: Ideate
+                </a>
+                <a href="brainstorm_step3.html" class="nav-link">
+                    <i class="fas fa-lightbulb"></i>Step 3: Ignore
+                </a>
+                <a href="brainstorm_step4.html" class="nav-link">
+                    <i class="fas fa-lightbulb"></i>Step 4: Integrate
+                </a>
+                <a href="brainstorm_step5.html" class="nav-link">
+                    <i class="fas fa-lightbulb"></i>Step 5: Interfere
+                </a>
+            </div>
+            <div class="nav-section">
+                <h6>Choose Module</h6>
+                <a href="choose_step1.html" class="nav-link">
+                    <i class="fas fa-crosshairs"></i>Step 1: Scenarios
+                </a>
+                <a href="choose_step2.html" class="nav-link">
+                    <i class="fas fa-crosshairs"></i>Step 2: Compare
+                </a>
+                <a href="choose_step3.html" class="nav-link">
+                    <i class="fas fa-crosshairs"></i>Step 3: Important Aspects
+                </a>
+                <a href="choose_step4.html" class="nav-link">
+                    <i class="fas fa-crosshairs"></i>Step 4: Evaluate
+                </a>
+                <a href="choose_step5.html" class="nav-link">
+                    <i class="fas fa-crosshairs"></i>Step 5: Support Decision
+                </a>
+            </div>
+            <div class="nav-section">
+                <h6>Objectives Module</h6>
+                <a href="objectives_step1.html" class="nav-link">
+                    <i class="fas fa-target"></i>Step 1: Objective
+                </a>
+                <a href="objectives_step2.html" class="nav-link">
+                    <i class="fas fa-target"></i>Step 2: Delegation
+                </a>
+                <a href="objectives_step3.html" class="nav-link">
+                    <i class="fas fa-target"></i>Step 3: Business Services
+                </a>
+                <a href="objectives_step4.html" class="nav-link">
+                    <i class="fas fa-target"></i>Step 4: Skills
+                </a>
+                <a href="objectives_step5.html" class="nav-link">
+                    <i class="fas fa-target"></i>Step 5: Tools
+                </a>
+                <a href="objectives_step6.html" class="nav-link">
+                    <i class="fas fa-target"></i>Step 6: Contacts
+                </a>
+                <a href="objectives_step7.html" class="nav-link">
+                    <i class="fas fa-target"></i>Step 7: Cooperation
+                </a>
+            </div>
+            <div class="nav-section">
+                <h6>Task Management</h6>
+                <a href="TaskListPage.html" class="nav-link">
+                    <i class="fas fa-tasks"></i>Task List
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Navigation Header -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <button id="sidebarToggleBtn"><i class="fas fa-bars"></i></button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-bullseye me-2"></i>Project Arrowhead
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link active" href="TaskListPage.html">
+                        <i class="fas fa-tasks me-1"></i>Task List
+                    </a>
+                    <button class="btn btn-outline-light btn-sm" id="navHomeButton">
+                        <i class="fas fa-home me-1"></i>Home
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-12">
+                    <!-- Page Header -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h1 class="h2 text-primary mb-1">
+                                <i class="fas fa-tasks me-2"></i>Task List Management
+                            </h1>
+                            <p class="text-muted mb-0">Manage and track your strategic objectives as actionable tasks</p>
+                        </div>
+                        <div>
+                            <button class="btn btn-success" onclick="showAddTaskModal()">
+                                <i class="fas fa-plus me-1"></i>Add Task
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Export Options -->
+                    <div class="card mb-4 shadow-sm border-0">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">
+                                <i class="fas fa-download me-2"></i>Export Task List
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Export your task list for use in external project management tools.</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-primary" onclick="copyTaskListResults()">
+                                    <i class="fas fa-copy me-1"></i>Copy as Markdown
+                                </button>
+                                <button class="btn btn-outline-success" onclick="downloadTaskListResults()">
+                                    <i class="fas fa-file-download me-1"></i>Download JSON
+                                </button>
+                                <button class="btn btn-outline-info" onclick="copyTaskListCSV()">
+                                    <i class="fas fa-table me-1"></i>Copy as CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Task List -->
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list me-2"></i>Your Tasks
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="taskListContainer">
+                                <!-- Tasks will be dynamically loaded here -->
+                            </div>
+                            
+                            <!-- Empty State -->
+                            <div id="emptyTaskState" class="text-center p-5" style="display: none;">
+                                <div class="mb-4">
+                                    <i class="fas fa-clipboard-list fa-4x text-muted"></i>
+                                </div>
+                                <h5 class="text-muted mb-3">No Tasks Yet</h5>
+                                <p class="text-muted mb-4">Create your first task by clicking the "Add Task" button above, or generate tasks from your objectives.</p>
+                                <button class="btn btn-primary" onclick="showAddTaskModal()">
+                                    <i class="fas fa-plus me-1"></i>Add Your First Task
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="card h-100 text-center border-warning">
+                                <div class="card-body">
+                                    <i class="fas fa-lightbulb fa-2x text-warning mb-3"></i>
+                                    <h6 class="card-title">Need Ideas?</h6>
+                                    <p class="card-text small text-muted">Use our brainstorming module to generate new ideas and tasks.</p>
+                                    <a href="brainstorm_step1.html" class="btn btn-warning btn-sm">Start Brainstorming</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100 text-center border-info">
+                                <div class="card-body">
+                                    <i class="fas fa-crosshairs fa-2x text-info mb-3"></i>
+                                    <h6 class="card-title">Need to Decide?</h6>
+                                    <p class="card-text small text-muted">Use our decision-making module to evaluate options.</p>
+                                    <a href="choose_step1.html" class="btn btn-info btn-sm">Make Decisions</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card h-100 text-center border-success">
+                                <div class="card-body">
+                                    <i class="fas fa-target fa-2x text-success mb-3"></i>
+                                    <h6 class="card-title">Plan Objectives?</h6>
+                                    <p class="card-text small text-muted">Use our objectives module to create structured plans.</p>
+                                    <a href="objectives_step1.html" class="btn btn-success btn-sm">Plan Objectives</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Task Modal -->
+        <div class="modal fade" id="addTaskModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addTaskForm">
+                            <div class="mb-3">
+                                <label for="taskDescription" class="form-label">Task Description</label>
+                                <textarea class="form-control" id="taskDescription" rows="3" placeholder="Describe the task to be completed..." required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="taskPerson" class="form-label">Assigned To</label>
+                                <input type="text" class="form-control" id="taskPerson" placeholder="Person responsible for this task" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="taskDate" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="taskDate" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" onclick="addTask()">Add Task</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Task Modal -->
+        <div class="modal fade" id="editTaskModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editTaskForm">
+                            <input type="hidden" id="editTaskId">
+                            <div class="mb-3">
+                                <label for="editTaskDescription" class="form-label">Task Description</label>
+                                <textarea class="form-control" id="editTaskDescription" rows="3" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editTaskPerson" class="form-label">Assigned To</label>
+                                <input type="text" class="form-control" id="editTaskPerson" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editTaskDate" class="form-label">Due Date</label>
+                                <input type="date" class="form-control" id="editTaskDate" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="updateTask()">Update Task</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Home Confirmation Modal -->
+    <div class="modal fade" id="homeConfirmationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Navigation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to go home? Your progress will be saved, but you'll need to navigate back to continue where you left off.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="modalGoHomeButton">Go Home</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Main JS -->
+    <script src="main.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            loadTaskList();
+            
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('taskDate').value = today;
+
+            function showAddTaskModal() {
+                document.getElementById('addTaskForm').reset();
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('taskDate').value = today;
+                new bootstrap.Modal(document.getElementById('addTaskModal')).show();
+            }
+
+            function addTask() {
+                const description = document.getElementById('taskDescription').value.trim();
+                const person = document.getElementById('taskPerson').value.trim();
+                const date = document.getElementById('taskDate').value;
+
+                if (!description || !person || !date) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+
+                const task = {
+                    id: 'task_' + Date.now(),
+                    task: description,
+                    person: person,
+                    date: date,
+                    completed: false
+                };
+
+                addTaskToList(task);
+                bootstrap.Modal.getInstance(document.getElementById('addTaskModal')).hide();
+                loadTaskList();
+            }
+
+            function editTask(taskId) {
+                const sessionData = loadSessionData();
+                const task = sessionData.taskList.find(t => t.id === taskId);
+                
+                if (task) {
+                    document.getElementById('editTaskId').value = task.id;
+                    document.getElementById('editTaskDescription').value = task.task;
+                    document.getElementById('editTaskPerson').value = task.person;
+                    document.getElementById('editTaskDate').value = task.date;
+                    
+                    new bootstrap.Modal(document.getElementById('editTaskModal')).show();
+                }
+            }
+
+            function updateTask() {
+                const taskId = document.getElementById('editTaskId').value;
+                const description = document.getElementById('editTaskDescription').value.trim();
+                const person = document.getElementById('editTaskPerson').value.trim();
+                const date = document.getElementById('editTaskDate').value;
+
+                if (!description || !person || !date) {
+                    alert('Please fill in all fields.');
+                    return;
+                }
+
+                updateTaskInList(taskId, {
+                    task: description,
+                    person: person,
+                    date: date
+                });
+
+                bootstrap.Modal.getInstance(document.getElementById('editTaskModal')).hide();
+                loadTaskList();
+            }
+
+            function deleteTask(taskId) {
+                if (confirm('Are you sure you want to delete this task?')) {
+                    deleteTaskFromList(taskId);
+                    loadTaskList();
+                }
+            }
+
+            function toggleTaskComplete(taskId) {
+                toggleTaskCompletion(taskId);
+                loadTaskList();
+            }
+
+            function loadTaskList() {
+                const sessionData = loadSessionData();
+                const container = document.getElementById('taskListContainer');
+                const emptyState = document.getElementById('emptyTaskState');
+
+                if (!sessionData.taskList || sessionData.taskList.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                
+                const tasksHtml = sessionData.taskList.map(task => {
+                    const isOverdue = new Date(task.date) < new Date() && !task.completed;
+                    const dueDateClass = isOverdue ? 'text-danger' : 'text-muted';
+                    const completedClass = task.completed ? 'completed-task' : '';
+                    
+                    return `
+                        <div class="task-item p-3 border-bottom ${completedClass}" data-task-id="${task.id}">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-start">
+                                        <div class="form-check me-3">
+                                            <input class="form-check-input" type="checkbox" ${task.completed ? 'checked' : ''} 
+                                                   onchange="toggleTaskComplete('${task.id}')">
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="task-description ${task.completed ? 'text-decoration-line-through text-muted' : ''}">
+                                                ${task.task}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i>${task.person}
+                                    </small>
+                                </div>
+                                <div class="col-md-2">
+                                    <small class="${dueDateClass}">
+                                        <i class="fas fa-calendar me-1"></i>${task.date}
+                                    </small>
+                                </div>
+                                <div class="col-md-1">
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" onclick="editTask('${task.id}')">
+                                                <i class="fas fa-edit me-1"></i>Edit
+                                            </a></li>
+                                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteTask('${task.id}')">
+                                                <i class="fas fa-trash me-1"></i>Delete
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = tasksHtml;
+            }
+
+            function copyTaskListResults() {
+                const results = generateTaskListMarkdown();
+                navigator.clipboard.writeText(results).then(function() {
+                    alert('Task list copied to clipboard!');
+                }).catch(function(err) {
+                    console.error('Could not copy text: ', err);
+                    alert('Error copying to clipboard. Please try again.');
+                });
+            }
+
+            function downloadTaskListResults() {
+                const sessionData = loadSessionData();
+                const taskData = {
+                    module: 'taskList',
+                    timestamp: new Date().toISOString(),
+                    data: sessionData.taskList
+                };
+                
+                const dataStr = JSON.stringify(taskData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = 'task-list-' + new Date().toISOString().split('T')[0] + '.json';
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            }
+
+            function copyTaskListCSV() {
+                const csv = generateTaskListCSV();
+                navigator.clipboard.writeText(csv).then(function() {
+                    alert('Task list CSV copied to clipboard!');
+                }).catch(function(err) {
+                    console.error('Could not copy text: ', err);
+                    alert('Error copying to clipboard. Please try again.');
+                });
+            }
+
+            // Make functions global
+            window.showAddTaskModal = showAddTaskModal;
+            window.addTask = addTask;
+            window.editTask = editTask;
+            window.updateTask = updateTask;
+            window.deleteTask = deleteTask;
+            window.toggleTaskComplete = toggleTaskComplete;
+            window.loadTaskList = loadTaskList;
+            window.copyTaskListResults = copyTaskListResults;
+            window.downloadTaskListResults = downloadTaskListResults;
+            window.copyTaskListCSV = copyTaskListCSV;
+            
+            // Standard event handlers that work across all pages
+            const navHomeButton = document.getElementById('navHomeButton');
+            if (navHomeButton) {
+                navHomeButton.addEventListener('click', function() {
+                    // Save form data before navigation (if applicable)
+                    // This will be customized per page
+                    showHomeConfirmationModal();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
