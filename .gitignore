@@ -1,18 +1,1 @@
-# IDE and OS files
-.vscode/
-.idea/
-.DS_Store
-
-# Node dependencies
-node_modules/
-npm-debug.log
-yarn-error.log
-
-# Temporary and build files
-temp_style_output.txt
-uv.lock
-attached_assets/
-
-# Python cache
-__pycache__/
-*.pyc
+node_modules

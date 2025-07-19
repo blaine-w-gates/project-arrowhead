@@ -41,6 +41,9 @@
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay"></div>
+
     <!-- Global Navigation Sidebar -->
     <div id="globalSidebar">
         <div class="sidebar-header">
@@ -198,6 +201,45 @@
 
     </div>
 
+    <!-- Add Task Component -->
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card mt-4 shadow-sm border-0" id="addTaskSection">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-plus me-2"></i>Create Task from This Step
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">Turn your insights from this step into actionable tasks. You have full control over what becomes a task.</p>
+                        <div class="mb-3">
+                            <label for="taskContentInput" class="form-label">Task Description</label>
+                            <textarea class="form-control" id="taskContentInput" rows="3" placeholder="Enter a specific task based on your brainstorming (e.g., 'Research competitor pricing strategies')..."></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="taskPersonInput" class="form-label">Assigned To</label>
+                                <input type="text" class="form-control" id="taskPersonInput" placeholder="Who will do this task?" value="">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <button class="btn btn-success w-100" onclick="createTaskFromCurrentStep()">
+                                    <i class="fas fa-plus me-1"></i>Add Task
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Your answers are automatically saved. Only create tasks for specific actions you want to track.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Home Confirmation Modal -->
     <div class="modal fade" id="homeConfirmationModal" tabindex="-1">
         <div class="modal-dialog">
@@ -227,6 +269,9 @@
             initializeApp();
             
             loadFormData('brainstorm', 'step1', 'brainstormStep1Input');
+            
+            // Initialize Add Task component
+            initializeAddTaskComponent();
 
             document.getElementById('brainstormStep1Form').addEventListener('submit', function(e) {
                 e.preventDefault();

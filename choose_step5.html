@@ -41,6 +41,9 @@
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay"></div>
+
     <!-- Global Navigation Sidebar -->
     <div id="globalSidebar">
         <div class="sidebar-header">
@@ -193,6 +196,39 @@
                         </div>
                     </div>
 
+                    <!-- Add Task Section -->
+                    <div class="card mt-4 shadow-sm border-0">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-plus me-2"></i>Create Task from Your Decision
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Turn your decision-making insights into actionable tasks. You have full control over what becomes a task.</p>
+                            <div class="mb-3">
+                                <label for="taskContentInput" class="form-label">Task Description</label>
+                                <textarea class="form-control" id="taskContentInput" rows="3" placeholder="Enter a specific task based on your decision (e.g., 'Schedule team meeting to discuss chosen option')..."></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="taskPersonInput" class="form-label">Assigned To</label>
+                                    <input type="text" class="form-control" id="taskPersonInput" placeholder="Who will do this task?" value="">
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button class="btn btn-success w-100" onclick="createTaskFromCurrentStep()">
+                                        <i class="fas fa-plus me-1"></i>Add Task
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Your decision-making answers are automatically saved. Only create tasks for specific actions you want to track.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Export Options -->
                     <div class="card mt-4 shadow-sm border-0">
                         <div class="card-header bg-light">
@@ -260,16 +296,17 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
+
             loadFormData('choose', 'step5', 'chooseStep5Input');
-            
-            // Form submission
+
             document.getElementById('chooseStep5Form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveFormData('choose', 'step5', 'chooseStep5Input');
-                // Stay on this page to show export options
+                // Note: Automatic task creation removed - users now have explicit control
+                alert('Priorities saved! You can now view them in the Task List.');
+                // Stay on this page to show next step options (matches Objectives behavior)
             });
 
-            // Previous button handler
             const previousButton = document.getElementById('previousButton');
             if (previousButton) {
                 previousButton.addEventListener('click', function(event) {
@@ -289,15 +326,19 @@
             }
         });
 
-        function copyChooseResults() {
-            const results = generateChooseMarkdown();
-            navigator.clipboard.writeText(results).then(function() {
-                alert('Decision making results copied to clipboard!');
-            }).catch(function(err) {
-                console.error('Could not copy text: ', err);
-                alert('Error copying to clipboard. Please try again.');
-            });
+        // Function to create task from current choose step
+        function createTaskFromCurrentStep() {
+            const taskContent = document.getElementById('taskContentInput').value;
+            const taskPerson = document.getElementById('taskPersonInput').value || 'You';
+            
+            if (createTaskFromJourneyStep('choose', 'step5', taskContent, taskPerson)) {
+                // Clear the form after successful task creation
+                document.getElementById('taskContentInput').value = '';
+                document.getElementById('taskPersonInput').value = 'You';
+            }
         }
+
+        // copyChooseResults function is now provided by main.js - no local override needed
 
         function downloadChooseResults() {
             const sessionData = loadSessionData();

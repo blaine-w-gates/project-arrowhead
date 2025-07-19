@@ -1,0 +1,31 @@
+{
+  "name": "projectarrowhead",
+  "version": "1.0.0",
+  "main": "main.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "./node_modules/.bin/jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blaine-w-gates/arrowheadreplit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/blaine-w-gates/arrowheadreplit/issues"
+  },
+  "homepage": "https://github.com/blaine-w-gates/arrowheadreplit#readme",
+  "description": "",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-puppeteer": "^10.0.1",
+    "puppeteer": "^24.11.2"
+  },
+  "dependencies": {
+    "http-server": "^14.1.1"
+  }
+}

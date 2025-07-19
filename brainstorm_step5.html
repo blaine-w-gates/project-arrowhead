@@ -40,6 +40,9 @@
         </div>
     </div>
 
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay"></div>
+
     <!-- Global Navigation Sidebar -->
     <div id="globalSidebar">
         <div class="sidebar-header">
@@ -191,6 +194,74 @@
                             </form>
                         </div>
                     </div>
+
+                    <!-- Add Task Section -->
+                    <div class="card mt-4 shadow-sm border-0">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-plus me-2"></i>Create Task from Your Ideas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Turn your brainstorming insights into actionable tasks. You have full control over what becomes a task.</p>
+                            <div class="mb-3">
+                                <label for="taskContentInput" class="form-label">Task Description</label>
+                                <textarea class="form-control" id="taskContentInput" rows="3" placeholder="Enter a specific task based on your brainstorming (e.g., 'Research competitor pricing strategies')..."></textarea>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="taskPersonInput" class="form-label">Assigned To</label>
+                                    <input type="text" class="form-control" id="taskPersonInput" placeholder="Who will do this task?" value="">
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button class="btn btn-success w-100" onclick="createTaskFromCurrentStep()">
+                                        <i class="fas fa-plus me-1"></i>Add Task
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Your brainstorming answers are automatically saved. Only create tasks for specific actions you want to track.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Section -->
+                    <div class="card mt-4 shadow-sm border-0">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-download me-2"></i>Export Your Brainstorm Session
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">Save your brainstorming process for future reference or sharing with your team.</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-outline-primary" onclick="copyBrainstormResults()">
+                                    <i class="fas fa-copy me-1"></i>Copy as Markdown
+                                </button>
+                                <button class="btn btn-outline-success" onclick="downloadBrainstormResults()">
+                                    <i class="fas fa-file-download me-1"></i>Download JSON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Next Step -->
+                    <div class="card mt-4 shadow-sm border-0">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-arrow-right me-2"></i>Next: Decision Making
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-3">Great brainstorming! Now let's use the Choose module to make decisions based on your ideas.</p>
+                            <button class="btn btn-primary" onclick="window.location.href='choose_step1.html'">
+                                <i class="fas fa-crosshairs me-1"></i>Start Decision Making
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -230,7 +301,9 @@
             document.getElementById('brainstormStep5Form').addEventListener('submit', function(e) {
                 e.preventDefault();
                 saveFormData('brainstorm', 'step5', 'brainstormStep5Input');
+                // Note: Automatic task creation removed - users now have explicit control
                 alert('Brainstorm module completed! Your responses have been saved.');
+                // Stay on this page to show next step options (matches Objectives behavior)
             });
 
             const previousButton = document.getElementById('previousButton');
@@ -242,6 +315,18 @@
                 });
             }
         });
+
+        // Function to create task from current brainstorm step
+        function createTaskFromCurrentStep() {
+            const taskContent = document.getElementById('taskContentInput').value;
+            const taskPerson = document.getElementById('taskPersonInput').value || 'You';
+            
+            if (createTaskFromJourneyStep('brainstorm', 'step5', taskContent, taskPerson)) {
+                // Clear the form after successful task creation
+                document.getElementById('taskContentInput').value = '';
+                document.getElementById('taskPersonInput').value = 'You';
+            }
+        }
     </script>
 </body>
 </html>
