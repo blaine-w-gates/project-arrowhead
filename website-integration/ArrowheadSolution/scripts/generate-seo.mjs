@@ -87,10 +87,10 @@ async function main() {
   const sitemap = buildSitemap(posts, baseUrl);
   const rss = buildRss(posts, baseUrl);
 
-  const outDir = path.join(root, 'public');
+  const outDir = path.join(root, 'client', 'public');
   await writeIfChanged(path.join(outDir, 'sitemap.xml'), sitemap);
   await writeIfChanged(path.join(outDir, 'rss.xml'), rss);
-  console.log('[generate-seo] Wrote sitemap.xml and rss.xml');
+  console.log('[generate-seo] Wrote sitemap.xml and rss.xml to client/public');
 }
 
 main().catch((e) => {
