@@ -4,3 +4,6 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+# Ignore test artifacts
+playwright-report/
+test-results/

@@ -93,7 +93,18 @@ export class MemStorage implements IStorage {
         title: "The HSE Framework: A Complete Guide",
         slug: "hse-framework-guide",
         excerpt: "Deep dive into our proven Headlights, Steering Wheel, Engine framework for strategic success.",
-        content: "The HSE Framework represents a revolutionary approach to strategic planning that has helped thousands of organizations achieve their objectives. Let's explore each component in detail...",
+        content: `The HSE Framework represents a practical approach to strategic execution.
+
+## Headlights
+Set the vision, define success, and surface risks.
+
+## Steering Wheel
+Make informed decisions with clear tradeoffs and governance.
+
+## Engine
+Enable execution with the right people, process, and tools.
+
+> When used together, HSE turns strategy into results.`,
         imageUrl: "https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
         published: true,
         publishedAt: new Date('2025-03-10'),
@@ -106,6 +117,24 @@ export class MemStorage implements IStorage {
         imageUrl: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
         published: true,
         publishedAt: new Date('2025-03-05'),
+      },
+      {
+        title: "XSS Test: Script Sanitization",
+        slug: "xss-test",
+        excerpt: "This post contains a script tag to verify sanitization.",
+        content: `This page is used to validate XSS protections in the blog renderer.
+
+Before the script tag <script>alert('XSS')</script> after the script tag.
+
+Additional safe content below to ensure normal rendering continues.
+
+- Item A
+- Item B
+
+End of test.`,
+        imageUrl: null,
+        published: true,
+        publishedAt: new Date('2025-03-20'),
       },
     ];
 
