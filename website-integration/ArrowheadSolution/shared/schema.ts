@@ -1,0 +1,149 @@
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  tier: text("tier").notNull().default("free"), // free, pro, team
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  excerpt: text("excerpt").notNull(),
+  content: text("content").notNull(),
+  imageUrl: text("image_url"),
+  published: boolean("published").default(false),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const emailSubscribers = pgTable("email_subscribers", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  subscribed: boolean("subscribed").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users).pick({
+  email: true,
+  password: true,
+  tier: true,
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).pick({
+  email: true,
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
+export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
+
+// Journey System Tables
+export const journeySessions = pgTable("journey_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  sessionId: text("session_id").notNull().unique(), // For guest users
+  module: text("module").notNull(), // 'brainstorm', 'choose', 'objectives'
+  stepData: text("step_data").notNull().default('{}'), // JSON string of step responses
+  completedSteps: text("completed_steps").notNull().default('[]'), // JSON array of completed step numbers
+  currentStep: integer("current_step").notNull().default(1),
+  isCompleted: boolean("is_completed").default(false),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  sessionId: text("session_id").notNull(), // Links to journey session or guest session
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("todo"), // 'todo', 'in_progress', 'done'
+  priority: text("priority").default("medium"), // 'low', 'medium', 'high'
+  dueDate: timestamp("due_date"),
+  assignedTo: text("assigned_to").default("You"),
+  sourceModule: text("source_module"), // 'brainstorm', 'choose', 'objectives', 'custom'
+  sourceStep: integer("source_step"), // Which step the task was created from
+  tags: text("tags").default('[]'), // JSON array of tags
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Journey Session Schemas
+export const insertJourneySessionSchema = createInsertSchema(journeySessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateJourneySessionSchema = createInsertSchema(journeySessions).omit({
+  id: true,
+  createdAt: true,
+}).partial();
+
+// Task Schemas
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+}).partial();
+
+// Journey System Types
+export type JourneySession = typeof journeySessions.$inferSelect;
+export type InsertJourneySession = z.infer<typeof insertJourneySessionSchema>;
+export type UpdateJourneySession = z.infer<typeof updateJourneySessionSchema>;
+
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type UpdateTask = z.infer<typeof updateTaskSchema>;
+
+// Journey Module Types
+export type JourneyModule = 'brainstorm' | 'choose' | 'objectives';
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
+export type TaskPriority = 'low' | 'medium' | 'high';
+
+// Journey Step Data Interfaces
+export interface BrainstormStepData {
+  step1?: string; // Imitate/Trends
+  step2?: string; // Ideate
+  step3?: string; // Ignore
+  step4?: string; // Integrate
+  step5?: string; // Interfere
+}
+
+export interface ChooseStepData {
+  step1?: string; // Scenarios
+  step2?: string; // Compare
+  step3?: string; // Important Aspects
+  step4?: string; // Evaluate
+  step5?: string; // Support Decision
+}
+
+export interface ObjectivesStepData {
+  step1?: string; // Objective
+  step2?: string; // Delegate
+  step3?: string; // Resources
+  step4?: string; // Obstacles
+  step5?: string; // Milestones
+  step6?: string; // Accountability
+  step7?: string; // Review
+}

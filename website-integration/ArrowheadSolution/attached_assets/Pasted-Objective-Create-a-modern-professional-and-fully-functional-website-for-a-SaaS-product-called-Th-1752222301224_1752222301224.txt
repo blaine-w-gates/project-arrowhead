@@ -1,0 +1,146 @@
+Objective: Create a modern, professional, and fully functional website for a SaaS product called "The Objective Builder." The site's primary goals are to educate visitors on a unique strategic framework, generate leads through a free tool and content, and convert users to paid "Pro" and "Team" tiers.
+
+Persona: You are an expert web designer and developer specializing in creating high-converting websites for SaaS companies. Your design should be clean, strategic, and trustworthy, avoiding playful or overly corporate aesthetics.
+
+1. Global Website Elements
+Main Navigation Bar:
+
+Should be sticky at the top of the page.
+
+Menu Items (in this order):
+
+Home
+
+Pricing
+
+Blog
+
+"Get Our Free Course" (links to Lead Magnet page)
+
+Call-to-Action Button: A visually distinct button on the far right labeled "Use Free Tool," which links directly to the free application.
+
+Footer:
+
+Include three columns:
+
+Column 1: Logo and a brief tagline.
+
+Column 2: Navigation links (Home, Pricing, Blog, Privacy Policy, Terms of Service).
+
+Column 3: Social media icons (placeholders for LinkedIn, Twitter).
+
+Include a copyright notice at the bottom: © 2025 Objective Builder. All rights reserved.
+
+Design System:
+
+Color Palette: Primary colors should be a professional blue and a dark gray/charcoal for text. Use a bright, attention-grabbing color (like a strategic yellow or green) for primary call-to-action buttons.
+
+Typography: Use a clean, modern, and highly readable sans-serif font family (e.g., Inter, Lato, or Nunito Sans).
+
+2. Page-by-Page Specifications
+A. Homepage (index.html)
+Objective: To introduce the core philosophy of The Objective Builder and guide visitors to either use the free tool or learn more about the paid offerings.
+
+Key Sections & Elements:
+
+Hero Section:
+
+Headline: "Stop Running in Circles. Start Achieving Your Objectives."
+
+Sub-headline: "The Objective Builder is a thinking tool that helps managers and teams align on strategy, create clear plans, and execute with confidence."
+
+Primary CTA Button: "Use the Free Tool Now" (links to the app).
+
+Secondary Link: "View Pricing" (links to the Pricing page).
+
+"How It Works" Section:
+
+Visually explain the "Headlights, Steering Wheel, Engine" framework.
+
+Use three distinct icons and short descriptions for each part of the HSE framework.
+
+Feature Highlights:
+
+A section detailing the key benefits: "Create Clear Objectives," "Run Better Meetings," "Align Your Team."
+
+Social Proof / Testimonials:
+
+Include placeholders for two testimonials with headshots. Use personas from our PRD:
+
+Manager Mike: "This tool transformed our planning meetings from chaotic discussions into focused strategy sessions. We got a clear plan in under an hour."
+
+Founder Freya: "As a founder, making the right strategic choice is everything. The Objective Builder gave me a structured way to think through my options and de-risk my decision."
+
+Final CTA Section: A full-width section with a final call to action to "Get Started for Free."
+
+B. Pricing Page
+Objective: To clearly present the three tiers (Free, Pro, Team), detailing their features and prices, and guiding users to the appropriate next step.
+
+Key Sections & Elements:
+
+Headline: "Find the Plan That's Right for You."
+
+Pricing Table: A three-column layout.
+
+Column 1: Free Tier
+
+Price: "$0"
+
+Features: "Standalone To-Do List," "Assign Tasks & Set Due Dates," "Track Task Status," "Export to CSV/Markdown."
+
+CTA Button: "Use Free Tool" (links directly to the app).
+
+Column 2: Pro Tier
+
+Price: "$5 / month"
+
+Features: "Everything in Free, plus:", "Save Unlimited Projects," "Access to Vision & Touch Base Modules," "Cloud Sync Across Devices."
+
+CTA Button: "Start Pro Trial" (links to the dedicated sign-up page).
+
+Column 3: Team Tier
+
+Price: "$20 / month"
+
+Features: "Everything in Pro, plus:", "Centralized Team Projects," "User Roles & Permissions (Admin, Editor, View-Only)," "Collaborative Editing."
+
+CTA Button: "Contact Sales for Team" or "Start Team Trial" (links to the dedicated sign-up page).
+
+FAQ Section: Include answers to common questions like "Can I upgrade later?" and "What is your cancellation policy?"
+
+C. Blog Page
+Objective: To host articles that provide value, improve SEO, and educate users on the product and its concepts.
+
+Key Sections & Elements:
+
+Main Content Area: A grid or list view of blog posts. Each post preview should show a featured image, title, publication date, and a short excerpt. Clicking a preview leads to the full article.
+
+Article Detail Page: A clean template for a single blog post with the article content, author information, and social sharing buttons.
+
+Sidebar: Include sections for "Recent Posts" and "Categories."
+
+D. Lead Magnet Landing Page
+Objective: A highly focused page designed for one purpose: to capture email addresses in exchange for valuable content.
+
+Key Sections & Elements:
+
+No Main Navigation: Remove the main menu to eliminate distractions.
+
+Compelling Headline: "Go From Idea to Execution. Master the Fundamentals of Business."
+
+Value Proposition: Use bullet points to list the benefits of signing up:
+
+"Get FREE lifetime access to our 'Business Basics' online course."
+
+"Receive weekly articles on strategy and productivity directly in your inbox."
+
+"Get exclusive updates on new features and company news."
+
+Email Capture Form: A simple form with only one field: "Email Address" and a prominent CTA button: "Get Instant Access."
+
+3. Authentication & Sign-Up Flow
+IMPORTANT: The sign-up process is tiered and must be handled as follows:
+
+Free Tier: There is NO profile creation or sign-up. The "Use Free Tool" buttons on the Homepage and Pricing page should link directly to the web application itself, which operates using localStorage.
+
+Pro & Team Tiers: Clicking the "Start Pro Trial" or "Start Team Trial" buttons on the Pricing page must lead to a separate, dedicated sign-up/login page. This page is where a user will create their profile (email/password) to access the paid features. This page will need fields for "Email," "Password," and a "Create Account" button.

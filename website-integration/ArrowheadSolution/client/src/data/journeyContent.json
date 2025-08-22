@@ -1,0 +1,127 @@
+{
+  "brainstorm": [
+    {
+      "step": 1,
+      "title": "Imitate / Trends",
+      "instructions": "The first step to innovation is understanding the landscape. Look at what competitors, industry leaders, and even successful entities in other fields are doing. Identifying current trends is key to seeing the opportunities.",
+      "question": "How are others doing it? Have you figured out best practices, talked to experts, and followed the trends so you can keep up with what's going on? Provide examples.",
+      "placeholder": "List current trends, competitor strategies, and best practices you've observed..."
+    },
+    {
+      "step": 2,
+      "title": "Ideate",
+      "instructions": "Now that you've done your research, it's time to think outside the box. Don't limit yourself to what's already been done. Generate completely new, creative, and innovative concepts.",
+      "question": "Now that you've done benchmarking, if we're going to get ahead we need to 'think outside the box'. What other ideas do we have?",
+      "placeholder": "List all new ideas, no matter how unconventional. What if we tried a subscription model? What if we targeted a completely different customer segment?..."
+    },
+    {
+      "step": 3,
+      "title": "Ignore",
+      "instructions": "Learning from failure is crucial. Some ideas didn't work, won't work, or are a waste of time. Identifying these 'anti-patterns' prevents you from repeating the mistakes of others.",
+      "question": "There are things that didn't work, won't work, and are wasting our time. Can we list some 'don't do that' ideas? At least figure out what other people have tried and failed.",
+      "placeholder": "List ideas to avoid, lessons from past failures, and common industry pitfalls..."
+    },
+    {
+      "step": 4,
+      "title": "Integrate",
+      "instructions": "The most powerful solutions often come from combining existing ideas. How can you synthesize the examples you've found to create something more effective and efficient for your customers, providers, or internal teams?",
+      "question": "How can you take the above examples and find ways to shorten the distance and speed things up regarding connections with customers, providers, and internal clients? How can we [do this] better?",
+      "placeholder": "e.g., 'We can combine our competitor's pricing model with the customer support system from industry X...'"
+    },
+    {
+      "step": 5,
+      "title": "Interfere",
+      "instructions": "A strong strategy includes building a competitive 'moat.' Once you're doing better, think about how you can create a sustainable advantage and make it harder for competitors to keep up.",
+      "question": "Now that you're doing better, what are you going to do to slow down competitors? It's easier to pass cars going in slow motion. How can we slow them down?",
+      "placeholder": "Consider strategies like securing exclusive partnerships, building a strong brand community, or creating unique technology..."
+    }
+  ],
+  "choose": [
+    {
+      "step": 1,
+      "title": "Scenarios",
+      "instructions": "To make a good decision, you must first clearly define your options. List the different scenarios or paths you are considering. Clear definitions are the foundation of a sound decision.",
+      "question": "What scenarios are being considered?",
+      "placeholder": "List each option clearly. e.g., 'Option A: Develop the feature in-house. Option B: Partner with Company X. Option C: Acquire a smaller company...'"
+    },
+    {
+      "step": 2,
+      "title": "Similarities/Differences",
+      "instructions": "Compare and contrast your scenarios. Understanding what they have in common and how they differ will help clarify your choices and identify the most important decision factors.",
+      "question": "What are the similarities and differences between scenarios?",
+      "placeholder": "Describe what each scenario shares and how they diverge in terms of cost, time, resources, and risk..."
+    },
+    {
+      "step": 3,
+      "title": "Criteria",
+      "instructions": "How will you measure your options? Define the criteria that will guide your decision. These are the factors that matter most to your team and the project's success.",
+      "question": "How do you decide on what aspects of the scenarios are more or less important to consider?",
+      "placeholder": "List your decision criteria. e.g., '1. Cost to implement, 2. Time to market, 3. Long-term scalability, 4. Team morale...'"
+    },
+    {
+      "step": 4,
+      "title": "Evaluation",
+      "instructions": "Apply your criteria to each scenario systematically. This structured evaluation process is designed to remove bias and reveal the strongest, most logical option.",
+      "question": "Evaluate the differences based on those important aspects.",
+      "placeholder": "Score each option against each criterion. For 'Cost,' Option A is high, Option B is low. For 'Time to market,' Option A is slow, Option B is fast..."
+    },
+    {
+      "step": 5,
+      "title": "Decision",
+      "instructions": "Based on your evaluation, state your final decision and, most importantly, the reasoning behind it. A well-documented decision is easier to communicate and defend.",
+      "question": "Make statements that support your decision.",
+      "placeholder": "'Our decision is to proceed with Option B. It scored highest on our key criteria of 'Time to market' and 'Cost', even though 'Scalability' was a moderate concern...'"
+    }
+  ],
+  "objectives": [
+    {
+      "step": 1,
+      "title": "Objective",
+      "instructions": "Clearly define the primary goal or outcome you are aiming to achieve. A great objective is specific, measurable, and time-bound. This foundation will guide all subsequent planning.",
+      "question": "Which objective would you like to talk about?",
+      "placeholder": "Clearly define your primary objective. What specific goal or outcome are you aiming to achieve? Be as specific and measurable as possible..."
+    },
+    {
+      "step": 2,
+      "title": "Delegation Steps",
+      "instructions": "Break down the objective into clear, actionable steps for delegation. Think about how you would explain this to someone else. Good delegation requires a crystal-clear sequence and key milestones.",
+      "question": "What are the steps to accomplish the objective if you were to delegate it to someone else to do?",
+      "placeholder": "List the high-level steps in logical order. e.g., '1. Research vendors, 2. Get quotes, 3. Sign contract, 4. Onboarding...'"
+    },
+    {
+      "step": 3,
+      "title": "Business Services",
+      "instructions": "Identify the business services or resources needed to achieve the objective. Consider the infrastructure, tools, and capabilities required, both internal and external.",
+      "question": "What additional business services are needed?",
+      "placeholder": "List necessary services. e.g., 'Legal team for contract review, Marketing for promotional materials, Cloud server infrastructure...'"
+    },
+    {
+      "step": 4,
+      "title": "Skills",
+      "instructions": "Perform a skills gap analysis. What specific skills and expertise are necessary to complete the tasks, and what skills does your team currently possess?",
+      "question": "What skills are necessary to complete the tasks?",
+      "placeholder": "List required skills. e.g., 'Required: Advanced JavaScript, SQL database management. Team currently has: Intermediate JavaScript, no SQL experience...'"
+    },
+    {
+      "step": 5,
+      "title": "Tools",
+      "instructions": "List the specific software, hardware, or other tools that will be required to execute the plan.",
+      "question": "What additional tools are needed?",
+      "placeholder": "List all tools needed. e.g., 'Project management software (Jira), design software (Figma), a new testing server...'"
+    },
+    {
+      "step": 6,
+      "title": "Contacts",
+      "instructions": "Identify the key people you will need to contact during this project. Think about stakeholders, subject matter experts, and external partners.",
+      "question": "Who will you need to contact in the process of work?",
+      "placeholder": "List key contacts and their roles. e.g., 'Jane Doe (Head of Legal), John Smith (Vendor sales rep)...'"
+    },
+    {
+      "step": 7,
+      "title": "Cooperation",
+      "instructions": "Identify the teams or individuals you will need to actively cooperate with to complete the tasks. This is about ongoing collaboration, not just one-time contact.",
+      "question": "Who will you need to cooperate with to complete the tasks?",
+      "placeholder": "List key collaborators. e.g., 'The Marketing department for the launch campaign, the IT department for server setup...'"
+    }
+  ]
+}
