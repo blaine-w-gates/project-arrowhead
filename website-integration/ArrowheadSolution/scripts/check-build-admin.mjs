@@ -31,8 +31,11 @@ async function main() {
   }
 
   const cfg = await fs.readFile(adminConfig, 'utf-8');
-  if (!/\bbackend:\s*github\b/.test(cfg) || !/\bbase_url:\s*\/api\/oauth\b/.test(cfg)) {
-    console.error('[check-build-admin] config.yml does not contain expected backend or base_url');
+  const hasBackendSection = /(^|\n)\s*backend:\s*(\n|$)/.test(cfg);
+  const hasGithubName = /(^|\n)\s*name:\s*github(\s|$)/i.test(cfg);
+  const hasBaseUrl = /(^|\n)\s*base_url:\s*\/api\/oauth(\s|$)/i.test(cfg);
+  if (!hasBackendSection || !hasGithubName || !hasBaseUrl) {
+    console.error('[check-build-admin] config.yml does not contain expected backend.name or base_url');
     console.error(cfg);
     process.exit(1);
   }
