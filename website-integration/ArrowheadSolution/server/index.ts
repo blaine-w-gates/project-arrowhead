@@ -39,6 +39,11 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Ensure Decap CMS admin loads at /admin and /admin/ by redirecting to the index file
+  app.get(["/admin", "/admin/"], (_req, res) => {
+    res.redirect(302, "/admin/index.html");
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

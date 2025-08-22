@@ -279,6 +279,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // SEO: Sitemap
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const posts = await storage.getBlogPosts();
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const urls = posts
+        .map((p) => {
+          const lastmod = (p.publishedAt ?? new Date()).toISOString();
+          return `\n  <url>\n    <loc>${baseUrl}/blog/${p.slug}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`;
+        })
+        .join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}\n</urlset>`;
+      res.setHeader("Content-Type", "application/xml");
+      res.send(xml);
+    } catch (_err) {
+      res.status(500).send("<error>Failed to generate sitemap</error>");
+    }
+  });
+
+  // SEO: RSS feed
+  app.get("/rss.xml", async (req, res) => {
+    try {
+      const posts = await storage.getBlogPosts();
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const items = posts
+        .map((p) => {
+          const pub = (p.publishedAt ?? new Date()).toUTCString();
+          const safeTitle = p.title.replace(/]]>/g, "]]");
+          const safeExcerpt = (p.excerpt || "").replace(/]]>/g, "]]");
+          const link = `${baseUrl}/blog/${p.slug}`;
+          return `\n  <item>\n    <title><![CDATA[${safeTitle}]]></title>\n    <link>${link}</link>\n    <guid>${link}</guid>\n    <pubDate>${pub}</pubDate>\n    <description><![CDATA[${safeExcerpt}]]></description>\n  </item>`;
+        })
+        .join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n<channel>\n  <title>Strategic Insights Blog</title>\n  <link>${baseUrl}/blog</link>\n  <description>Expert advice on business strategy and planning</description>\n  <language>en-us</language>\n  <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>${items}\n</channel>\n</rss>`;
+      res.setHeader("Content-Type", "application/rss+xml");
+      res.send(xml);
+    } catch (_err) {
+      res.status(500).send("<error>Failed to generate RSS feed</error>");
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
