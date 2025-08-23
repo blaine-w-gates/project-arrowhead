@@ -58,18 +58,19 @@ function htmlCallback(status: "success" | "error", token?: string) {
   <body>
     <script>
       (function () {
-        try {
-          // Handshake: let Decap know the popup is ready
-          window.opener && window.opener.postMessage('authorizing:github', '*');
-        } catch (e) {}
-        // Post the final result shortly after, giving Decap time to attach its listener
-        setTimeout(function(){
-          try {
-            window.opener && window.opener.postMessage('authorization:github:${status}:${payload}', '*');
-          } catch (e) {}
-        }, 100);
-        // Close a bit later to ensure delivery
-        setTimeout(function(){ try { window.close(); } catch (e) {} }, 600);
+        // Send a ready signal first (legacy Decap handshake), then repeatedly
+        // post the final message for a few seconds to avoid race conditions.
+        function sendFinal() {
+          try { window.opener && window.opener.postMessage('authorization:github:${status}:${payload}', '*'); } catch (e) {}
+        }
+        try { window.opener && window.opener.postMessage('authorizing:github', '*'); } catch (e) {}
+        // Fire immediately and schedule a few retries
+        sendFinal();
+        setTimeout(sendFinal, 150);
+        var attempts = 0; var maxAttempts = 10; // ~3s total with 300ms interval
+        var iv = setInterval(function(){ attempts++; sendFinal(); if (attempts >= maxAttempts) clearInterval(iv); }, 300);
+        // Close after retries to allow delivery
+        setTimeout(function(){ try { window.close(); } catch (e) {} }, 4000);
       })();
     </script>
     <p>Completing authorization...</p>

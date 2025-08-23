@@ -10,7 +10,8 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: Re
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID,
     redirect_uri: redirectUri,
-    scope: "public_repo,user",
+    // Use broader scope to support private repos and write operations
+    scope: "repo,user",
     state,
   });
 
