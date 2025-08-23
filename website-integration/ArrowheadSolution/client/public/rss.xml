@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+  <title>Strategic Insights Blog</title>
+  <link>/blog</link>
+  <description>Expert advice on business strategy and planning</description>
+  <language>en-us</language>
+  <lastBuildDate>Fri, 22 Aug 2025 23:23:36 GMT</lastBuildDate>
+  <item>
+    <title><![CDATA[XSS Test: Script Sanitization]]></title>
+    <link>/blog/xss-test</link>
+    <guid>/blog/xss-test</guid>
+    <pubDate>Thu, 20 Mar 2025 00:00:00 GMT</pubDate>
+    <description><![CDATA[This post contains a script tag to verify sanitization.]]></description>
+  </item>
+  <item>
+    <title><![CDATA[5 Common Strategic Planning Mistakes to Avoid]]></title>
+    <link>/blog/strategic-planning-mistakes</link>
+    <guid>/blog/strategic-planning-mistakes</guid>
+    <pubDate>Sat, 15 Mar 2025 00:00:00 GMT</pubDate>
+    <description><![CDATA[Learn how to navigate the most common pitfalls in strategic planning and set your team up for success.]]></description>
+  </item>
+  <item>
+    <title><![CDATA[The HSE Framework: A Complete Guide]]></title>
+    <link>/blog/hse-framework-guide</link>
+    <guid>/blog/hse-framework-guide</guid>
+    <pubDate>Mon, 10 Mar 2025 00:00:00 GMT</pubDate>
+    <description><![CDATA[Deep dive into our proven Headlights, Steering Wheel, Engine framework for strategic success.]]></description>
+  </item>
+  <item>
+    <title><![CDATA[Building High-Performance Teams Through Clear Objectives]]></title>
+    <link>/blog/high-performance-teams</link>
+    <guid>/blog/high-performance-teams</guid>
+    <pubDate>Wed, 05 Mar 2025 00:00:00 GMT</pubDate>
+    <description><![CDATA[Discover how clear objectives can transform team performance and drive exceptional results.]]></description>
+  </item>
+</channel>
+</rss>

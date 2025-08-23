@@ -18,6 +18,16 @@ function safeDate(input) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Deterministic 32-bit FNV-1a hash for slug -> positive number id
+function slugToId(slug) {
+  let hash = 0x811c9dc5; // FNV offset basis
+  for (let i = 0; i < slug.length; i++) {
+    hash ^= slug.charCodeAt(i);
+    hash = (hash + (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24)) >>> 0;
+  }
+  return hash >>> 0;
+}
+
 async function readPosts(root) {
   const blogDir = path.join(root, 'content', 'blog');
   let entries;
@@ -41,7 +51,18 @@ async function readPosts(root) {
       const publishedAt = safeDate(fm.publishedAt || fm.date) || new Date();
       const title = fm.title || slug;
       const excerpt = (fm.excerpt || '').toString();
-      posts.push({ slug, title, excerpt, publishedAt });
+      const post = {
+        id: slugToId(slug),
+        title,
+        slug,
+        excerpt,
+        content: parsed.content || '',
+        imageUrl: fm.imageUrl ?? null,
+        published: true,
+        publishedAt,
+        createdAt: publishedAt,
+      };
+      posts.push(post);
     } catch {
       // skip bad files
     }
@@ -91,6 +112,41 @@ async function main() {
   await writeIfChanged(path.join(outDir, 'sitemap.xml'), sitemap);
   await writeIfChanged(path.join(outDir, 'rss.xml'), rss);
   console.log('[generate-seo] Wrote sitemap.xml and rss.xml to client/public');
+
+  // Emit JSON API compatible with Cloudflare Pages Functions
+  // List: /data/blog/posts.json
+  // Item: /data/blog/posts/<slug>.json
+  const dataDir = path.join(outDir, 'data', 'blog', 'posts');
+  const postsList = posts.map(p => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    excerpt: p.excerpt,
+    imageUrl: p.imageUrl ?? null,
+    published: true,
+    publishedAt: p.publishedAt ? new Date(p.publishedAt).toISOString() : null,
+    createdAt: p.publishedAt ? new Date(p.publishedAt).toISOString() : null,
+    // content omitted in list for efficiency
+    content: undefined,
+  }));
+  await writeIfChanged(path.join(outDir, 'data', 'blog', 'posts.json'), JSON.stringify(postsList, null, 2));
+
+  for (const p of posts) {
+    const itemPath = path.join(dataDir, `${p.slug}.json`);
+    const item = {
+      id: p.id,
+      title: p.title,
+      slug: p.slug,
+      excerpt: p.excerpt,
+      content: p.content || '',
+      imageUrl: p.imageUrl ?? null,
+      published: true,
+      publishedAt: p.publishedAt ? new Date(p.publishedAt).toISOString() : null,
+      createdAt: p.publishedAt ? new Date(p.publishedAt).toISOString() : null,
+    };
+    await writeIfChanged(itemPath, JSON.stringify(item, null, 2));
+  }
+  console.log('[generate-seo] Wrote blog JSON to client/public/data/blog');
 }
 
 main().catch((e) => {

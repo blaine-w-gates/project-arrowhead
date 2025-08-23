@@ -1,0 +1,11 @@
+{
+  "id": 3703317332,
+  "title": "XSS Test: Script Sanitization",
+  "slug": "xss-test",
+  "excerpt": "This post contains a script tag to verify sanitization.",
+  "content": "\nThis page is used to validate XSS protections in the blog renderer.\n\nBefore the script tag <script>alert('XSS')</script> after the script tag.\n\nAdditional safe content below to ensure normal rendering continues.\n\n- Item A\n- Item B\n\nEnd of test.",
+  "imageUrl": null,
+  "published": true,
+  "publishedAt": "2025-03-20T00:00:00.000Z",
+  "createdAt": "2025-03-20T00:00:00.000Z"
+}
