@@ -57,13 +57,14 @@ function htmlCallback(status: "success" | "error", token?: string) {
   </head>
   <body>
     <script>
-      const receiveMessage = () => {
-        window.opener.postMessage('authorization:github:${status}:${payload}', '*');
-        window.removeEventListener('message', receiveMessage, false);
-        try { window.close(); } catch (e) {}
-      };
-      window.addEventListener('message', receiveMessage, false);
-      window.opener.postMessage('authorizing:github', '*');
+      (function () {
+        try {
+          // Send the final result immediately; Decap listens for this message.
+          window.opener && window.opener.postMessage('authorization:github:${status}:${payload}', '*');
+        } catch (e) {}
+        // Close shortly after to allow the message event to dispatch.
+        setTimeout(function(){ try { window.close(); } catch (e) {} }, 50);
+      })();
     </script>
     <p>Completing authorization...</p>
   </body>
