@@ -33,9 +33,15 @@ async function main() {
   const cfg = await fs.readFile(adminConfig, 'utf-8');
   const hasBackendSection = /(^|\n)\s*backend:\s*(\n|$)/.test(cfg);
   const hasGithubName = /(^|\n)\s*name:\s*github(\s|$)/i.test(cfg);
-  const hasBaseUrl = /(^|\n)\s*base_url:\s*\/api\/oauth(\s|$)/i.test(cfg);
-  if (!hasBackendSection || !hasGithubName || !hasBaseUrl) {
-    console.error('[check-build-admin] config.yml does not contain expected backend.name or base_url');
+
+  // Accept either legacy base_url (/api/oauth) or the new root base_url with explicit auth_endpoint
+  const hasBaseUrlLegacy = /(^|\n)\s*base_url:\s*\/api\/oauth(\s|$)/i.test(cfg);
+  const hasBaseUrlRoot = /(^|\n)\s*base_url:\s*["']?\/["']?(\s|$)/i.test(cfg);
+  const hasAuthEndpoint = /(^|\n)\s*auth_endpoint:\s*["']?api\/oauth\/auth["']?(\s|$)/i.test(cfg);
+  const baseUrlValid = hasBaseUrlLegacy || (hasBaseUrlRoot && hasAuthEndpoint);
+
+  if (!hasBackendSection || !hasGithubName || !baseUrlValid) {
+    console.error('[check-build-admin] config.yml does not contain expected backend.name or OAuth settings');
     console.error(cfg);
     process.exit(1);
   }
