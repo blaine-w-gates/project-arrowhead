@@ -6,13 +6,40 @@
   <title>Content Manager</title>
   <link href="config.yml" type="text/yaml" rel="cms-config-url">
   <script>
-    // New, more forceful fallback script: redirect immediately on success
-    window.addEventListener('message', function(event) {
-      if (event && typeof event.data === 'string' && event.data.indexOf('authorization:github:success') === 0) {
-        try { console.log('[CMS OAuth Fallback] Success message received. Forcing redirect.'); } catch (_) {}
-        window.location.href = '/admin/';
+    // Advanced OAuth fallback: parse token and persist before reload
+    (function () {
+      function extractToken(msg) {
+        try {
+          var m = msg.match(/authorization:github:success:(\{.*\})$/);
+          if (!m || !m[1]) return null;
+          var data = JSON.parse(m[1]);
+          return (data && typeof data.token === 'string' && data.token) ? data.token : null;
+        } catch (e) { return null; }
       }
-    });
+
+      window.addEventListener('message', function (event) {
+        if (!event || typeof event.data !== 'string') return;
+        if (event.data.indexOf('authorization:github:success') !== 0) return;
+        try { console.log('[CMS OAuth Fallback] Success message received. Attempting to persist token.'); } catch (_) {}
+
+        var token = extractToken(event.data);
+        if (token) {
+          try {
+            // Decap (Netlify CMS) expects this localStorage key
+            var user = { token: token, backendName: 'github' };
+            localStorage.setItem('netlify-cms-user', JSON.stringify(user));
+            try { console.log('[CMS OAuth Fallback] Token saved to localStorage (netlify-cms-user).'); } catch (_) {}
+          } catch (e) {
+            try { console.error('[CMS OAuth Fallback] Failed saving token:', e); } catch (_) {}
+          }
+        } else {
+          try { console.warn('[CMS OAuth Fallback] Could not parse token from success message.'); } catch (_) {}
+        }
+
+        // Reload to let Decap bootstrap with the stored credentials
+        try { window.location.reload(); } catch (_) { window.location.href = '/admin/'; }
+      }, false);
+    })();
   </script>
 </head>
 <body>
