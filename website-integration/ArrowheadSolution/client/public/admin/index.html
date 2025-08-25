@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Content Manager</title>
+  <title>Decap CMS Admin</title>
+  <meta name="robots" content="noindex" />
   <link href="config.yml" type="text/yaml" rel="cms-config-url">
   <script>
     // Advanced OAuth fallback: parse token and persist before reload
@@ -25,10 +26,24 @@
         var token = extractToken(event.data);
         if (token) {
           try {
-            // Decap (Netlify CMS) expects this localStorage key
-            var user = { token: token, backendName: 'github' };
+            // Decap CMS expects this exact format
+            var user = { 
+              token: token, 
+              backendName: 'github',
+              login: 'user',
+              name: 'GitHub User'
+            };
             localStorage.setItem('netlify-cms-user', JSON.stringify(user));
-            try { console.log('[CMS OAuth Fallback] Token saved to localStorage (netlify-cms-user).'); } catch (_) {}
+            
+            // Also try the newer Decap format
+            localStorage.setItem('decap-cms-user', JSON.stringify(user));
+            
+            try { 
+              console.log('[CMS OAuth Fallback] Token saved to localStorage:', {
+                'netlify-cms-user': localStorage.getItem('netlify-cms-user'),
+                'decap-cms-user': localStorage.getItem('decap-cms-user')
+              }); 
+            } catch (_) {}
           } catch (e) {
             try { console.error('[CMS OAuth Fallback] Failed saving token:', e); } catch (_) {}
           }
@@ -36,13 +51,24 @@
           try { console.warn('[CMS OAuth Fallback] Could not parse token from success message.'); } catch (_) {}
         }
 
-        // Reload to let Decap bootstrap with the stored credentials
-        try { window.location.reload(); } catch (_) { window.location.href = '/admin/'; }
+        // Reload ONCE to let Decap bootstrap with the stored credentials.
+        // Use a session guard to avoid multiple reloads while the popup keeps posting messages.
+        try {
+          if (!sessionStorage.getItem('cms_oauth_reloaded')) {
+            sessionStorage.setItem('cms_oauth_reloaded', '1');
+            window.location.reload();
+          } else {
+            // Already reloaded once in this tab; ignore further success messages.
+          }
+        } catch (_) {
+          try { window.location.href = '/admin/'; } catch (_) {}
+        }
       }, false);
     })();
   </script>
 </head>
 <body>
+  <h1 style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">Decap CMS Admin</h1>
   <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 </body>
 </html>
