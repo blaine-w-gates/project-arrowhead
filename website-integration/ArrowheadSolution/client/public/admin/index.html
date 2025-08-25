@@ -5,36 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Content Manager</title>
   <link href="config.yml" type="text/yaml" rel="cms-config-url">
+  <script>
+    // New, more forceful fallback script: redirect immediately on success
+    window.addEventListener('message', function(event) {
+      if (event && typeof event.data === 'string' && event.data.indexOf('authorization:github:success') === 0) {
+        try { console.log('[CMS OAuth Fallback] Success message received. Forcing redirect.'); } catch (_) {}
+        window.location.href = '/admin/';
+      }
+    });
+  </script>
 </head>
 <body>
-  <script>
-    (function () {
-      // OAuth popup handshake fallback:
-      // If Decap CMS misses the postMessage or doesn't auto-update the UI,
-      // reload the page shortly after receiving a success message.
-      var reloaded = sessionStorage.getItem('cms-oauth-reloaded') === '1';
-      window.addEventListener('message', function (e) {
-        try {
-          var msg = e.data;
-          if (typeof msg === 'string') {
-            // Minimal debug to aid diagnosis
-            if (msg.indexOf('authorizing:github') === 0) {
-              try { console.debug('[CMS OAuth] authorizing message received'); } catch (_) {}
-            }
-            if (msg.indexOf('authorization:github:success:') === 0) {
-              try { console.debug('[CMS OAuth] success message received'); } catch (_) {}
-              if (!reloaded) {
-                sessionStorage.setItem('cms-oauth-reloaded', '1');
-                // Allow the CMS a short window to persist the token, then reload
-                setTimeout(function () { location.reload(); }, 800);
-              }
-            }
-          }
-        } catch (err) { /* no-op */ }
-      }, false);
-    })();
-  </script>
-  <!-- Load Decap CMS with a cache-busting param to avoid stale client -->
-  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js?v=2"></script>
+  <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
 </body>
 </html>
