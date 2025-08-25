@@ -2,8 +2,7 @@ backend:
   name: github
   repo: blaine-w-gates/project-arrowhead
   branch: main
-  base_url: "/"
-  auth_endpoint: "api/oauth/auth"
+  base_url: /api/oauth
 
 media_folder: "website-integration/ArrowheadSolution/public/images/uploads"
 public_folder: "/images/uploads"
