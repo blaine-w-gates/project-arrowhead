@@ -72,20 +72,20 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
 
   if (!origin || !allowed.has(origin)) {
     // Block disallowed origins
-    return jsonWithCors(403, { ok: false, error: "Origin not allowed" }, cors);
+    return jsonWithCors(403, { success: false, error: "Origin not allowed" }, cors);
   }
 
   let body: any;
   try {
     body = await request.json();
   } catch {
-    return jsonWithCors(400, { ok: false, error: "Invalid JSON body" }, cors);
+    return jsonWithCors(400, { success: false, error: "Invalid JSON body" }, cors);
   }
 
   const emailRaw = typeof body?.email === "string" ? body.email : "";
   const email = emailRaw.trim().toLowerCase();
   if (!emailValid(email)) {
-    return jsonWithCors(400, { ok: false, error: "Invalid email" }, cors);
+    return jsonWithCors(400, { success: false, error: "Invalid email" }, cors);
   }
 
   const supabaseUrl = env.SUPABASE_URL ? env.SUPABASE_URL.replace(/\/$/, "") : "";
@@ -93,7 +93,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
   const table = (env.SUPABASE_LEADS_TABLE || "leads").replace(/[^a-zA-Z0-9_]/g, "");
 
   if (!supabaseUrl || !supabaseKey) {
-    return jsonWithCors(500, { ok: false, error: "Server not configured" }, cors);
+    return jsonWithCors(500, { success: false, error: "Server not configured" }, cors);
   }
 
   const insertUrl = `${supabaseUrl}/rest/v1/${encodeURIComponent(table)}?on_conflict=email`;
@@ -117,8 +117,8 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
     }
 
     const text = await res.text();
-    return jsonWithCors(502, { ok: false, error: "Upstream error", detail: text.slice(0, 200) }, cors);
+    return jsonWithCors(502, { success: false, error: "Upstream error", detail: text.slice(0, 200) }, cors);
   } catch (e: any) {
-    return jsonWithCors(500, { ok: false, error: "Unexpected error" }, cors);
+    return jsonWithCors(500, { success: false, error: "Unexpected error" }, cors);
   }
 };

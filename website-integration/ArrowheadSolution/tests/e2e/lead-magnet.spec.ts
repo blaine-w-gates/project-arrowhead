@@ -27,6 +27,8 @@ test.describe('PROD Lead Magnet API', () => {
       data: { email: `no-origin-${Date.now()}@example.com` },
     });
     expect(res.status()).toBe(403);
+    const json = await res.json().catch(() => ({}));
+    expect(json).toMatchObject({ success: false });
   });
 
   test('rejects invalid email with allowed origin', async ({ request }) => {
@@ -38,5 +40,7 @@ test.describe('PROD Lead Magnet API', () => {
       data: { email: 'not-an-email' },
     });
     expect(res.status()).toBe(400);
+    const json = await res.json().catch(() => ({}));
+    expect(json).toMatchObject({ success: false });
   });
 });
