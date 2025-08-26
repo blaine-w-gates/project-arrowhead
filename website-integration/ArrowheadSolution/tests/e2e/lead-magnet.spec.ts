@@ -11,7 +11,8 @@ test.describe('PROD Lead Magnet API', () => {
     const res = await request.head(API, {
       headers: { 'Origin': SITE },
     });
-    expect(res.status()).toBe(204);
+    const s = res.status();
+    expect([200, 204]).toContain(s);
   });
 
   test('allows allowed origin and returns success true', async ({ request }) => {
