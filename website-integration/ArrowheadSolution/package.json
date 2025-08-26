@@ -15,6 +15,15 @@
     "test:install": "playwright install --with-deps",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed --project=chromium",
+    "test:prod:e2e:access": "PLAYWRIGHT_NO_WEBSERVER=1 playwright test --project=prod-chromium -g \"PROD Access\"",
+    "test:prod:e2e:smoke": "PLAYWRIGHT_NO_WEBSERVER=1 playwright test --project=prod-chromium --grep 'Blog|robots|rss|sitemap'",
+    "test:prod:e2e:lead": "PLAYWRIGHT_NO_WEBSERVER=1 playwright test --project=prod-chromium -g \"PROD Lead Magnet API\"",
+    "cf:deploys": "node scripts/cf-pages-deploys.mjs",
+    "cf:purge": "node scripts/cf-purge-zone.mjs",
+    "cf:fetch": "node scripts/cf-access-fetch.mjs",
+    "cf:access:list-apps": "node scripts/cf-access-list-apps.mjs",
+    "cf:access:list-tokens": "node scripts/cf-access-list-service-tokens.mjs",
+    "cf:access:upsert-policy": "node scripts/cf-access-upsert-policy.mjs",
     "validate:blog": "node scripts/validate-blog.mjs"
   },
   "dependencies": {
