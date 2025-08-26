@@ -30,7 +30,7 @@ function parseAllowedOrigins(env: Record<string, string>): Set<string> {
 
 function buildCorsHeaders(origin: string | null, allowed: Set<string>): HeadersInit {
   const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, OPTIONS, HEAD",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
@@ -62,6 +62,14 @@ export const onRequestOptions = async ({ request, env }: { request: Request; env
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
   // Respond 204 for preflight regardless; CORS headers still reflect allowed origin if present
+  return new Response(null, { status: 204, headers: cors });
+};
+
+// Lightweight health/CORS check
+export const onRequestHead = async ({ request, env }: { request: Request; env: Record<string, string> }) => {
+  const origin = normalizeOrigin(request.headers.get("Origin"));
+  const allowed = parseAllowedOrigins(env);
+  const cors = buildCorsHeaders(origin, allowed);
   return new Response(null, { status: 204, headers: cors });
 };
 
