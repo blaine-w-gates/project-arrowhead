@@ -113,7 +113,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
 
     if (res.ok || res.status === 409) {
       // Treat conflict (duplicate) as success to avoid leaking existence
-      return jsonWithCors(200, { ok: true, message: "Thanks! You're on the list." }, cors);
+      return jsonWithCors(200, { success: true, message: "Thanks! You're on the list." }, cors);
     }
 
     const text = await res.text();
