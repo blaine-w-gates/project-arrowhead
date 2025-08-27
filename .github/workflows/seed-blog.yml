@@ -26,7 +26,7 @@ jobs:
         run: npm ci
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Preflight: tsx availability
+      - name: 'Preflight: tsx availability'
         run: npx tsx --version
         working-directory: website-integration/ArrowheadSolution
 
@@ -39,8 +39,15 @@ jobs:
           echo "DATABASE_URL is set (hidden)"
         working-directory: website-integration/ArrowheadSolution
 
+      - name: 'Debug: resolve DB host (no secrets)'
+        run: |
+          node -e "const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);require('dns').lookup(u.hostname,{all:true},(e,a)=>{if(e){console.error(e);process.exit(1);}console.log('addresses:',a);});"
+        working-directory: website-integration/ArrowheadSolution
+
       - name: Seed blog into Postgres
         run: npx tsx scripts/seed-blog.mts
         env:
           NODE_ENV: production
+          NODE_OPTIONS: --dns-result-order=ipv4first
+          PGSSLMODE: require
         working-directory: website-integration/ArrowheadSolution
