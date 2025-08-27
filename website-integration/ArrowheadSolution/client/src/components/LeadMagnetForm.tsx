@@ -198,7 +198,7 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
               Submitting...
             </>
           ) : (
-            'Get Free Access'
+            'Start the Free Course'
           )}
         </button>
       </form>
