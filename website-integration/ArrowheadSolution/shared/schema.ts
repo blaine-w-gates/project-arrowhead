@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -20,6 +20,11 @@ export const blogPosts = pgTable("blog_posts", {
   published: boolean("published").default(false),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    // Speeds up list queries and ordering (Postgres can scan btree index backwards for DESC)
+    idxPublishedPublishedAt: index("idx_blog_posts_published_published_at").on(table.published, table.publishedAt),
+  };
 });
 
 export const emailSubscribers = pgTable("email_subscribers", {
@@ -27,6 +32,11 @@ export const emailSubscribers = pgTable("email_subscribers", {
   email: text("email").notNull().unique(),
   subscribed: boolean("subscribed").default(true),
   createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    // email already has a UNIQUE index; add created_at index for analytics/sorting if needed
+    idxCreatedAt: index("idx_email_subscribers_created_at").on(table.createdAt),
+  };
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -64,6 +74,12 @@ export const journeySessions = pgTable("journey_sessions", {
   completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    // sessionId is UNIQUE (implicitly indexed). Add userId index for lookups by user.
+    idxUserId: index("idx_journey_sessions_user_id").on(table.userId),
+    idxUpdatedAt: index("idx_journey_sessions_updated_at").on(table.updatedAt),
+  };
 });
 
 export const tasks = pgTable("tasks", {
@@ -81,6 +97,11 @@ export const tasks = pgTable("tasks", {
   tags: text("tags").default('[]'), // JSON array of tags
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    idxSessionId: index("idx_tasks_session_id").on(table.sessionId),
+    idxUserId: index("idx_tasks_user_id").on(table.userId),
+  };
 });
 
 // Journey Session Schemas

@@ -16,8 +16,16 @@ import {
   type Task,
   type InsertTask,
   type UpdateTask
-} from "@shared/schema";
+ } from "@shared/schema";
 import { FileBlogStorage } from "./fileStorage";
+import { PostgresStorage } from "./postgresStorage";
+import { fileURLToPath } from 'url';
+import * as dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env file in the server directory
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 export interface IStorage {
   // User methods
@@ -55,7 +63,7 @@ export class MemStorage implements IStorage {
   private blogPosts: Map<number, BlogPost>;
   private emailSubscribers: Map<number, EmailSubscriber>;
   private journeySessions: Map<string, JourneySession>;
-  private tasks: Map<string, Task>;
+  private tasks: Map<number, Task>;
   private currentUserId: number;
   private currentBlogPostId: number;
   private currentEmailSubscriberId: number;
@@ -268,7 +276,6 @@ End of test.`,
   // Task methods
   async createTask(insertTask: InsertTask): Promise<Task> {
     const id = this.currentTaskId++;
-    const taskId = `task_${id}_${Date.now()}`;
     const task: Task = {
       ...insertTask,
       id,
@@ -284,16 +291,20 @@ End of test.`,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    this.tasks.set(taskId, task);
+    this.tasks.set(id, task);
     return task;
   }
 
   async getTask(taskId: string): Promise<Task | undefined> {
-    return this.tasks.get(taskId);
+    const id = parseInt(taskId, 10);
+    if (Number.isNaN(id)) return undefined;
+    return this.tasks.get(id);
   }
 
   async updateTask(taskId: string, updates: UpdateTask): Promise<Task | undefined> {
-    const existing = this.tasks.get(taskId);
+    const id = parseInt(taskId, 10);
+    if (Number.isNaN(id)) return undefined;
+    const existing = this.tasks.get(id);
     if (!existing) return undefined;
     
     const updated: Task = {
@@ -301,12 +312,14 @@ End of test.`,
       ...updates,
       updatedAt: new Date(),
     };
-    this.tasks.set(taskId, updated);
+    this.tasks.set(id, updated);
     return updated;
   }
 
   async deleteTask(taskId: string): Promise<boolean> {
-    return this.tasks.delete(taskId);
+    const id = parseInt(taskId, 10);
+    if (Number.isNaN(id)) return false;
+    return this.tasks.delete(id);
   }
 
   async getTasksBySession(sessionId: string): Promise<Task[]> {
@@ -360,4 +373,14 @@ export class HybridStorage implements IStorage {
   async getAllTasks() { return this.mem.getAllTasks(); }
 }
 
-export const storage = new HybridStorage();
+let storage: IStorage;
+
+if (process.env.DATABASE_URL) {
+  console.log('✅ Using PostgreSQL for storage');
+  storage = new PostgresStorage();
+} else {
+  console.log('⚠️ Using in-memory storage (DATABASE_URL not set)');
+  storage = new HybridStorage();
+}
+
+export { storage };

@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 import matter from "gray-matter";
 import { z } from "zod";
 import { type BlogPost } from "@shared/schema";
@@ -47,8 +48,9 @@ export class FileBlogStorage {
   private blogDir: string;
 
   constructor(baseDir?: string) {
-    // Default to ../content/blog relative to this file
-    this.blogDir = baseDir ?? path.resolve(import.meta.dirname, "..", "content", "blog");
+    // Default to ../content/blog relative to this file (ESM-safe)
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    this.blogDir = baseDir ?? path.resolve(__dirname, "..", "content", "blog");
   }
 
   private async readOneMarkdown(filePath: string, fileName: string): Promise<BlogPost | null> {
