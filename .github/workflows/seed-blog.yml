@@ -63,8 +63,7 @@ jobs:
             done
             if [ -z "${IPV4:-}" ]; then
               echo "Trying HTTPS DNS (dns.google)..."
-              IPV4=$(curl -fsSL "https://dns.google/resolve?name=$HOST&type=A" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(s);const a=j.Answer?.find(v=>v.type===1)?.data||'';process.stdout.write(a);}catch{}})
-                || true)
+              IPV4=$(curl -fsSL "https://dns.google/resolve?name=$HOST&type=A" | node -e 'let s="";process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(s);const ans=(j.Answer||[]).find(v=>v.type===1);process.stdout.write(ans?ans.data:"");}catch(e){}})' || true)
             fi
           fi
           if [ -z "${IPV4:-}" ]; then
