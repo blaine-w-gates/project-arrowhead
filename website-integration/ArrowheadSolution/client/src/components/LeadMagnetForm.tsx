@@ -50,8 +50,20 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Server error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({} as any));
+        const serverMsg = (errorData && (errorData.error || errorData.message)) || "";
+        const friendly =
+          serverMsg ||
+          (response.status === 403
+            ? "Submission not allowed from this origin. Please use the official site."
+            : response.status === 415
+            ? "Unsupported content type. Please try again."
+            : response.status === 413
+            ? "That request was too large. Please try again."
+            : response.status === 400
+            ? "Invalid input. Please check your email and try again."
+            : `Server error: ${response.status}`);
+        throw new Error(friendly);
       }
 
       setState('success');

@@ -1,43 +1,12 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import LeadMagnetForm from "@/components/LeadMagnetForm";
 
 export default function LeadMagnet() {
-  const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
-
-  const subscribeMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const response = await apiRequest("POST", "/api/email/subscribe", { email });
-      return response.json();
-    },
-    onSuccess: () => {
-      setIsSubmitted(true);
-      toast({
-        title: "Success!",
-        description: "You've been subscribed to our newsletter.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to subscribe. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    subscribeMutation.mutate(email);
-  };
 
   if (isSubmitted) {
     return (
@@ -88,23 +57,16 @@ export default function LeadMagnet() {
               </li>
             </ul>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="text-center"
-              />
-              <Button 
-                type="submit" 
-                className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                disabled={subscribeMutation.isPending}
-              >
-                {subscribeMutation.isPending ? "Subscribing..." : "Get Instant Access"}
-              </Button>
-            </form>
+            <LeadMagnetForm
+              className="space-y-4"
+              onSuccess={() => {
+                setIsSubmitted(true);
+                toast({
+                  title: "Success!",
+                  description: "You've been subscribed to our newsletter.",
+                });
+              }}
+            />
             
             <p className="text-sm text-muted-foreground mt-4">No spam, ever. Unsubscribe anytime.</p>
           </CardContent>
