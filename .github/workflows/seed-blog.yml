@@ -40,13 +40,34 @@ jobs:
         working-directory: website-integration/ArrowheadSolution
 
       - name: 'Debug: resolve DB host (no secrets)'
+        continue-on-error: true
         run: |
-          node -e "const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);require('dns').lookup(u.hostname,{all:true},(e,a)=>{if(e){console.error(e);process.exit(1);}console.log('addresses:',a);});"
+          node -e "(async()=>{const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);try{const dns=require('dns').promises;const a=await dns.lookup(u.hostname,{all:true});console.log('addresses:',a);}catch(e){console.error('DNS lookup failed:',e.message);console.log('Continuing...')}})()"
         working-directory: website-integration/ArrowheadSolution
 
       - name: 'Rewrite DATABASE_URL to IPv4 host'
+        shell: bash
         run: |
-          node -e "(async()=>{try{const fs=require('fs');const dns=require('dns').promises;const u=new URL(process.env.DATABASE_URL);const a=await dns.lookup(u.hostname,{family:4});u.hostname=a.address;if(!u.searchParams.has('sslmode')){u.searchParams.set('sslmode','require');}const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('using IPv4 addr:',a.address);console.log('sslmode:',u.searchParams.get('sslmode'));console.log('new DATABASE_URL (sanitized):',sanitized);fs.appendFileSync(process.env.GITHUB_ENV,`\nDATABASE_URL=${u.toString()}\n`);}catch(e){console.error(e);process.exit(1);}})()"
+          set -euo pipefail
+          HOST=$(node -p "new URL(process.env.DATABASE_URL).hostname")
+          echo "Host: $HOST"
+          IPV4=$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}') || true
+          if [ -z "${IPV4:-}" ]; then
+            echo "No IPv4 via getent; trying Cloudflare (1.1.1.1)..."
+            if ! command -v dig >/dev/null 2>&1; then
+              sudo apt-get update && sudo apt-get install -y dnsutils
+            fi
+            IPV4=$(dig +short A "$HOST" @1.1.1.1 | head -n1 || true)
+          fi
+          if [ -z "${IPV4:-}" ]; then
+            echo "No IPv4 address found; skipping rewrite"
+          else
+            NEW_URL=$(node -p "const u=new URL(process.env.DATABASE_URL); u.hostname='$IPV4'; if(!u.searchParams.has('sslmode')) u.searchParams.set('sslmode','require'); u.toString()")
+            SANITIZED=$(node -p "const u=new URL(process.env.DATABASE_URL); u.hostname='$IPV4'; if(!u.searchParams.has('sslmode')) u.searchParams.set('sslmode','require'); u.toString().replace(/:[^:@\\/]+@/,'://****@')")
+            echo "IPv4: $IPV4"
+            echo "Rewritten DATABASE_URL (sanitized): $SANITIZED"
+            echo "DATABASE_URL=$NEW_URL" >> "$GITHUB_ENV"
+          fi
         working-directory: website-integration/ArrowheadSolution
 
       - name: Seed blog into Postgres
