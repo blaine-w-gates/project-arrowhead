@@ -9,8 +9,10 @@ import { test, expect } from '@playwright/test';
 
 test('Blog list ordering by date desc', async ({ page }) => {
   await page.goto('/blog');
-  // select only post card headings inside anchor links to avoid sidebar headings
-  const titles = await page.locator('a[href^="/blog/"] h3').allTextContents();
+  // wait for at least 4 post cards to render (ensure client-side fetch completed)
+  const cards = page.locator('a[href^="/blog/"] h3');
+  await cards.nth(3).waitFor({ state: 'visible' });
+  const titles = await cards.allTextContents();
   // We expect at least the first 4 titles to be in the expected order
   expect(titles.slice(0, 4)).toEqual([
     'XSS Test: Script Sanitization',

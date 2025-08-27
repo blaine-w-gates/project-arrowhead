@@ -34,6 +34,8 @@ If the Origin header is missing or not in the allowlist, the API returns 403 wit
 
 Requirements:
 - Valid email format (length 5–320, simple regex validation)
+ - Content-Type must be `application/json`
+ - Max payload size: 2 KB
 
 ## Responses
 
@@ -46,6 +48,16 @@ Requirements:
 - 400 Bad Request (invalid email / bad JSON):
 ```json
 { "success": false, "error": "Invalid email" }
+```
+
+- 413 Payload Too Large (JSON exceeds max size):
+```json
+{ "success": false, "error": "Payload too large" }
+```
+
+- 415 Unsupported Media Type (missing/incorrect Content-Type):
+```json
+{ "success": false, "error": "Content-Type must be application/json" }
 ```
 
 - 403 Forbidden (CORS disallowed):
@@ -70,6 +82,8 @@ Requirements:
 - `PUBLIC_SITE_URL` (required for proper CORS in prod)
 - `ALLOWED_ORIGINS` (optional, comma-separated)
 - `SUPABASE_LEADS_TABLE` (optional, default: `leads`)
+ - `TURNSTILE_SECRET_KEY` (optional; enable Cloudflare Turnstile verification)
+ - `TURNSTILE_REQUIRED` (optional; set to `true` to enforce Turnstile)
 
 ## Supabase table
 
@@ -83,6 +97,28 @@ create table if not exists public.leads (
 ```
 
 RLS is not required when using the service role key.
+
+## Optional: Cloudflare Turnstile (bot protection)
+
+If `TURNSTILE_SECRET_KEY` is set and `TURNSTILE_REQUIRED=true`, the API will verify a Turnstile token.
+
+Frontend must include one of the following fields in the JSON body:
+```json
+{ "email": "user@example.com", "turnstileToken": "<token>" }
+```
+or
+```json
+{ "email": "user@example.com", "cf-turnstile-response": "<token>" }
+```
+
+A missing/invalid token yields:
+```json
+{ "success": false, "error": "Captcha required" }
+```
+or
+```json
+{ "success": false, "error": "Captcha verification failed" }
+```
 
 ## Running prod E2E tests
 

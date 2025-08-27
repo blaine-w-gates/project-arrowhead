@@ -5,7 +5,16 @@
   <link>/blog</link>
   <description>Expert advice on business strategy and planning</description>
   <language>en-us</language>
-  <lastBuildDate>Fri, 22 Aug 2025 23:23:36 GMT</lastBuildDate>
+  <lastBuildDate>Tue, 26 Aug 2025 21:23:45 GMT</lastBuildDate>
+  <item>
+    <title><![CDATA[blog]]></title>
+    <link>/blog/2025-08-26-blog</link>
+    <guid>/blog/2025-08-26-blog</guid>
+    <pubDate>Tue, 26 Aug 2025 15:41:00 GMT</pubDate>
+    <description><![CDATA[text
+
+more text]]></description>
+  </item>
   <item>
     <title><![CDATA[XSS Test: Script Sanitization]]></title>
     <link>/blog/xss-test</link>

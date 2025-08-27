@@ -76,4 +76,31 @@ test.describe('PROD Lead Magnet API', () => {
     const json = await res.json().catch(() => ({}));
     expect(json).toMatchObject({ success: false });
   });
+
+  test('returns 415 when Content-Type is not application/json', async ({ request }) => {
+    const res = await request.post(API, {
+      headers: {
+        'Content-Type': 'text/plain',
+        'Origin': SITE,
+      },
+      data: 'email=user@example.com',
+    });
+    expect(res.status()).toBe(415);
+    const json = await res.json().catch(() => ({}));
+    expect(json).toMatchObject({ success: false });
+  });
+
+  test('returns 413 when payload exceeds 2KB', async ({ request }) => {
+    const big = 'a'.repeat(2500);
+    const res = await request.post(API, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': SITE,
+      },
+      data: { email: `x@ex.com`, filler: big },
+    });
+    expect(res.status()).toBe(413);
+    const json = await res.json().catch(() => ({}));
+    expect(json).toMatchObject({ success: false });
+  });
 });

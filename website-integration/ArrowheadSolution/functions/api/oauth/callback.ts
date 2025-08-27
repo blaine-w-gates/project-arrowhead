@@ -76,8 +76,36 @@ function htmlCallback(status: "success" | "error", token?: string) {
     <p>Completing authorization...</p>
   </body>
 </html>`;
-  return new Response(html, { headers: { "Content-Type": "text/html", "Cache-Control": "no-store" } });
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      // Allow only inline script present in this document, disallow all external loads
+      "Content-Security-Policy": "default-src 'none'; script-src 'unsafe-inline'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'",
+    },
+  });
 }
+
+export const onRequestHead = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Cache-Control": "no-store",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      "Content-Security-Policy": "default-src 'none'; frame-ancestors 'self'",
+      "Allow": "GET, HEAD",
+    },
+  });
+};
 
 async function verifySignedState(env: Record<string, string>, state: string): Promise<boolean> {
   const secret = env.OAUTH_STATE_SECRET || env.GITHUB_CLIENT_SECRET;

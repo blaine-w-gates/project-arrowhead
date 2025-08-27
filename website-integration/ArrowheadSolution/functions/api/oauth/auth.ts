@@ -10,13 +10,28 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: Re
   const params = new URLSearchParams({
     client_id: env.GITHUB_CLIENT_ID,
     redirect_uri: redirectUri,
-    // Use broader scope to support private repos and write operations
-    scope: "repo,user",
+    // Minimal scope for private repos + write operations
+    scope: "repo",
     state,
   });
 
   const authorizeUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
-  return Response.redirect(authorizeUrl, 302);
+  // Explicit 302 with no-store to avoid caching of redirects
+  return new Response(null, { status: 302, headers: { Location: authorizeUrl, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } });
+};
+
+export const onRequestHead = async () => {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Cache-Control": "no-store",
+      "Referrer-Policy": "no-referrer",
+      "X-Content-Type-Options": "nosniff",
+      "X-Robots-Tag": "noindex, nofollow",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      "Allow": "GET, HEAD",
+    },
+  });
 };
 
 async function createSignedState(env: Record<string, string>): Promise<string> {

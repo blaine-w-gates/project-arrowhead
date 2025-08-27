@@ -53,7 +53,7 @@ function emailValid(raw: string): boolean {
 function jsonWithCors(status: number, data: unknown, cors: HeadersInit): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json", ...(cors as Record<string, string>) },
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains", ...(cors as Record<string, string>) },
   });
 }
 
@@ -62,7 +62,7 @@ export const onRequestOptions = async ({ request, env }: { request: Request; env
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
   // Respond 204 for preflight regardless; CORS headers still reflect allowed origin if present
-  return new Response(null, { status: 204, headers: cors });
+  return new Response(null, { status: 204, headers: { ...(cors as Record<string, string>), "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "Allow": "POST, OPTIONS, HEAD" } });
 };
 
 // Lightweight health/CORS check
@@ -70,7 +70,15 @@ export const onRequestHead = async ({ request, env }: { request: Request; env: R
   const origin = normalizeOrigin(request.headers.get("Origin"));
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
-  return new Response(null, { status: 204, headers: cors });
+  return new Response(null, { status: 204, headers: { ...(cors as Record<string, string>), "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "Allow": "POST, OPTIONS, HEAD" } });
+};
+
+// Disallow GET to prevent caching or accidental exposure; advertise allowed methods
+export const onRequestGet = async ({ request, env }: { request: Request; env: Record<string, string> }) => {
+  const origin = normalizeOrigin(request.headers.get("Origin"));
+  const allowed = parseAllowedOrigins(env);
+  const cors = buildCorsHeaders(origin, allowed);
+  return new Response(null, { status: 405, headers: { ...(cors as Record<string, string>), "Allow": "POST, OPTIONS, HEAD", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } });
 };
 
 export const onRequestPost = async ({ request, env }: { request: Request; env: Record<string, string> }) => {
@@ -83,9 +91,27 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
     return jsonWithCors(403, { success: false, error: "Origin not allowed" }, cors);
   }
 
+  // Enforce JSON Content-Type and small payloads
+  const ct = request.headers.get("Content-Type") || "";
+  if (!/application\/json/i.test(ct)) {
+    return jsonWithCors(415, { success: false, error: "Content-Type must be application/json" }, cors);
+  }
+  const maxBytes = 2048; // 2KB max JSON body
+  const lenHeader = request.headers.get("Content-Length");
+  if (lenHeader) {
+    const n = parseInt(lenHeader, 10);
+    if (!Number.isNaN(n) && n > maxBytes) {
+      return jsonWithCors(413, { success: false, error: "Payload too large" }, cors);
+    }
+  }
+
   let body: any;
   try {
-    body = await request.json();
+    const text = await request.text();
+    if (text.length > maxBytes) {
+      return jsonWithCors(413, { success: false, error: "Payload too large" }, cors);
+    }
+    body = JSON.parse(text);
   } catch {
     return jsonWithCors(400, { success: false, error: "Invalid JSON body" }, cors);
   }
@@ -94,6 +120,37 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
   const email = emailRaw.trim().toLowerCase();
   if (!emailValid(email)) {
     return jsonWithCors(400, { success: false, error: "Invalid email" }, cors);
+  }
+
+  // Optional Cloudflare Turnstile verification
+  try {
+    const turnstileSecret = env.TURNSTILE_SECRET_KEY || "";
+    const requireTurnstile = (env.TURNSTILE_REQUIRED || "").toLowerCase() === "true";
+    if (turnstileSecret && requireTurnstile) {
+      const token = typeof body?.turnstileToken === "string"
+        ? body.turnstileToken.trim()
+        : (typeof body?.["cf-turnstile-response"] === "string" ? (body["cf-turnstile-response"] as string).trim() : "");
+      if (!token) {
+        return jsonWithCors(400, { success: false, error: "Captcha required" }, cors);
+      }
+      const remoteip = request.headers.get("CF-Connecting-IP") || (request.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+      const bodyParams = new URLSearchParams({ secret: turnstileSecret, response: token });
+      if (remoteip) bodyParams.set("remoteip", remoteip);
+      const tsRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: bodyParams.toString(),
+      });
+      const tsJson = await tsRes.json().catch(() => ({ success: false }));
+      if (!tsJson?.success) {
+        return jsonWithCors(400, { success: false, error: "Captcha verification failed" }, cors);
+      }
+    }
+  } catch {
+    // Fail closed if Turnstile is required but verification errors
+    if ((env.TURNSTILE_REQUIRED || "").toLowerCase() === "true") {
+      return jsonWithCors(400, { success: false, error: "Captcha verification failed" }, cors);
+    }
   }
 
   const supabaseUrl = env.SUPABASE_URL ? env.SUPABASE_URL.replace(/\/$/, "") : "";

@@ -1,0 +1,11 @@
+{
+  "id": 48187683,
+  "title": "blog",
+  "slug": "2025-08-26-blog",
+  "excerpt": "text\n\nmore text",
+  "content": "## Model switching strategy:\n\n**Use GPT-5 (me) for**:\n\n* Complex backend architecture decisions\n* Database schema design and security implementation\n* Integration troubleshooting with multiple systems\n* Performance optimization\n\n**Switch to Claude 4 for**:\n\n* Rapid iteration on frontend components\n* Content management and blog article processing\n* UI/UX refinements and user testing\n* Quick debugging of specific issues\n\n**Ready to begin Phase 1 immediately.** I need the Supabase project URL and anon key to provide to Architect, then I'll build the secure Cloudflare function endpoint.\n\nWhat are the Supabase credentials?\n",
+  "imageUrl": "/images/uploads/whatsapp-image-2025-07-18-at-15.13.52.jpeg",
+  "published": true,
+  "publishedAt": "2025-08-26T15:41:00.000Z",
+  "createdAt": "2025-08-26T15:41:00.000Z"
+}
