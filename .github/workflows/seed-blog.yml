@@ -44,6 +44,11 @@ jobs:
           node -e "const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);require('dns').lookup(u.hostname,{all:true},(e,a)=>{if(e){console.error(e);process.exit(1);}console.log('addresses:',a);});"
         working-directory: website-integration/ArrowheadSolution
 
+      - name: 'Rewrite DATABASE_URL to IPv4 host'
+        run: |
+          node -e "(async()=>{try{const fs=require('fs');const dns=require('dns').promises;const u=new URL(process.env.DATABASE_URL);const a=await dns.lookup(u.hostname,{family:4});u.hostname=a.address;if(!u.searchParams.has('sslmode')){u.searchParams.set('sslmode','require');}const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('using IPv4 addr:',a.address);console.log('sslmode:',u.searchParams.get('sslmode'));console.log('new DATABASE_URL (sanitized):',sanitized);fs.appendFileSync(process.env.GITHUB_ENV,`\nDATABASE_URL=${u.toString()}\n`);}catch(e){console.error(e);process.exit(1);}})()"
+        working-directory: website-integration/ArrowheadSolution
+
       - name: Seed blog into Postgres
         run: npx tsx scripts/seed-blog.mts
         env:
