@@ -45,7 +45,7 @@ jobs:
           node -e "(async()=>{const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);try{const dns=require('dns').promises;const a=await dns.lookup(u.hostname,{all:true});console.log('addresses:',a);}catch(e){console.error('DNS lookup failed:',e.message);console.log('Continuing...')}})()"
         working-directory: website-integration/ArrowheadSolution
 
-      - name: 'Rewrite DATABASE_URL to IPv4 host'
+      - name: 'Resolve IPv4 and export PGHOSTADDR'
         shell: bash
         run: |
           set -euo pipefail
@@ -53,55 +53,35 @@ jobs:
           echo "Host: $HOST"
           IPV4=$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}') || true
           if [ -z "${IPV4:-}" ]; then
-            echo "No IPv4 via getent; trying Cloudflare (1.1.1.1)..."
+            echo "No IPv4 via getent; trying public resolvers..."
             if ! command -v dig >/dev/null 2>&1; then
               sudo apt-get update && sudo apt-get install -y dnsutils
             fi
-            IPV4=$(dig +short A "$HOST" @1.1.1.1 | head -n1 || true)
+            for RES in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do
+              IPV4=$(dig +short A "$HOST" @"$RES" | head -n1 || true)
+              [ -n "${IPV4:-}" ] && break
+            done
+            if [ -z "${IPV4:-}" ]; then
+              echo "Trying HTTPS DNS (dns.google)..."
+              IPV4=$(curl -fsSL "https://dns.google/resolve?name=$HOST&type=A" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>{try{const j=JSON.parse(s);const a=j.Answer?.find(v=>v.type===1)?.data||'';process.stdout.write(a);}catch{}})
+                || true)
+            fi
           fi
           if [ -z "${IPV4:-}" ]; then
-            echo "No IPv4 address found; skipping rewrite"
+            echo "No IPv4 address found; continuing without PGHOSTADDR (may fail on IPv6-only)."
           else
-            NEW_URL=$(node -p "const u=new URL(process.env.DATABASE_URL); u.hostname='$IPV4'; if(!u.searchParams.has('sslmode')) u.searchParams.set('sslmode','require'); u.toString()")
-            SANITIZED=$(node -p "const u=new URL(process.env.DATABASE_URL); u.hostname='$IPV4'; if(!u.searchParams.has('sslmode')) u.searchParams.set('sslmode','require'); u.toString().replace(/:[^:@\\/]+@/,'://****@')")
-            echo "IPv4: $IPV4"
-            echo "Rewritten DATABASE_URL (sanitized): $SANITIZED"
-            echo "DATABASE_URL=$NEW_URL" >> "$GITHUB_ENV"
+            echo "PGHOSTADDR=$IPV4" >> "$GITHUB_ENV"
+            echo "Exported PGHOSTADDR: $IPV4"
           fi
         working-directory: website-integration/ArrowheadSolution
 
       - name: 'Verify effective DATABASE_URL host (sanitized)'
         run: |
-          node -e "const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('effective DATABASE_URL (sanitized):',sanitized);"
+          node -e "const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('PGHOSTADDR:',process.env.PGHOSTADDR||'');console.log('effective DATABASE_URL (sanitized):',sanitized);"
         working-directory: website-integration/ArrowheadSolution
 
       - name: Seed blog into Postgres
-        shell: bash
-        run: |
-          set -euo pipefail
-          HOST=$(node -p "new URL(process.env.DATABASE_URL).hostname")
-          # If HOST is not already IPv4, try to resolve one
-          if [[ ! "$HOST" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-            IPV4=$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}') || true
-            if [ -z "${IPV4:-}" ]; then
-              if ! command -v dig >/dev/null 2>&1; then
-                sudo apt-get update && sudo apt-get install -y dnsutils
-              fi
-              IPV4=$(dig +short A "$HOST" @1.1.1.1 | head -n1 || true)
-            fi
-          else
-            IPV4="$HOST"
-          fi
-          if [[ -n "${IPV4:-}" && "$IPV4" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-            EFFECTIVE_URL=$(node -p "const u=new URL(process.env.DATABASE_URL); u.hostname='$IPV4'; if(!u.searchParams.has('sslmode')) u.searchParams.set('sslmode','require'); u.toString()")
-            EFFECTIVE_SANITIZED=$(node -p "const u=new URL(process.env.DATABASE_URL); u.hostname='$IPV4'; if(!u.searchParams.has('sslmode')) u.searchParams.set('sslmode','require'); u.toString().replace(/:[^:@\\/]+@/,'://****@')")
-            echo "Seeding with IPv4: $IPV4"
-            echo "Effective DATABASE_URL (sanitized): $EFFECTIVE_SANITIZED"
-            DATABASE_URL="$EFFECTIVE_URL" npx tsx scripts/seed-blog.mts
-          else
-            echo "No IPv4 available; seeding with original DATABASE_URL (may fail on IPv6-only host)."
-            npx tsx scripts/seed-blog.mts
-          fi
+        run: npx tsx scripts/seed-blog.mts
         env:
           NODE_ENV: production
           NODE_OPTIONS: --dns-result-order=ipv4first
