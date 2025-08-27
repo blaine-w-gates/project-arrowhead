@@ -11,6 +11,8 @@ jobs:
       contents: read
     env:
       DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -37,6 +39,15 @@ jobs:
             exit 1
           fi
           echo "DATABASE_URL is set (hidden)"
+        working-directory: website-integration/ArrowheadSolution
+
+      - name: 'Preflight: REST fallback secrets (optional)'
+        run: |
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "REST fallback secrets not set; will attempt direct Postgres (IPv4 enforced)."
+          else
+            echo "REST fallback secrets detected; seeding will use PostgREST."
+          fi
         working-directory: website-integration/ArrowheadSolution
 
       - name: 'Debug: resolve DB host (no secrets)'
