@@ -8,9 +8,40 @@ import { blogPosts, type InsertBlogPost } from '../shared/schema.ts';
 import { FileBlogStorage } from '../server/fileStorage.ts';
 import type { BlogPost } from '../shared/schema.ts';
 
+async function restUpsertBlogPosts(posts: BlogPost[], supabaseUrl: string, serviceKey: string) {
+  const base = supabaseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/v1/blog_posts?on_conflict=slug`;
+  const rows = posts.map((p) => ({
+    title: p.title,
+    slug: p.slug,
+    excerpt: p.excerpt,
+    content: p.content,
+    image_url: p.imageUrl ?? null,
+    published: !!p.published,
+    published_at: p.publishedAt ? new Date(p.publishedAt).toISOString() : null,
+  }));
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'apikey': serviceKey,
+      'Authorization': `Bearer ${serviceKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=representation',
+    },
+    body: JSON.stringify(rows),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`REST upsert failed: ${res.status} ${res.statusText} - ${text}`);
+  }
+  const data = await res.json().catch(() => []);
+  const count = Array.isArray(data) ? data.length : 0;
+  console.log(`[seed-blog] REST upsert completed. Upserted: ${count}, Total processed: ${posts.length}`);
+}
+
 // Idempotent seeding: insert-or-update by slug
 async function run() {
-  const db = getDb();
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const repoRoot = path.resolve(__dirname, '..');
   const blogDir = path.resolve(repoRoot, 'content', 'blog');
@@ -19,9 +50,18 @@ async function run() {
   const fsPosts: BlogPost[] = await fsReader.getBlogPosts();
   if (!fsPosts.length) {
     console.log('[seed-blog] No blog posts found on filesystem at:', blogDir);
-    await closeDb();
     return;
   }
+
+  // Prefer REST fallback if available (avoids IPv6-only TCP issues in CI)
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (supabaseUrl && serviceKey) {
+    await restUpsertBlogPosts(fsPosts, supabaseUrl, serviceKey);
+    return;
+  }
+
+  const db = getDb();
 
   let inserted = 0;
   let updated = 0;
