@@ -18,6 +18,7 @@
     "test:prod:e2e:access": "PLAYWRIGHT_NO_WEBSERVER=1 playwright test --project=prod-chromium -g \"PROD Access\"",
     "test:prod:e2e:smoke": "PLAYWRIGHT_NO_WEBSERVER=1 playwright test --project=prod-chromium --grep 'Blog|robots|rss|sitemap'",
     "test:prod:e2e:lead": "PLAYWRIGHT_NO_WEBSERVER=1 playwright test --project=prod-chromium -g \"PROD Lead Magnet API\"",
+    "test:prod:e2e:lead:headonly": "PLAYWRIGHT_NO_WEBSERVER=1 E2E_SKIP_LEAD_POSTS=1 playwright test --project=prod-chromium -g \"PROD Lead Magnet API\"",
     "cf:deploys": "node scripts/cf-pages-deploys.mjs",
     "cf:purge": "node scripts/cf-purge-zone.mjs",
     "cf:fetch": "node scripts/cf-access-fetch.mjs",

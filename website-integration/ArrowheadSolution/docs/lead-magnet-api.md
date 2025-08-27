@@ -85,6 +85,12 @@ Requirements:
  - `TURNSTILE_SECRET_KEY` (optional; enable Cloudflare Turnstile verification)
  - `TURNSTILE_REQUIRED` (optional; set to `true` to enforce Turnstile)
 
+### Frontend (Vite)
+
+- `VITE_TURNSTILE_SITE_KEY` (optional)
+  - When set, the UI renders a Turnstile widget and passes the token in the request body as both `turnstileToken` and `cf-turnstile-response`.
+  - If `TURNSTILE_REQUIRED=true` on the server and this is not set or the token is missing/invalid, the API will return `400` with `{ success: false, error: "Captcha required" }`.
+
 ## Supabase table
 
 A minimal schema example:

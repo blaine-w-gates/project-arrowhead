@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const SITE = (process.env.PUBLIC_SITE_URL || 'https://project-arrowhead.pages.dev').replace(/\/$/, '');
 const API = `${SITE}/api/lead-magnet`;
+const SKIP_POSTS = process.env.E2E_SKIP_LEAD_POSTS === '1' || process.env.TURNSTILE_REQUIRED === 'true';
 
 // These tests hit production Pages Functions. Ensure env vars are configured in Cloudflare.
 // Run with: PLAYWRIGHT_NO_WEBSERVER=1 npx playwright test -g "PROD Lead Magnet API"
@@ -16,6 +17,7 @@ test.describe('PROD Lead Magnet API', () => {
   });
 
   test('allows allowed origin and returns success true', async ({ request }) => {
+    test.skip(SKIP_POSTS, 'Skipping POST tests when Turnstile is required');
     const email = `e2e-${Date.now()}@example.com`;
     const res = await request.post(API, {
       headers: {
@@ -30,6 +32,7 @@ test.describe('PROD Lead Magnet API', () => {
   });
 
   test('duplicate submission treated as success', async ({ request }) => {
+    test.skip(SKIP_POSTS, 'Skipping POST tests when Turnstile is required');
     const email = `dup-${Date.now()}@example.com`;
     const first = await request.post(API, {
       headers: {
@@ -55,6 +58,7 @@ test.describe('PROD Lead Magnet API', () => {
   });
 
   test('rejects missing origin', async ({ request }) => {
+    test.skip(SKIP_POSTS, 'Skipping POST tests when Turnstile is required');
     const res = await request.post(API, {
       headers: { 'Content-Type': 'application/json' },
       data: { email: `no-origin-${Date.now()}@example.com` },
@@ -65,6 +69,7 @@ test.describe('PROD Lead Magnet API', () => {
   });
 
   test('rejects invalid email with allowed origin', async ({ request }) => {
+    test.skip(SKIP_POSTS, 'Skipping POST tests when Turnstile is required');
     const res = await request.post(API, {
       headers: {
         'Content-Type': 'application/json',
@@ -78,6 +83,7 @@ test.describe('PROD Lead Magnet API', () => {
   });
 
   test('returns 415 when Content-Type is not application/json', async ({ request }) => {
+    test.skip(SKIP_POSTS, 'Skipping POST tests when Turnstile is required');
     const res = await request.post(API, {
       headers: {
         'Content-Type': 'text/plain',
@@ -91,6 +97,7 @@ test.describe('PROD Lead Magnet API', () => {
   });
 
   test('returns 413 when payload exceeds 2KB', async ({ request }) => {
+    test.skip(SKIP_POSTS, 'Skipping POST tests when Turnstile is required');
     const big = 'a'.repeat(2500);
     const res = await request.post(API, {
       headers: {

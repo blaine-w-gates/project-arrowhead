@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './LeadMagnetForm.css';
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (el: HTMLElement, options: { sitekey: string; callback: (token: string) => void; 'error-callback'?: () => void; 'expired-callback'?: () => void; theme?: string; action?: string; }) => void;
+      reset?: (el?: HTMLElement) => void;
+    };
+  }
+}
 
 interface LeadMagnetFormProps {
   onSuccess?: (email: string) => void;
@@ -12,6 +21,9 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
   const [email, setEmail] = useState('');
   const [state, setState] = useState<FormState>('default');
   const [errorMessage, setErrorMessage] = useState('');
+  const [tsToken, setTsToken] = useState('');
+  const widgetRef = useRef<HTMLDivElement | null>(null);
+  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,13 +52,17 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
     setState('submitting');
 
     try {
-      // TODO: Replace with actual endpoint once Webmaster provides it
       const response = await fetch('/api/lead-magnet', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ 
+          email: email.trim(),
+          // Provide both keys to satisfy server-side parsing
+          turnstileToken: tsToken || undefined,
+          'cf-turnstile-response': tsToken || undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -73,6 +89,7 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
       setTimeout(() => {
         setEmail('');
         setState('default');
+        setTsToken('');
       }, 3000);
 
     } catch (error) {
@@ -107,6 +124,37 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
     );
   }
 
+  useEffect(() => {
+    if (!siteKey || !widgetRef.current) return;
+    const ensureRender = () => {
+      try {
+        if (window.turnstile && widgetRef.current) {
+          window.turnstile.render(widgetRef.current, {
+            sitekey: siteKey,
+            callback: (token: string) => setTsToken(token),
+            'error-callback': () => setTsToken(''),
+            'expired-callback': () => setTsToken(''),
+            theme: 'light',
+            action: 'lead_magnet_submit',
+          });
+        }
+      } catch {}
+    };
+    if (window.turnstile) {
+      ensureRender();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.defer = true;
+    script.onload = ensureRender;
+    document.head.appendChild(script);
+    return () => {
+      try { window.turnstile?.reset?.(); } catch {}
+    };
+  }, [siteKey]);
+
   return (
     <div className={`lead-magnet-form ${className}`}>
       <form onSubmit={handleSubmit} noValidate>
@@ -125,13 +173,19 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
             disabled={state === 'submitting'}
             required
             aria-describedby={errorMessage ? 'email-error' : undefined}
+            aria-invalid={state === 'error'}
           />
           {errorMessage && (
-            <div id="email-error" className="error-message" role="alert">
+            <div id="email-error" className="error-message" role="alert" aria-live="polite">
               {errorMessage}
             </div>
           )}
         </div>
+        {siteKey && (
+          <div className="form-group">
+            <div ref={widgetRef} className="cf-turnstile" />
+          </div>
+        )}
         
         <button
           type="submit"
