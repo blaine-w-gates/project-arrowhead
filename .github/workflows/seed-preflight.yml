@@ -1,16 +1,24 @@
-name: Seed Blog to Postgres
+name: Seed Workflow Preflight
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - ".github/workflows/seed-blog.yml"
+      - ".github/workflows/seed-preflight.yml"
+      - "website-integration/ArrowheadSolution/**"
+  pull_request:
+    paths:
+      - ".github/workflows/seed-blog.yml"
+      - ".github/workflows/seed-preflight.yml"
+      - "website-integration/ArrowheadSolution/**"
 
 jobs:
-  seed:
-    name: Run blog seeding script
+  preflight:
+    name: Verify tsx and TypeScript build
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,17 +38,10 @@ jobs:
         run: npx tsx --version
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Verify env
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is not set. Add SUPABASE_DATABASE_URL as a GitHub Actions secret." >&2
-            exit 1
-          fi
-          echo "DATABASE_URL is set (hidden)"
+      - name: TypeScript check
+        run: npm run check
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Seed blog into Postgres
-        run: npx tsx scripts/seed-blog.mts
-        env:
-          NODE_ENV: production
+      - name: Validate blog content
+        run: npm run validate:blog
         working-directory: website-integration/ArrowheadSolution
