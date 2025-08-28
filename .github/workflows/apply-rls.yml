@@ -91,6 +91,7 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --dns-result-order=ipv4first
           PGSSLMODE: require
+          PGHOSTADDR: ${{ env.PGHOSTADDR }}
         working-directory: website-integration/ArrowheadSolution
 
       - name: Job summary
