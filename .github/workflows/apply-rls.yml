@@ -36,6 +36,15 @@ jobs:
         run: npm ci
         working-directory: website-integration/ArrowheadSolution
 
+      - name: "Preflight: validate DATABASE_URL"
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is empty. Set the Production secret SUPABASE_DATABASE_URL to your full Postgres URI." >&2
+            exit 1
+          fi
+          node -e "try{ new URL(process.env.DATABASE_URL); console.log('DATABASE_URL validated'); } catch(e){ console.error('Invalid DATABASE_URL. Expected a full Postgres URL like: postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require'); process.exit(2); }"
+        working-directory: website-integration/ArrowheadSolution
+
       - name: "Debug: resolve DB host (no secrets)"
         continue-on-error: true
         run: |
@@ -73,7 +82,7 @@ jobs:
 
       - name: Verify effective DATABASE_URL host (sanitized)
         run: |
-          node -e "const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('PGHOSTADDR:',process.env.PGHOSTADDR||'');console.log('effective DATABASE_URL (sanitized):',sanitized);"
+          node -e "try{const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('PGHOSTADDR:',process.env.PGHOSTADDR||'');console.log('effective DATABASE_URL (sanitized):',sanitized);}catch(e){console.log('Skipping verify: DATABASE_URL is not a valid URL');}"
         working-directory: website-integration/ArrowheadSolution
 
       - name: Apply RLS migration
