@@ -2,6 +2,14 @@ name: Seed Blog to Postgres
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'website-integration/ArrowheadSolution/content/blog/**'
+
+concurrency:
+  group: seed-blog-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   seed:
@@ -96,4 +104,24 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --dns-result-order=ipv4first
           PGSSLMODE: require
+        working-directory: website-integration/ArrowheadSolution
+
+      - name: 'Post-verify: blog_posts row count (REST)'
+        run: |
+          node -e "const u=(process.env.SUPABASE_URL||'').replace(/\/$/,''); const k=process.env.SUPABASE_SERVICE_ROLE_KEY; (async()=>{ if(!u||!k){ console.log('No REST secrets; skipping'); return;} const url=u + '/rest/v1/blog_posts?select=slug'; const res=await fetch(url,{headers:{apikey:k,Authorization:'Bearer '+k}}); const arr=await res.json(); const n=Array.isArray(arr)?arr.length:0; console.log('blog_posts count:', n); if (Array.isArray(arr)) { console.log('sample slugs:', arr.slice(0,10).map(x=>x.slug).join(',')); } })().catch(e=>{ console.error('verify failed', e.message); });"
+        working-directory: website-integration/ArrowheadSolution
+
+      - name: Upload seed report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-report
+          path: website-integration/ArrowheadSolution/seed-report.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Job summary
+        if: always()
+        run: |
+          node -e "const fs=require('fs'); const p='seed-report.json'; if(!fs.existsSync(p)){ console.log('No seed-report.json; skipping summary'); process.exit(0);} const r=JSON.parse(fs.readFileSync(p,'utf8')); const hdr=['# Seed Report','','Mode: '+r.mode,'Total: '+r.total, r.mode==='rest' ? ('Upserted: '+r.upserted) : ('Inserted: '+r.inserted+', Updated: '+r.updated),'','Slugs:', (r.slugs||[]).slice(0,20).map(s=>'- '+s).join('\n')].join('\n'); fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, hdr); console.log('Wrote summary');"
         working-directory: website-integration/ArrowheadSolution
