@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push --config=drizzle.config.cjs",
     "db:seed:blog": "npx tsx scripts/seed-blog.mts",
     "db:seed:audit": "node scripts/audit-blog-seed.mjs",
+    "db:rls:apply": "node scripts/apply-rls.mjs",
     "test:install": "playwright install --with-deps",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed --project=chromium",

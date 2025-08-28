@@ -1,19 +1,19 @@
-name: Seed Blog to Postgres
+name: Apply RLS Policies
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
     paths:
-      - 'website-integration/ArrowheadSolution/content/blog/**'
+      - 'website-integration/ArrowheadSolution/drizzle/migrations/0001_blog_posts_rls.sql'
 
 concurrency:
-  group: seed-blog-${{ github.ref }}
+  group: apply-rls-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  seed:
-    name: Run blog seeding script
+  apply:
+    name: Apply RLS to Production DB
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,8 +21,6 @@ jobs:
       name: Production
     env:
       DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,35 +36,13 @@ jobs:
         run: npm ci
         working-directory: website-integration/ArrowheadSolution
 
-      - name: 'Preflight: tsx availability'
-        run: npx tsx --version
-        working-directory: website-integration/ArrowheadSolution
-
-      - name: Verify env
-        run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "DATABASE_URL is not set. Add SUPABASE_DATABASE_URL as a GitHub Actions secret." >&2
-            exit 1
-          fi
-          echo "DATABASE_URL is set (hidden)"
-        working-directory: website-integration/ArrowheadSolution
-
-      - name: 'Preflight: REST fallback secrets (optional)'
-        run: |
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
-            echo "REST fallback secrets not set; will attempt direct Postgres (IPv4 enforced)."
-          else
-            echo "REST fallback secrets detected; seeding will use PostgREST."
-          fi
-        working-directory: website-integration/ArrowheadSolution
-
-      - name: 'Debug: resolve DB host (no secrets)'
+      - name: Debug: resolve DB host (no secrets)
         continue-on-error: true
         run: |
           node -e "(async()=>{const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);try{const dns=require('dns').promises;const a=await dns.lookup(u.hostname,{all:true});console.log('addresses:',a);}catch(e){console.error('DNS lookup failed:',e.message);console.log('Continuing...')}})()"
         working-directory: website-integration/ArrowheadSolution
 
-      - name: 'Resolve IPv4 and export PGHOSTADDR'
+      - name: Resolve IPv4 and export PGHOSTADDR
         shell: bash
         run: |
           set -euo pipefail
@@ -95,35 +71,22 @@ jobs:
           fi
         working-directory: website-integration/ArrowheadSolution
 
-      - name: 'Verify effective DATABASE_URL host (sanitized)'
+      - name: Verify effective DATABASE_URL host (sanitized)
         run: |
           node -e "const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('PGHOSTADDR:',process.env.PGHOSTADDR||'');console.log('effective DATABASE_URL (sanitized):',sanitized);"
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Seed blog into Postgres
-        run: npx tsx scripts/seed-blog.mts
+      - name: Apply RLS migration
+        run: npm run db:rls:apply
         env:
           NODE_ENV: production
           NODE_OPTIONS: --dns-result-order=ipv4first
           PGSSLMODE: require
         working-directory: website-integration/ArrowheadSolution
 
-      - name: 'Post-verify: blog_posts row count (REST)'
-        run: |
-          node -e "const u=(process.env.SUPABASE_URL||'').replace(/\/$/,''); const k=process.env.SUPABASE_SERVICE_ROLE_KEY; (async()=>{ if(!u||!k){ console.log('No REST secrets; skipping'); return;} const url=u + '/rest/v1/blog_posts?select=slug'; const res=await fetch(url,{headers:{apikey:k,Authorization:'Bearer '+k}}); const arr=await res.json(); const n=Array.isArray(arr)?arr.length:0; console.log('blog_posts count:', n); if (Array.isArray(arr)) { console.log('sample slugs:', arr.slice(0,10).map(x=>x.slug).join(',')); } })().catch(e=>{ console.error('verify failed', e.message); });"
-        working-directory: website-integration/ArrowheadSolution
-
-      - name: Upload seed report artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: seed-report
-          path: website-integration/ArrowheadSolution/seed-report.json
-          if-no-files-found: warn
-          retention-days: 7
-
       - name: Job summary
         if: always()
         run: |
-          node -e "const fs=require('fs'); const p='seed-report.json'; if(!fs.existsSync(p)){ console.log('No seed-report.json; skipping summary'); process.exit(0);} const r=JSON.parse(fs.readFileSync(p,'utf8')); const hdr=['# Seed Report','','Mode: '+r.mode,'Total: '+r.total, r.mode==='rest' ? ('Upserted: '+r.upserted) : ('Inserted: '+r.inserted+', Updated: '+r.updated),'','Slugs:', (r.slugs||[]).slice(0,20).map(s=>'- '+s).join('\n')].join('\n'); fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, hdr); console.log('Wrote summary');"
-        working-directory: website-integration/ArrowheadSolution
+          echo "# RLS Apply" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Applied migration: website-integration/ArrowheadSolution/drizzle/migrations/0001_blog_posts_rls.sql" >> "$GITHUB_STEP_SUMMARY"
