@@ -2,13 +2,14 @@
 
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { writeFile } from 'fs/promises';
 import { eq } from 'drizzle-orm';
 import { getDb, closeDb } from '../server/db.ts';
 import { blogPosts, type InsertBlogPost } from '../shared/schema.ts';
 import { FileBlogStorage } from '../server/fileStorage.ts';
 import type { BlogPost } from '../shared/schema.ts';
 
-async function restUpsertBlogPosts(posts: BlogPost[], supabaseUrl: string, serviceKey: string) {
+async function restUpsertBlogPosts(posts: BlogPost[], supabaseUrl: string, serviceKey: string): Promise<{ count: number, data: any[] }> {
   const base = supabaseUrl.replace(/\/$/, '');
   const url = `${base}/rest/v1/blog_posts?on_conflict=slug`;
   const rows = posts.map((p) => ({
@@ -38,6 +39,7 @@ async function restUpsertBlogPosts(posts: BlogPost[], supabaseUrl: string, servi
   const data = await res.json().catch(() => []);
   const count = Array.isArray(data) ? data.length : 0;
   console.log(`[seed-blog] REST upsert completed. Upserted: ${count}, Total processed: ${posts.length}`);
+  return { count, data: Array.isArray(data) ? data : [] };
 }
 
 // Idempotent seeding: insert-or-update by slug
@@ -57,7 +59,16 @@ async function run() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (supabaseUrl && serviceKey) {
-    await restUpsertBlogPosts(fsPosts, supabaseUrl, serviceKey);
+    const { count } = await restUpsertBlogPosts(fsPosts, supabaseUrl, serviceKey);
+    const report = {
+      mode: 'rest',
+      upserted: count,
+      total: fsPosts.length,
+      slugs: fsPosts.map(p => p.slug),
+      timestamp: new Date().toISOString(),
+    };
+    await writeFile(path.join(repoRoot, 'seed-report.json'), JSON.stringify(report, null, 2));
+    console.log('[seed-blog] Wrote seed-report.json');
     return;
   }
 
@@ -99,6 +110,16 @@ async function run() {
   }
 
   console.log(`[seed-blog] Completed. Inserted: ${inserted}, Updated: ${updated}, Total processed: ${fsPosts.length}`);
+  const report = {
+    mode: 'db',
+    inserted,
+    updated,
+    total: fsPosts.length,
+    slugs: fsPosts.map(p => p.slug),
+    timestamp: new Date().toISOString(),
+  };
+  await writeFile(path.join(repoRoot, 'seed-report.json'), JSON.stringify(report, null, 2));
+  console.log('[seed-blog] Wrote seed-report.json');
   await closeDb();
 }
 
