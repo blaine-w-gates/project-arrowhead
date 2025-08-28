@@ -36,7 +36,7 @@ jobs:
         run: npm ci
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Debug: resolve DB host (no secrets)
+      - name: "Debug: resolve DB host (no secrets)"
         continue-on-error: true
         run: |
           node -e "(async()=>{const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);try{const dns=require('dns').promises;const a=await dns.lookup(u.hostname,{all:true});console.log('addresses:',a);}catch(e){console.error('DNS lookup failed:',e.message);console.log('Continuing...')}})()"
