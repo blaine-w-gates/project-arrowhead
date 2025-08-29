@@ -38,6 +38,10 @@ jobs:
         run: npm ci
         working-directory: website-integration/ArrowheadSolution
 
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=$(echo $GITHUB_SHA | cut -c1-8)" >> "$GITHUB_OUTPUT"
+
       - name: 'Preflight: tsx availability'
         run: npx tsx --version
         working-directory: website-integration/ArrowheadSolution
@@ -67,6 +71,7 @@ jobs:
         working-directory: website-integration/ArrowheadSolution
 
       - name: 'Resolve IPv4 and export PGHOSTADDR'
+        id: ipv4_resolver
         shell: bash
         run: |
           set -euo pipefail
@@ -90,14 +95,16 @@ jobs:
           if [ -z "${IPV4:-}" ]; then
             echo "No IPv4 address found; continuing without PGHOSTADDR (may fail on IPv6-only)."
           else
-            echo "PGHOSTADDR=$IPV4" >> "$GITHUB_ENV"
-            echo "Exported PGHOSTADDR: $IPV4"
+            echo "ipv4_address=$IPV4" >> "$GITHUB_OUTPUT"
+            echo "Resolved IPv4: $IPV4"
           fi
         working-directory: website-integration/ArrowheadSolution
 
       - name: 'Verify effective DATABASE_URL host (sanitized)'
         run: |
           node -e "const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('PGHOSTADDR:',process.env.PGHOSTADDR||'');console.log('effective DATABASE_URL (sanitized):',sanitized);"
+        env:
+          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
         working-directory: website-integration/ArrowheadSolution
 
       - name: Seed blog into Postgres
@@ -106,7 +113,21 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --dns-result-order=ipv4first
           PGSSLMODE: require
+          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
         working-directory: website-integration/ArrowheadSolution
+
+      - name: Immediate drift check (fail on mismatch)
+        run: npm run db:seed:audit
+        working-directory: website-integration/ArrowheadSolution
+
+      - name: Upload immediate audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-audit-${{ steps.sha.outputs.short }}
+          path: website-integration/ArrowheadSolution/seed-audit.json
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: 'Post-verify: blog_posts row count (REST)'
         run: |
@@ -117,13 +138,13 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: seed-report
+          name: seed-report-${{ steps.sha.outputs.short }}
           path: website-integration/ArrowheadSolution/seed-report.json
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 30
 
       - name: Job summary
         if: always()
         run: |
-          node -e "const fs=require('fs'); const p='seed-report.json'; if(!fs.existsSync(p)){ console.log('No seed-report.json; skipping summary'); process.exit(0);} const r=JSON.parse(fs.readFileSync(p,'utf8')); const hdr=['# Seed Report','','Mode: '+r.mode,'Total: '+r.total, r.mode==='rest' ? ('Upserted: '+r.upserted) : ('Inserted: '+r.inserted+', Updated: '+r.updated),'','Slugs:', (r.slugs||[]).slice(0,20).map(s=>'- '+s).join('\n')].join('\n'); fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, hdr); console.log('Wrote summary');"
+          node -e "const fs=require('fs'); const p='seed-report.json'; if(!fs.existsSync(p)){ console.log('No seed-report.json; skipping summary'); process.exit(0);} const r=JSON.parse(fs.readFileSync(p,'utf8')); const sha=(process.env.GITHUB_SHA||'').slice(0,8); const hdr=['# Seed Report','', 'Commit: '+sha,'Mode: '+r.mode,'Total: '+r.total, r.mode==='rest' ? ('Upserted: '+r.upserted) : ('Inserted: '+r.inserted+', Updated: '+r.updated),'','Slugs:', (r.slugs||[]).slice(0,20).map(s=>'- '+s).join('\n')].join('\n'); fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, hdr); console.log('Wrote summary');"
         working-directory: website-integration/ArrowheadSolution
