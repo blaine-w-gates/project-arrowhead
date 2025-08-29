@@ -6,6 +6,9 @@ on:
     branches: [ main ]
     paths:
       - 'website-integration/ArrowheadSolution/drizzle/migrations/0001_blog_posts_rls.sql'
+  schedule:
+    # Run nightly at 09:00 UTC (adjust in future if needed)
+    - cron: '0 9 * * *'
 
 concurrency:
   group: manage-rls-${{ github.ref }}
@@ -17,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      issues: write
     environment:
       name: Production
     env:
@@ -80,3 +84,35 @@ jobs:
           echo "**Verification Result:**" >> "$GITHUB_STEP_SUMMARY"
           node -e "const fs=require('fs'); const p='website-integration/ArrowheadSolution/verify-rls-rest.json'; if(!fs.existsSync(p)){ console.log('No verify-rls-rest.json; skipping'); process.exit(0);} const r=JSON.parse(fs.readFileSync(p,'utf8')); const lines=['','Pass: '+r.pass,'Anon published count: '+(r.checks?.anonPublishedCount??'N/A'),'Anon drafts count: '+(r.checks?.anonDraftsCount??'N/A'),'Service drafts count: '+(r.checks?.serviceDraftsCount??'N/A'),'','Messages:',...(r.messages||[]).map(m=>'- '+m)]; fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n')); console.log('Appended verification summary');"
         working-directory: website-integration/ArrowheadSolution
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            let body = `RLS verification failed for ${owner}/${repo} on ${context.ref}.\n\nRun: ${runUrl}`;
+            try {
+              const p = 'website-integration/ArrowheadSolution/verify-rls-rest.json';
+              if (fs.existsSync(p)) {
+                const r = JSON.parse(fs.readFileSync(p, 'utf8'));
+                body += `\n\nPass: ${r.pass}`;
+                if (r.checks) {
+                  body += `\nAnon published count: ${r.checks.anonPublishedCount ?? 'N/A'}`;
+                  body += `\nAnon drafts count: ${r.checks.anonDraftsCount ?? 'N/A'}`;
+                  body += `\nService drafts count: ${r.checks.serviceDraftsCount ?? 'N/A'}`;
+                }
+                if (Array.isArray(r.messages) && r.messages.length) {
+                  body += `\n\nMessages:\n- ${r.messages.join('\n- ')}`;
+                }
+              }
+            } catch (e) {}
+            const title = 'RLS verification failed';
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: 'open' });
+            if (issues.find(i => i.title === title)) {
+              core.info('RLS failure issue already open.');
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: ['rls-failure'] });
+            }
