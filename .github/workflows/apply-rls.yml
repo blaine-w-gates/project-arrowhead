@@ -52,6 +52,7 @@ jobs:
         working-directory: website-integration/ArrowheadSolution
 
       - name: Resolve IPv4 and export PGHOSTADDR
+        id: ipv4_resolver
         shell: bash
         run: |
           set -euo pipefail
@@ -75,8 +76,8 @@ jobs:
           if [ -z "${IPV4:-}" ]; then
             echo "No IPv4 address found; continuing without PGHOSTADDR (may fail on IPv6-only)."
           else
-            echo "PGHOSTADDR=$IPV4" >> "$GITHUB_ENV"
-            echo "Exported PGHOSTADDR: $IPV4"
+            echo "ipv4_address=$IPV4" >> "$GITHUB_OUTPUT"
+            echo "Resolved IPv4: $IPV4"
           fi
         working-directory: website-integration/ArrowheadSolution
 
@@ -91,7 +92,7 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --dns-result-order=ipv4first
           PGSSLMODE: require
-          PGHOSTADDR: ${{ env.PGHOSTADDR }}
+          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
         working-directory: website-integration/ArrowheadSolution
 
       - name: Verify RLS (post-apply)
@@ -101,7 +102,7 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --dns-result-order=ipv4first
           PGSSLMODE: require
-          PGHOSTADDR: ${{ env.PGHOSTADDR }}
+          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
         working-directory: website-integration/ArrowheadSolution
 
       - name: Job summary
