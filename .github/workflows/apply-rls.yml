@@ -1,4 +1,4 @@
-name: Apply RLS Policies
+name: Manage & Verify RLS Policies
 
 on:
   workflow_dispatch:
@@ -8,19 +8,21 @@ on:
       - 'website-integration/ArrowheadSolution/drizzle/migrations/0001_blog_posts_rls.sql'
 
 concurrency:
-  group: apply-rls-${{ github.ref }}
+  group: manage-rls-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   apply:
-    name: Apply RLS to Production DB
+    name: Manage & Verify RLS Policies
     runs-on: ubuntu-latest
     permissions:
       contents: read
     environment:
       name: Production
     env:
-      DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,94 +37,46 @@ jobs:
       - name: Install dependencies
         run: npm ci
         working-directory: website-integration/ArrowheadSolution
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=$(echo $GITHUB_SHA | cut -c1-8)" >> "$GITHUB_OUTPUT"
 
-      - name: "Preflight: validate DATABASE_URL"
+      - name: Preflight secrets
         run: |
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "DATABASE_URL is empty. Set the Production secret SUPABASE_DATABASE_URL to your full Postgres URI." >&2
-            exit 1
-          fi
-          node -e "try{ new URL(process.env.DATABASE_URL); console.log('DATABASE_URL validated'); } catch(e){ console.error('Invalid DATABASE_URL. Expected a full Postgres URL like: postgresql://USER:PASSWORD@HOST:5432/DB?sslmode=require'); process.exit(2); }"
-        working-directory: website-integration/ArrowheadSolution
-
-      - name: "Debug: resolve DB host (no secrets)"
-        continue-on-error: true
-        run: |
-          node -e "(async()=>{const u=new URL(process.env.DATABASE_URL);console.log('host:',u.hostname);try{const dns=require('dns').promises;const a=await dns.lookup(u.hostname,{all:true});console.log('addresses:',a);}catch(e){console.error('DNS lookup failed:',e.message);console.log('Continuing...')}})()"
-        working-directory: website-integration/ArrowheadSolution
-
-      - name: Resolve IPv4 and export PGHOSTADDR
-        id: ipv4_resolver
-        shell: bash
-        run: |
-          set -euo pipefail
-          HOST=$(node -p "new URL(process.env.DATABASE_URL).hostname")
-          echo "Host: $HOST"
-          IPV4=$(getent ahostsv4 "$HOST" | awk 'NR==1{print $1}') || true
-          if [ -z "${IPV4:-}" ]; then
-            echo "No IPv4 via getent; trying public resolvers..."
-            if ! command -v dig >/dev/null 2>&1; then
-              sudo apt-get update && sudo apt-get install -y dnsutils
+          for v in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY SUPABASE_ANON_KEY; do
+            if [ -z "${!v:-}" ]; then
+              echo "$v is not set" >&2
+              exit 1
             fi
-            for RES in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do
-              IPV4=$(dig +short A "$HOST" @"$RES" | head -n1 || true)
-              [ -n "${IPV4:-}" ] && break
-            done
-            if [ -z "${IPV4:-}" ]; then
-              echo "Trying HTTPS DNS (dns.google)..."
-              IPV4=$(curl -fsSL "https://dns.google/resolve?name=$HOST&type=A" | node -e 'let s="";process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(s);const ans=(j.Answer||[]).find(v=>v.type===1);process.stdout.write(ans?ans.data:"");}catch(e){}})' || true)
-            fi
-          fi
-          if [ -z "${IPV4:-}" ]; then
-            echo "No IPv4 address found for $HOST. Failing fast to avoid IPv6 ENETUNREACH."
-            echo "## IPv4 resolution failed" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Host: $HOST" >> "$GITHUB_STEP_SUMMARY"
-            echo "A records:" >> "$GITHUB_STEP_SUMMARY"
-            dig +short A "$HOST" >> "$GITHUB_STEP_SUMMARY" || true
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "AAAA records:" >> "$GITHUB_STEP_SUMMARY"
-            dig +short AAAA "$HOST" >> "$GITHUB_STEP_SUMMARY" || true
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Action items:" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Ensure the DB host provides an IPv4 A record (contact Supabase or adjust DATABASE_URL host)." >> "$GITHUB_STEP_SUMMARY"
-            echo "- Alternatively, run this workflow on a self-hosted runner with IPv6 connectivity." >> "$GITHUB_STEP_SUMMARY"
-            exit 3
-          else
-            echo "ipv4_address=$IPV4" >> "$GITHUB_OUTPUT"
-            echo "Resolved IPv4: $IPV4"
-          fi
+          done
+          echo "All required secrets present (values hidden)"
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Verify effective DATABASE_URL host (sanitized)
+      - name: Verify RLS via REST
         run: |
-          node -e "try{const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('PGHOSTADDR:',process.env.PGHOSTADDR||'');console.log('effective DATABASE_URL (sanitized):',sanitized);}catch(e){console.log('Skipping verify: DATABASE_URL is not a valid URL');}"
-        env:
-          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
+          node scripts/verify-rls-rest.mjs 2>&1 | tee verify-rls-rest.log
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Apply RLS migration
-        run: npm run db:rls:apply
-        env:
-          NODE_ENV: production
-          NODE_OPTIONS: --dns-result-order=ipv4first
-          PGSSLMODE: require
-          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
-        working-directory: website-integration/ArrowheadSolution
-
-      - name: Verify RLS (post-apply)
-        run: |
-          npm run -s db:rls:verify 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
-        env:
-          NODE_ENV: production
-          NODE_OPTIONS: --dns-result-order=ipv4first
-          PGSSLMODE: require
-          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
-        working-directory: website-integration/ArrowheadSolution
+      - name: Upload verification artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-rls-rest-${{ steps.sha.outputs.short }}
+          path: |
+            website-integration/ArrowheadSolution/verify-rls-rest.json
+            website-integration/ArrowheadSolution/verify-rls-rest.log
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Job summary
         if: always()
         run: |
-          echo "# RLS Apply" >> "$GITHUB_STEP_SUMMARY"
+          echo "# RLS Management" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Applied migration: website-integration/ArrowheadSolution/drizzle/migrations/0001_blog_posts_rls.sql" >> "$GITHUB_STEP_SUMMARY"
+          echo "**To Apply/Update RLS:** Follow the manual instructions in [docs/rls-apply.md](docs/rls-apply.md)." >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Verification Result:**" >> "$GITHUB_STEP_SUMMARY"
+          node -e "const fs=require('fs'); const p='website-integration/ArrowheadSolution/verify-rls-rest.json'; if(!fs.existsSync(p)){ console.log('No verify-rls-rest.json; skipping'); process.exit(0);} const r=JSON.parse(fs.readFileSync(p,'utf8')); const lines=['','Pass: '+r.pass,'Anon published count: '+(r.checks?.anonPublishedCount??'N/A'),'Anon drafts count: '+(r.checks?.anonDraftsCount??'N/A'),'Service drafts count: '+(r.checks?.serviceDraftsCount??'N/A'),'','Messages:',...(r.messages||[]).map(m=>'- '+m)]; fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n')); console.log('Appended verification summary');"
+        working-directory: website-integration/ArrowheadSolution
