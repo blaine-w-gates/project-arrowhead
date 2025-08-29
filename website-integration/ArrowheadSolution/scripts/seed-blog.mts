@@ -50,8 +50,9 @@ async function run() {
   const fsReader = new FileBlogStorage(blogDir);
 
   const fsPosts: BlogPost[] = await fsReader.getBlogPosts();
-  if (!fsPosts.length) {
-    console.log('[seed-blog] No blog posts found on filesystem at:', blogDir);
+  const publishedPosts: BlogPost[] = fsPosts.filter((p) => !!p.published);
+  if (!publishedPosts.length) {
+    console.log('[seed-blog] No published blog posts found on filesystem at:', blogDir);
     return;
   }
 
@@ -59,12 +60,12 @@ async function run() {
   const supabaseUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (supabaseUrl && serviceKey) {
-    const { count } = await restUpsertBlogPosts(fsPosts, supabaseUrl, serviceKey);
+    const { count } = await restUpsertBlogPosts(publishedPosts, supabaseUrl, serviceKey);
     const report = {
       mode: 'rest',
       upserted: count,
-      total: fsPosts.length,
-      slugs: fsPosts.map(p => p.slug),
+      total: publishedPosts.length,
+      slugs: publishedPosts.map(p => p.slug),
       timestamp: new Date().toISOString(),
     };
     await writeFile(path.join(repoRoot, 'seed-report.json'), JSON.stringify(report, null, 2));
@@ -77,7 +78,7 @@ async function run() {
   let inserted = 0;
   let updated = 0;
 
-  for (const p of fsPosts) {
+  for (const p of publishedPosts) {
     const value: InsertBlogPost = {
       title: p.title,
       slug: p.slug,
@@ -109,13 +110,13 @@ async function run() {
     updated += 1;
   }
 
-  console.log(`[seed-blog] Completed. Inserted: ${inserted}, Updated: ${updated}, Total processed: ${fsPosts.length}`);
+  console.log(`[seed-blog] Completed. Inserted: ${inserted}, Updated: ${updated}, Total processed (published): ${publishedPosts.length}`);
   const report = {
     mode: 'db',
     inserted,
     updated,
-    total: fsPosts.length,
-    slugs: fsPosts.map(p => p.slug),
+    total: publishedPosts.length,
+    slugs: publishedPosts.map(p => p.slug),
     timestamp: new Date().toISOString(),
   };
   await writeFile(path.join(repoRoot, 'seed-report.json'), JSON.stringify(report, null, 2));

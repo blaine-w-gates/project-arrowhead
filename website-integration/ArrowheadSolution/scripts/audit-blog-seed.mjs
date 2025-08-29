@@ -17,6 +17,8 @@ async function getFsSlugs() {
     const p = path.join(blogDir, f.name);
     const txt = await readFile(p, 'utf8');
     const fm = matter(txt);
+    const isPublished = !!fm.data?.published;
+    if (!isPublished) continue; // published-only policy
     const slug = (fm.data?.slug || f.name.replace(/\.(md|mdx)$/i, '')).toString();
     slugs.push(slug);
   }
@@ -30,7 +32,7 @@ async function getDbSlugs() {
   if (!supabaseUrl || !serviceKey) {
     return { slugs: null, note: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' };
   }
-  const url = `${supabaseUrl}/rest/v1/blog_posts?select=slug`;
+  const url = `${supabaseUrl}/rest/v1/blog_posts?select=slug&published=eq.true`;
   const res = await fetch(url, {
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
   });
