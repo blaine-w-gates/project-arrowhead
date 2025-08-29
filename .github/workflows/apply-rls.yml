@@ -74,7 +74,20 @@ jobs:
             fi
           fi
           if [ -z "${IPV4:-}" ]; then
-            echo "No IPv4 address found; continuing without PGHOSTADDR (may fail on IPv6-only)."
+            echo "No IPv4 address found for $HOST. Failing fast to avoid IPv6 ENETUNREACH."
+            echo "## IPv4 resolution failed" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Host: $HOST" >> "$GITHUB_STEP_SUMMARY"
+            echo "A records:" >> "$GITHUB_STEP_SUMMARY"
+            dig +short A "$HOST" >> "$GITHUB_STEP_SUMMARY" || true
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "AAAA records:" >> "$GITHUB_STEP_SUMMARY"
+            dig +short AAAA "$HOST" >> "$GITHUB_STEP_SUMMARY" || true
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Action items:" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Ensure the DB host provides an IPv4 A record (contact Supabase or adjust DATABASE_URL host)." >> "$GITHUB_STEP_SUMMARY"
+            echo "- Alternatively, run this workflow on a self-hosted runner with IPv6 connectivity." >> "$GITHUB_STEP_SUMMARY"
+            exit 3
           else
             echo "ipv4_address=$IPV4" >> "$GITHUB_OUTPUT"
             echo "Resolved IPv4: $IPV4"
@@ -84,6 +97,8 @@ jobs:
       - name: Verify effective DATABASE_URL host (sanitized)
         run: |
           node -e "try{const u=new URL(process.env.DATABASE_URL);const net=require('net');const sanitized=u.toString().replace(/:[^:@\\/]+@/,'://****@');console.log('effective host:',u.hostname,'ipVersion:',net.isIP(u.hostname)||'N/A','sslmode:',u.searchParams.get('sslmode'));console.log('PGHOSTADDR:',process.env.PGHOSTADDR||'');console.log('effective DATABASE_URL (sanitized):',sanitized);}catch(e){console.log('Skipping verify: DATABASE_URL is not a valid URL');}"
+        env:
+          PGHOSTADDR: ${{ steps.ipv4_resolver.outputs.ipv4_address }}
         working-directory: website-integration/ArrowheadSolution
 
       - name: Apply RLS migration
