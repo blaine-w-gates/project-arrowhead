@@ -17,6 +17,7 @@
     "db:seed:audit": "node scripts/audit-blog-seed.mjs",
     "db:rls:apply": "node scripts/apply-rls.mjs",
     "db:rls:verify": "node scripts/verify-rls.mjs",
+    "db:rls:verify:rest": "node scripts/verify-rls-rest.mjs",
     "test:install": "playwright install --with-deps",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed --project=chromium",
