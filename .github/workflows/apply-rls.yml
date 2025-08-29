@@ -94,6 +94,16 @@ jobs:
           PGHOSTADDR: ${{ env.PGHOSTADDR }}
         working-directory: website-integration/ArrowheadSolution
 
+      - name: Verify RLS (post-apply)
+        run: |
+          npm run -s db:rls:verify 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          NODE_ENV: production
+          NODE_OPTIONS: --dns-result-order=ipv4first
+          PGSSLMODE: require
+          PGHOSTADDR: ${{ env.PGHOSTADDR }}
+        working-directory: website-integration/ArrowheadSolution
+
       - name: Job summary
         if: always()
         run: |
