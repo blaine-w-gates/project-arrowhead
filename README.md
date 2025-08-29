@@ -48,34 +48,44 @@ npm run db:seed:blog
 
 This will produce `seed-report.json` with a summary of inserted/updated rows or upsert count.
 
-## Running End-to-End Tests
+## Getting Started (React/TypeScript App)
 
-The E2E test suite uses a two-step, decoupled workflow:
+From `website-integration/ArrowheadSolution/`:
 
-**Step 1 (Manual):** In your first terminal, start the application server with the command:
 ```bash
-python3 app.py
+# 1) Install dependencies (Node.js v20+ recommended)
+npm install
+
+# 2) Start the full-stack dev server (Express API + Vite client)
+npm run dev
+# App will be available at http://localhost:5000
 ```
 
-**Step 2 (Automated):** In a second terminal, run the entire test suite with the command:
+## End-to-End Tests (Playwright)
+
+Playwright is configured to automatically start or reuse the dev server via `webServer`.
+
+From `website-integration/ArrowheadSolution/`:
+
 ```bash
-npm test
+# First time only: install browsers
+npm run test:install
+
+# Headless run (default project: chromium)
+npm run test:e2e
+
+# Headed run
+npm run test:e2e:headed
 ```
 
-The tests will run against the already-running server. Make sure the server is fully started and accessible at `http://127.0.0.1:5000` before running the tests.
+Notes:
+- Base URL defaults to `http://localhost:5000` (see `playwright.config.ts`).
+- If a local dev server is already running, tests will reuse it outside CI.
 
-## Development
+## Tech Stack (Current)
 
-This project uses:
-- Python/Flask for the backend server
-- Vanilla JavaScript for the frontend
-- Puppeteer + Jest for end-to-end testing
-
-## Project Structure
-
-- `app.py` - Flask application server
-- `index.html` - Main application entry point
-- `brainstorm_step*.html` - Brainstorming journey pages
-- `choose_step*.html` - Priority selection journey pages
-- `TaskListPage.html` - Task management interface
-- `tests/journeys.test.js` - End-to-end test suite
+- Frontend: React 18, TypeScript, Vite, Wouter, Tailwind CSS
+- Backend: Node.js, Express
+- Data/Persistence: Drizzle ORM (schema/types); in-memory storage currently; PostgreSQL/Supabase target
+- Testing: Playwright (`npm run test:e2e`)
+- CI/Content: GitHub Actions blog seeding to Supabase
