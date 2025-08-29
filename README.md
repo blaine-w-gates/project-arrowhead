@@ -1,5 +1,7 @@
 # Project Arrowhead
 
+> Start Here: Read the unified Operating System (OS): [docs/Project_Arrowhead_OS_v1.md](docs/Project_Arrowhead_OS_v1.md)
+
 A web application for habit formation and task management using brainstorming and prioritization techniques.
 
 ## CI Blog Seeding (Supabase)

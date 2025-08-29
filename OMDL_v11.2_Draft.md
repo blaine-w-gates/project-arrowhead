@@ -149,6 +149,7 @@ Retained verbatim. Core summary:
 
 ## 11.0 Appendix C – Reference Index
 
+- Project OS v1.0: `docs/Project_Arrowhead_OS_v1.md`
 - SLAD v5.2 Final: `SLAD_v5.2_Final.md`
 - PRD v4.1 Draft: `PRD_v4.1_Draft.md`
 
