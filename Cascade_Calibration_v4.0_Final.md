@@ -1,3 +1,5 @@
+> Historical Note (Superseded): This calibration guide is retained for historical and philosophical context. For current onboarding and the single source of truth, see Project OS v1.0: [docs/Project_Arrowhead_OS_v1.md](docs/Project_Arrowhead_OS_v1.md)
+
 # Project Arrowhead: Cascade Calibration Protocol
 **Version:** 4.0 (Final - Post-Migration Baseline)  
 **Date:** July 28, 2025  
@@ -131,22 +133,20 @@ Every prompt must have one, and only one, job. Separate Implementation Prompts (
 **Why it's critical:** Prevents failures caused by misconfigured tools.
 
 ### **✅ ENVIRONMENT CHECKLIST:**
-- [ ] Node.js Version: v22.14.0+
+- [ ] Node.js Version: v20.x+
 - [ ] Project Directory: `/Users/jamesgates/Documents/ProjectArrowhead`
-- [ ] React Dev Server: `npm run dev` (runs on port 5000)
-- [ ] Backend Server: `npm run server` (runs on port 3001)
+- [ ] Dev Server: `npm run dev` (serves API and client on PORT; default 5000)
 - [ ] MCPs Status: Filesystem (CONFIGURED), Playwright (CONFIGURED)
 
 ### **🚀 DEVELOPMENT WORKFLOW:**
-1. **Frontend:** `cd website-integration/ArrowheadSolution && npm run dev`
-2. **Backend:** `cd website-integration/ArrowheadSolution && npm run server`
-3. **Tests:** `cd tests && npm test [test-file]`
+1. **Dev (API + Client):** `cd website-integration/ArrowheadSolution && npm run dev`  
+     - Uses environment variable `PORT` (defaults to `5000`).
+2. **Tests (legacy parity):** `cd tests && npm test [test-file]`
 
 ---
 
 ## Section 7: Handoff Code Appendix (React/TypeScript Ground Truth)
 
-**Why it's critical:** Provides immediate, unambiguous snapshot of the current React architecture.
 
 ### **File 1: JourneyStep.tsx (Core Component)**
 ```typescript
@@ -281,14 +281,24 @@ export const useJourney = (moduleType: string, stepNumber: number) => {
 
 **Why it's critical:** Understand the complete calibration document suite.
 
-The project operates under **Phoenix Protocol Charter v7.0** with four core documents:
+The project operates under **Phoenix Protocol Charter v7.2** with the following core documents:
 
-1. **PRD v4.0** (Final - Post-Migration Baseline) - Product requirements and user experience
-2. **SLAD v5.0** (Final - React Migration Baseline) - Technical architecture and implementation
-3. **OMDL v10.0** (Final - Post-Migration Baseline) - Operational protocols and lessons learned
-4. **Sprint Plan v2.1** (Current) - Present tasks and protocol-compliant planning
+1. **PRD v4.1** (Draft — last Final: v4.0 Final) — Product requirements and user experience
+2. **SLAD v5.1** (Final) — Technical architecture and implementation
+3. **OMDL v11.1** (Final) — Operational protocols and lessons learned
+4. **Cascade Calibration v4.0** (Final — this document) — Calibration protocol and onboarding
+5. **Sprint Plan v4.0** (Current) — Present tasks and protocol-compliant planning
 
-All documents reflect the **completed migration** and serve as the definitive single source of truth.
+All documents constitute the **single source of truth**. The Sprint Plan v4.0 is part of the standard calibration corpus and must be included when calibrating new AI instances.
+
+### Required Calibration Inputs (Onboarding)
+For onboarding new AI instances (inside and outside Windsurf), include the following documents in the calibration set:
+- Phoenix Protocol Charter v7.2
+- PRD v4.1 Draft and PRD v4.0 Final (for finalized references)
+- SLAD v5.1 Final
+- OMDL v11.1 Final
+- Cascade Calibration v4.0 Final (this document)
+- Sprint Plan v4.0 (current)
 
 ---
 
