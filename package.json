@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/blaine-w-gates/arrowheadreplit.git"
+    "url": "git+https://github.com/blaine-w-gates/project-arrowhead.git"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +16,7 @@
   "bugs": {
     "url": "https://github.com/blaine-w-gates/arrowheadreplit/issues"
   },
-  "homepage": "https://github.com/blaine-w-gates/arrowheadreplit#readme",
+  "homepage": "https://github.com/blaine-w-gates/project-arrowhead#readme",
   "description": "",
   "devDependencies": {},
   "dependencies": {}
