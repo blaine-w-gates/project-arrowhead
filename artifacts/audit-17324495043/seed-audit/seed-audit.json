@@ -1,0 +1,12 @@
+{
+  "mode": "audit",
+  "timestamp": "2025-08-29T13:01:12.884Z",
+  "counts": {
+    "fs": 5,
+    "db": 5
+  },
+  "drift": {
+    "onlyA": [],
+    "onlyB": []
+  }
+}

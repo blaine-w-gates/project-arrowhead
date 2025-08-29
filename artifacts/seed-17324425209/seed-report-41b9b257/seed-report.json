@@ -1,0 +1,13 @@
+{
+  "mode": "rest",
+  "upserted": 5,
+  "total": 5,
+  "slugs": [
+    "2025-08-26-blog",
+    "xss-test",
+    "strategic-planning-mistakes",
+    "hse-framework-guide",
+    "high-performance-teams"
+  ],
+  "timestamp": "2025-08-29T12:58:06.520Z"
+}

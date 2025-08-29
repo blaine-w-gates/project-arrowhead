@@ -10,16 +10,19 @@
 
 This version has been updated to reflect the project's true, as-implemented state based on a code-verified grounding. It corrects previous inaccuracies and provides a definitive baseline.
 
-- Corrected Persistence: The most critical update. The technical sections now correctly state that the application uses in-memory storage, with a PostgreSQL migration planned, superseding the previous claim of a completed database integration.
+- Persistence Baseline: The technical sections now correctly state that PostgreSQL (Supabase) is the primary persistence layer in production, with `PostgresStorage` selected when `DATABASE_URL` is set; `MemStorage`/`HybridStorage` remain as local development fallbacks only.
 - Corrected Technical Details: Aligned session management (localStorage), testing frameworks (Jest/Puppeteer + Playwright), and API endpoints with the verified implementation.
 - Corrected UI Content: Updated module step titles to match the canonical names from the codebase.
 - Added Known Gaps: A new section has been added to transparently track identified inconsistencies between the client and server.
+- Grounded PRD v4.1 with exact Cloudflare Functions behavior, global security headers, SEO endpoints, and note duplicate endpoints as known gaps.
 
 References:
-- Schema & routes: `website-integration/ArrowheadSolution/shared/schema.ts`, `server/routes.ts`, `server/storage.ts`
-- Client logic: `client/src/hooks/useJourney.ts`, `client/src/hooks/useTaskManager.ts`, `client/src/pages/journey/JourneyStepPage.tsx`
-- Content: `client/src/data/journeyContent.json`
-- Testing: `playwright.config.ts`, root `package.json`
+- Schema & routes: `website-integration/ArrowheadSolution/shared/schema.ts`, `website-integration/ArrowheadSolution/server/routes.ts`, `website-integration/ArrowheadSolution/server/storage.ts`
+- Cloudflare Functions: `website-integration/ArrowheadSolution/functions/api/blog/posts.ts`, `website-integration/ArrowheadSolution/functions/api/blog/posts/[slug].ts`, `website-integration/ArrowheadSolution/functions/api/lead-magnet.ts`
+- Global headers: `website-integration/ArrowheadSolution/public/_headers`
+- Client logic: `website-integration/ArrowheadSolution/client/src/hooks/useJourney.ts`, `website-integration/ArrowheadSolution/client/src/hooks/useTaskManager.ts`, `website-integration/ArrowheadSolution/client/src/pages/journey/JourneyStepPage.tsx`
+- Content: `website-integration/ArrowheadSolution/client/src/data/journeyContent.json`
+- Testing: `website-integration/ArrowheadSolution/playwright.config.ts`, root `package.json`
 
 ---
 
@@ -79,7 +82,7 @@ Project Arrowhead is a thinking tool built on the HSE framework (Headlights, Ste
 - Frontend: React 18, TypeScript, Vite, Wouter, TailwindCSS
 - Backend: Node.js, Express, TypeScript
 - Shared: Drizzle ORM schema definitions + Zod validation
-- Persistence (current): In-memory storage (`MemStorage`) with Drizzle types
+- Persistence: PostgreSQL (`PostgresStorage`) in production; `MemStorage`/`HybridStorage` as fallback for local development when `DATABASE_URL` is not provided
 - Testing:
   - Root: Jest + Puppeteer
   - ArrowheadSolution: Playwright E2E (Chromium), webServer `npm run dev`, baseURL `http://localhost:5000`
@@ -112,6 +115,55 @@ Project Arrowhead is a thinking tool built on the HSE framework (Headlights, Ste
 - Dev: `npm run dev` (Express + Vite middleware; default port 5000)
 - Playwright webServer uses same command; baseURL configurable via `PLAYWRIGHT_BASE_URL`
 
+### 2.7. Cloudflare Pages Functions (API)
+- Blog API (functions under `website-integration/ArrowheadSolution/functions/api/blog/`):
+  - `GET /api/blog/posts` and `GET /api/blog/posts/:slug`
+  - `HEAD` supported on both routes (204)
+  - Serves prebuilt JSON assets; adds security headers (`X-Content-Type-Options: nosniff`) and caching headers; JSON error responses for 404/500
+- Lead Magnet API (`website-integration/ArrowheadSolution/functions/api/lead-magnet.ts`):
+  - `POST /api/lead-magnet` with strict CORS allowlist (`PUBLIC_SITE_URL`, `ALLOWED_ORIGINS`), enforces `Content-Type: application/json` (415), max payload ~2KB (413), email validation (400)
+  - Optional Cloudflare Turnstile verification enforced when configured (rejects missing/invalid token)
+  - Idempotent insert semantics (duplicates ignored); success response `{ "success": true }`
+  - Handles `OPTIONS` (CORS preflight) and returns JSON with `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`
+
+### 2.8. Security Headers (Cloudflare Pages)
+- Global headers defined at `website-integration/ArrowheadSolution/public/_headers`:
+  - For all paths `/*`: `X-Content-Type-Options: nosniff`; `Referrer-Policy: strict-origin-when-cross-origin`; `Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()`; `X-Frame-Options: DENY`; `Strict-Transport-Security: max-age=31536000; includeSubDomains`; `X-Robots-Tag: all`
+  - For admin `/admin/*`: `X-Robots-Tag: noindex, nofollow, noarchive`; `Cache-Control: no-store`; `X-Frame-Options: SAMEORIGIN`; strict `Content-Security-Policy` (default-src 'self' https://unpkg.com; frame-ancestors 'self'; object-src 'none'; form-action 'self' https://github.com; connect-src 'self' https://api.github.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; frame-src 'self' https://github.com; upgrade-insecure-requests; block-all-mixed-content)
+- API functions also set response-level hardening:
+  - Blog: adds `X-Content-Type-Options: nosniff` on GET/HEAD and error paths
+  - Lead Magnet: JSON responses include `Cache-Control: no-store` and `X-Content-Type-Options: nosniff`
+
+### 2.9. SEO Endpoints
+- `sitemap.xml` and `rss.xml` are generated during build into `website-integration/ArrowheadSolution/client/public/` so Vite includes them in the final site output (`dist/public`)
+- Express dev server also exposes SEO routes in `server/routes.ts` for local development
+
+### 2.10. CI/CD Workflows (GitHub Actions)
+- Seed Blog to Postgres (`.github/workflows/seed-blog.yml`):
+  - Triggers: manual dispatch; on push to `main` affecting `content/blog/**`; nightly at 02:00 UTC
+  - Steps: checkout; Node 20; `npm ci`; preflight `npx tsx --version`; verify env; resolve IPv4 (`PGHOSTADDR`); run `npx tsx scripts/seed-blog.mts`; immediate drift check `npm run db:seed:audit`; upload artifacts; notification: auto-create GitHub Issue on failure (standard; adoption pending in this job)
+- Audit Blog Seed (`.github/workflows/seed-audit.yml`):
+  - Triggers: manual dispatch; nightly at 02:17 UTC
+  - Steps: checkout; Node 20; `npm ci`; run `npm run db:seed:audit` (continue-on-error); upload artifact; add job summary; auto-create GitHub Issue labeled `seed-drift` on drift (implemented)
+- Seed Workflow Preflight (`.github/workflows/seed-preflight.yml`):
+  - Triggers: on push/PR touching workflow or `ArrowheadSolution/**`
+  - Steps: `npx tsx --version`; `npm run check`; `npm run validate:blog`
+- Manage & Verify RLS Policies (`.github/workflows/apply-rls.yml`):
+  - Triggers: on push to `drizzle/migrations/0001_blog_posts_rls.sql`; nightly at 09:00 UTC
+  - Steps: secrets preflight; run `node scripts/verify-rls-rest.mjs`; upload artifacts and job summary; notification: auto-create GitHub Issue on failure (standard; adoption pending in this job)
+
+### 2.12. API Strategy
+- Primary production API surface: Cloudflare Pages Functions for new and critical features (e.g., Blog, Lead Magnet, OAuth).
+- Express server (`server/routes.ts`) continues to serve core in-app module flows and local development endpoints.
+- Duplicated endpoints (e.g., Blog in Express vs Functions) will be consolidated toward the Functions surface for production.
+
+### 2.11. Environment Variables (selected)
+ - Database/REST: `DATABASE_URL` (Postgres direct), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`
+ - Lead Magnet/CORS: `PUBLIC_SITE_URL`, `ALLOWED_ORIGINS`, `SUPABASE_LEADS_TABLE` (default `leads`)
+ - Turnstile (optional): `TURNSTILE_SECRET_KEY`, `TURNSTILE_REQUIRED`
+ - CI/CD notifications: GitHub Issues (standard); `SLACK_WEBHOOK_URL` (legacy optional)
+ - Testing: `PLAYWRIGHT_BASE_URL`, `PLAYWRIGHT_NO_WEBSERVER`, `E2E_SKIP_LEAD_POSTS`
+
 ---
 
 ## Section 3: Implementation Status
@@ -121,7 +173,7 @@ Project Arrowhead is a thinking tool built on the HSE framework (Headlights, Ste
 ✅ E2E: Playwright tests validate full-project PDF export; root Jest/Puppeteer tests exist for additional flows.
 
 Notes:
-- Storage is in-memory for this phase; Drizzle schemas define the contract and types. Migration to PostgreSQL is planned.
+- Production persistence is PostgreSQL (`PostgresStorage`) with nightly seed/audit workflows; `MemStorage`/`HybridStorage` are used only as local development fallbacks when `DATABASE_URL` is unset.
 
 ---
 
@@ -153,7 +205,7 @@ Notes:
 
 ## Section 7: Key Decisions & Rationale (Updates)
 - Session IDs: Use string `sessionId` generated client-side (localStorage) for guest workflows; no UUIDs in current schema.
-- Persistence: Keep MemStorage for current phase while schema is defined with Drizzle ORM.
+- Persistence: Production uses PostgreSQL (`PostgresStorage`); `MemStorage`/`HybridStorage` are reserved for local development when `DATABASE_URL` is unset.
 - Testing: Split testing — root (Jest/Puppeteer) and app-level E2E (Playwright) for stability and speed.
 
 ---
@@ -162,7 +214,10 @@ Notes:
 - Client export route alignment: update to `/api/journey/sessions/:sessionId/export` and/or `/api/journey/export/full/:sessionId`.
 - Add `GET /api/tasks/:taskId` on server or remove client `getTask()` method.
 - Task identity alignment between frontend numeric `id` and server string `taskId` keys.
-- PostgreSQL migration of MemStorage while maintaining `sessionId` semantics.
+- Decommission legacy `MemStorage` and `FileBlogStorage` code paths (production uses `PostgresStorage`); retain only minimal local-dev fallback as needed.
+
+- Duplicate blog endpoints: blog APIs are implemented in both Express (`server/routes.ts`) and Cloudflare Functions (`functions/api/blog/*`); consolidate to one source in production
+- Header consistency: align Express API response headers (e.g., `X-Content-Type-Options`) with Cloudflare Pages functions and `_headers` for parity
 
 ---
 

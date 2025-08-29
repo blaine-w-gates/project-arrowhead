@@ -10,7 +10,7 @@ This project verifies RLS behavior in CI via the Supabase REST API. Applying the
 2. Navigate to SQL Editor.
 3. Open the SQL file above locally and paste its full contents into the editor.
 4. Execute the SQL and confirm success.
-5. Trigger the GitHub Actions workflow "Verify RLS via REST" to validate behavior.
+5. Trigger the GitHub Actions workflow "Manage & Verify RLS Policies" to validate behavior.
 
 ## Expected REST Behavior (after apply)
 - Anonymous (anon) key:
@@ -20,7 +20,7 @@ This project verifies RLS behavior in CI via the Supabase REST API. Applying the
   - `GET /rest/v1/blog_posts?select=slug&published=eq.false` returns drafts (bypasses RLS).
 
 ## CI Workflow for Verification
-- Workflow file: `.github/workflows/verify-rls-rest.yml`
+- Workflow file: `.github/workflows/apply-rls.yml`
 - Required secrets (Environment: Production):
   - `SUPABASE_URL`
   - `SUPABASE_SERVICE_ROLE_KEY`
