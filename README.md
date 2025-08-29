@@ -2,6 +2,15 @@
 
 > Start Here: Read the unified Operating System (OS): [docs/Project_Arrowhead_OS_v1.md](docs/Project_Arrowhead_OS_v1.md)
 
+## Core Documents (current)
+
+- OS v1.0 (Primary Onboarding): [docs/Project_Arrowhead_OS_v1.md](docs/Project_Arrowhead_OS_v1.md)
+- Phoenix Protocol Charter v7.3 Final: [Phoenix_Protocol_Charter_v7.3_Final.md](Phoenix_Protocol_Charter_v7.3_Final.md)
+- Sprint Plan v4.1: [Sprint_Plan_v4.1.md](Sprint_Plan_v4.1.md)
+- SLAD v5.2 Final: [SLAD_v5.2_Final.md](SLAD_v5.2_Final.md)
+- OMDL v11.2 Draft: [OMDL_v11.2_Draft.md](OMDL_v11.2_Draft.md)
+- PRD v4.1 Draft: [PRD_v4.1_Draft.md](PRD_v4.1_Draft.md)
+
 A web application for habit formation and task management using brainstorming and prioritization techniques.
 
 ## CI Blog Seeding (Supabase)
