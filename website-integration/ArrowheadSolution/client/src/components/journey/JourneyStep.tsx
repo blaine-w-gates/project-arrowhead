@@ -96,6 +96,19 @@ export interface JourneyStepData {
   }>;
 }
 
+// Strongly typed answers and completion payloads to avoid `any`
+type StepAnswers = Record<string, string>;
+
+interface StepCompletePayload {
+  stepNumber: number;
+  stepId: string;
+  answers: StepAnswers;
+  lastSaved?: string;
+  autoSaved?: boolean;
+  completedAt?: string;
+  manualSave?: boolean;
+}
+
 interface JourneyStepProps {
   moduleId: string;
   moduleName: string;
@@ -104,7 +117,7 @@ interface JourneyStepProps {
   totalSteps: number;
   stepData: JourneyStepData;
   sessionId: string;
-  onStepComplete: (stepData: Record<string, any>) => void;
+  onStepComplete: (stepData: StepCompletePayload) => void | Promise<void>;
   onAddTask: (taskData: { title: string; description?: string; assignedTo?: string }) => void;
   className?: string;
 }
@@ -112,7 +125,7 @@ interface JourneyStepProps {
 export const JourneyStep: React.FC<JourneyStepProps> = ({
   moduleId,
   moduleName,
-  moduleColor,
+  moduleColor: _moduleColor,
   currentStep,
   totalSteps,
   stepData,
@@ -121,7 +134,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
   onAddTask,
   className
 }) => {
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<StepAnswers>({});
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -132,7 +145,8 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
   useEffect(() => {
     const savedAnswers = localStorage.getItem(`journey_${sessionId}_${moduleId}_step_${currentStep}`);
     if (savedAnswers) {
-      setAnswers(JSON.parse(savedAnswers));
+      const parsed = JSON.parse(savedAnswers) as StepAnswers;
+      setAnswers(parsed);
     }
   }, [sessionId, moduleId, currentStep]);
 
@@ -153,7 +167,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
     }
   }, [answers, sessionId, moduleId, currentStep]);
 
-  const handleAnswerChange = (questionId: string, value: any) => {
+  const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: value
@@ -164,7 +178,6 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
     if (Object.keys(answers).length === 0) return;
     
     try {
-      const stepKey = `step_${currentStep}`;
       await onStepComplete({
         stepNumber: currentStep,
         stepId: stepData.id,
@@ -209,12 +222,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
     });
   };
 
-  const isStepComplete = () => {
-    const requiredQuestions = stepData.questions.filter(q => q.required);
-    return requiredQuestions.every(q => answers[q.id] && answers[q.id].toString().trim());
-  };
-
-  const renderQuestion = (question: any) => {
+  const renderQuestion = (question: JourneyStepData['questions'][number]) => {
     const value = answers[question.id] || '';
 
     switch (question.type) {
