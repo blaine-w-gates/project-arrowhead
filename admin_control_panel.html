@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel | Project Arrowhead</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner">
+                <i class="fas fa-user-shield"></i>
+            </div>
+            <h3>Loading Admin Panel</h3>
+            <p>Preparing secure admin controls...</p>
+            <div class="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offline Banner -->
+    <div id="offlineBanner" class="offline-banner">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-wifi-slash me-2"></i>
+                    <span>You're offline. Don't worry - your actions will resume when you reconnect.</span>
+                </div>
+                <button class="btn btn-sm btn-outline-light" onclick="checkConnection()">
+                    <i class="fas fa-sync me-1"></i>Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay"></div>
+
+    <!-- Global Navigation Sidebar -->
+    <div id="globalSidebar"><!-- Will be loaded dynamically --></div>
+
+    <div class="container-fluid">
+        <!-- Navigation Header -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <button id="sidebarToggleBtn"><i class="fas fa-bars"></i></button>
+                <a class="navbar-brand" href="index.html">
+                    <i class="fas fa-bullseye me-2"></i>Project Arrowhead
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="TaskListPage.html">
+                        <i class="fas fa-tasks me-1"></i>Task List
+                    </a>
+                    <button class="btn btn-outline-light btn-sm" id="navHomeButton">
+                        <i class="fas fa-home me-1"></i>Home
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="container my-4">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <!-- Admin Auth Card -->
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Admin Authentication</h5>
+                            <span id="csrfStatusBadge" class="badge bg-secondary">CSRF: Not fetched</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label for="adminKeyInput" class="form-label">Admin Key</label>
+                                    <input type="password" id="adminKeyInput" class="form-control" placeholder="Enter Admin API Key" autocomplete="off">
+                                    <div class="form-text">Stored locally in your browser for convenience.</div>
+                                </div>
+                                <div class="col-md-3 d-grid">
+                                    <button id="saveKeyAndFetchCsrfBtn" class="btn btn-primary">
+                                        <i class="fas fa-key me-1"></i>Save Key & Get CSRF
+                                    </button>
+                                </div>
+                                <div class="col-md-3 d-grid">
+                                    <button id="clearKeyBtn" class="btn btn-outline-secondary">
+                                        <i class="fas fa-eraser me-1"></i>Clear Stored Key
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-3 small" id="authMessage"></div>
+                        </div>
+                    </div>
+
+                    <!-- Workflows Card -->
+                    <div class="card shadow-sm border-0">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-diagram-project me-2"></i>GitHub Workflows</h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Workflow: Verify RLS -->
+                            <div class="row align-items-center py-2 border-bottom" id="wf-verify-rls">
+                                <div class="col-md-4">
+                                    <strong><i class="fas fa-check-double me-1 text-info"></i>verify-rls</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <span id="statusBadge-verify-rls" class="badge bg-secondary">Idle</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <a id="githubLink-verify-rls" href="#" target="_blank" class="btn btn-sm btn-outline-dark disabled" tabindex="-1" aria-disabled="true">
+                                        <i class="fab fa-github me-1"></i>View in GitHub
+                                    </a>
+                                </div>
+                                <div class="col-md-2 d-grid">
+                                    <button id="runBtn-verify-rls" data-workflow="verify-rls" class="btn btn-outline-primary btn-sm" disabled>
+                                        <i class="fas fa-play me-1"></i>Run
+                                    </button>
+                                </div>
+                                <div class="col-12 small text-muted mt-1">
+                                    <span>Last updated: <span id="lastUpdated-verify-rls">never</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Workflow: seed -->
+                            <div class="row align-items-center py-2 border-bottom" id="wf-seed">
+                                <div class="col-md-4">
+                                    <strong><i class="fas fa-seedling me-1 text-success"></i>seed</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <span id="statusBadge-seed" class="badge bg-secondary">Idle</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <a id="githubLink-seed" href="#" target="_blank" class="btn btn-sm btn-outline-dark disabled" tabindex="-1" aria-disabled="true">
+                                        <i class="fab fa-github me-1"></i>View in GitHub
+                                    </a>
+                                </div>
+                                <div class="col-md-2 d-grid">
+                                    <button id="runBtn-seed" data-workflow="seed" class="btn btn-outline-primary btn-sm" disabled>
+                                        <i class="fas fa-play me-1"></i>Run
+                                    </button>
+                                </div>
+                                <div class="col-12 small text-muted mt-1">
+                                    <span>Last updated: <span id="lastUpdated-seed">never</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Workflow: audit -->
+                            <div class="row align-items-center py-2" id="wf-audit">
+                                <div class="col-md-4">
+                                    <strong><i class="fas fa-magnifying-glass-chart me-1 text-warning"></i>audit</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <span id="statusBadge-audit" class="badge bg-secondary">Idle</span>
+                                </div>
+                                <div class="col-md-3">
+                                    <a id="githubLink-audit" href="#" target="_blank" class="btn btn-sm btn-outline-dark disabled" tabindex="-1" aria-disabled="true">
+                                        <i class="fab fa-github me-1"></i>View in GitHub
+                                    </a>
+                                </div>
+                                <div class="col-md-2 d-grid">
+                                    <button id="runBtn-audit" data-workflow="audit" class="btn btn-outline-primary btn-sm" disabled>
+                                        <i class="fas fa-play me-1"></i>Run
+                                    </button>
+                                </div>
+                                <div class="col-12 small text-muted mt-1">
+                                    <span>Last updated: <span id="lastUpdated-audit">never</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted small">
+                            Status auto-refreshes every 20 seconds.
+                        </div>
+                    </div>
+
+                    <div class="alert alert-danger mt-3 d-none" id="adminErrorAlert">
+                        <i class="fas fa-triangle-exclamation me-1"></i>
+                        <span id="adminErrorText"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Home Confirmation Modal -->
+    <div class="modal fade" id="homeConfirmationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Navigation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to go home?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="modalGoHomeButton">Go Home</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Main JS -->
+    <script src="main.js"></script>
+    <!-- Admin Panel JS -->
+    <script src="admin_control_panel.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            // Load shared sidebar HTML dynamically for this page
+            if (typeof setupSidebar === 'function') {
+                setupSidebar();
+            }
+            // Initialize admin panel logic
+            if (typeof adminPanelInit === 'function') {
+                adminPanelInit();
+            }
+            const navHomeButton = document.getElementById('navHomeButton');
+            if (navHomeButton) {
+                navHomeButton.addEventListener('click', function() {
+                    showHomeConfirmationModal();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

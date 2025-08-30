@@ -17,6 +17,7 @@ import FreeTool from "./pages/FreeTool";
 import TaskListPage from "./pages/TaskListPage";
 import { JourneyDashboard, JourneyStepPage } from "./pages/journey";
 import NotFound from "./pages/not-found";
+import AdminPanel from "./pages/ops/AdminPanel";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function Router() {
       <Route path="/tasks" component={TaskListPage} />
       <Route path="/journey" component={JourneyDashboard} />
       <Route path="/journey/:moduleId/step/:step" component={JourneyStepPage} />
+      <Route path="/ops" component={AdminPanel} />
       <Route component={NotFound} />
     </Switch>
   );
