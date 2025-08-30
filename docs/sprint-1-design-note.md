@@ -17,11 +17,11 @@ Related documents:
 - Admin endpoints are protected by authentication, RBAC, and CSRF (for POST).
 
 We track each acceptance criterion as a GitHub Issue. Link the created Issue IDs here:
-- [ ] Nightly schedule + failure Issues: apply-rls.yml — Issue: TBA
-- [ ] Nightly schedule + failure Issues: seed-blog.yml — Issue: TBA
-- [ ] Nightly schedule + failure Issues: seed-audit.yml — Issue: TBA
-- [ ] Backend Octokit client + secrets wiring — Issue: TBA
-- [ ] Admin route protections (auth/RBAC/CSRF) — Issue: TBA
+- [ ] Nightly schedule + failure Issues: apply-rls.yml — Issue: #2
+- [ ] Nightly schedule + failure Issues: seed-blog.yml — Issue: #3
+- [ ] Nightly schedule + failure Issues: seed-audit.yml — Issue: #4
+- [ ] Backend Octokit client + secrets wiring — Issue: #5
+- [ ] Admin route protections (auth/RBAC/CSRF) — Issue: #6
 
 ---
 
