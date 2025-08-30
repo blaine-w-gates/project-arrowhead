@@ -1,6 +1,8 @@
 import os
-from flask import Flask, send_from_directory, request
+from flask import Flask, send_from_directory, request, jsonify
 from pathlib import Path
+from backend.security import require_admin, issue_csrf, verify_csrf
+from backend.github_client import GitHubClient
 
 # Create the app
 app = Flask(__name__, static_folder='.', static_url_path='')
@@ -42,6 +44,30 @@ def serve_static(filename):
             response.headers['Expires'] = '0'
             return response
         return "File not found", 404
+
+@app.route('/api/admin/csrf', methods=['POST'])
+def admin_csrf():
+    """Issue a CSRF token for admin operations (requires admin header)."""
+    require_admin()
+    token = issue_csrf()
+    return jsonify({"csrfToken": token})
+
+@app.route('/api/admin/health/github', methods=['GET'])
+def admin_github_health():
+    """Validate admin + CSRF and return GitHub auth health info."""
+    require_admin()
+    verify_csrf()
+    try:
+        client = GitHubClient()
+        user, scopes = client.get_user()
+        return jsonify({
+            "ok": True,
+            "login": user.get("login"),
+            "id": user.get("id"),
+            "scopes": scopes,
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.errorhandler(404)
 def not_found(error):
