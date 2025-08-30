@@ -11,6 +11,10 @@
 - OMDL v11.2 Draft: [OMDL_v11.2_Draft.md](OMDL_v11.2_Draft.md)
 - PRD v4.1 Draft: [PRD_v4.1_Draft.md](PRD_v4.1_Draft.md)
 
+## Backend Setup
+
+- Backend Secrets Guide: [docs/backend_secrets.md](docs/backend_secrets.md)
+
 A web application for habit formation and task management using brainstorming and prioritization techniques.
 
 ## CI Blog Seeding (Supabase)
