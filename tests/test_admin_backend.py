@@ -2,9 +2,16 @@ import json
 import types
 import os
 import pytest
+from pathlib import Path
+import importlib.util
 
-import app as app_module
-from app import app as flask_app
+# Dynamically import the app module from repository root for portability
+ROOT = Path(__file__).resolve().parents[1]
+_spec = importlib.util.spec_from_file_location("app_module", str(ROOT / "app.py"))
+app_module = importlib.util.module_from_spec(_spec)
+assert _spec and _spec.loader
+_spec.loader.exec_module(app_module)  # type: ignore[attr-defined]
+flask_app = app_module.app
 
 
 @pytest.fixture()
