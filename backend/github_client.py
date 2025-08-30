@@ -85,3 +85,23 @@ class GitHubClient:
             "id": run.get("id") or run.get("run_id"),
             "updated_at": run.get("updated_at") or run.get("created_at"),
         }
+
+    # --- Artifacts API ---
+    def list_artifacts(self, per_page: int = 50) -> Any:
+        """List repository artifacts.
+
+        Returns the parsed JSON body as a Python dict. Typical shape:
+        {"total_count": int, "artifacts": [ ... ]}
+        """
+        url = f"{self.base_url}/repos/{self.owner}/{self.repo}/actions/artifacts"
+        params = {"per_page": per_page}
+        resp = self.session.get(url, params=params, timeout=self.timeout)
+        resp.raise_for_status()
+        return resp.json()
+
+    def download_artifact_zip(self, artifact_id: int) -> bytes:
+        """Download an artifact as a ZIP file and return the raw bytes."""
+        url = f"{self.base_url}/repos/{self.owner}/{self.repo}/actions/artifacts/{artifact_id}/zip"
+        resp = self.session.get(url, timeout=self.timeout)
+        resp.raise_for_status()
+        return resp.content
