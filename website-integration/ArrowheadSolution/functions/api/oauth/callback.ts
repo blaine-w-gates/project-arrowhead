@@ -36,12 +36,12 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: Re
     const data = (await ghRes.json()) as { access_token?: string; error?: string; error_description?: string };
 
     if (!ghRes.ok || !data.access_token) {
-      const msg = data.error_description || data.error || "Token exchange failed";
+      const _msg = data.error_description || data.error || "Token exchange failed";
       return htmlCallback("error");
     }
 
     return htmlCallback("success", data.access_token);
-  } catch (err: any) {
+  } catch (_err) {
     return htmlCallback("error");
   }
 };

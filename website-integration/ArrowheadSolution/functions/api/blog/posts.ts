@@ -1,4 +1,4 @@
-export const onRequestGet = async ({ request, env }: { request: Request; env: any }) => {
+export const onRequestGet = async ({ request, env }: { request: Request; env: { ASSETS?: { fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response> } } }) => {
   try {
     const url = new URL(request.url);
     const assetUrl = new URL("/data/blog/posts.json", url.origin);
@@ -27,7 +27,7 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: an
     headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 
     return new Response(res.body, { status: res.status, headers });
-  } catch (err: any) {
+  } catch (err) {
     return new Response(JSON.stringify({ message: "Failed to fetch blog posts" }), {
       status: 500,
       headers: { 
@@ -40,7 +40,7 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: an
 };
 
 // Lightweight HEAD for health/caching metadata
-export const onRequestHead = async ({ request, env }: { request: Request; env: any }) => {
+export const onRequestHead = async ({ request, env }: { request: Request; env: { ASSETS?: { fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response> } } }) => {
   try {
     const url = new URL(request.url);
     const assetUrl = new URL("/data/blog/posts.json", url.origin);

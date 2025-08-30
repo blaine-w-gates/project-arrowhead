@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Helper: short pause when waiting on client-side rendering transitions
-async function shortPause(ms = 200) {
+async function _shortPause(ms = 200) {
   await new Promise((r) => setTimeout(r, ms));
 }
 

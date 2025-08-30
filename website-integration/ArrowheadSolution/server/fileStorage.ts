@@ -84,7 +84,7 @@ export class FileBlogStorage {
       // Build excerpt if missing (strip basic markdown tokens)
       const plain = parsed.content
         .replace(/`{1,3}[^`]*`{1,3}/g, " ") // inline code blocks
-        .replace(/[#>*_\[\]()`]/g, " ")
+        .replace(/[#>*_[\]()`]/g, " ")
         .replace(/\s+/g, " ")
         .trim();
       const excerpt = (fm.excerpt ?? plain.slice(0, 200).trim()).trim();
