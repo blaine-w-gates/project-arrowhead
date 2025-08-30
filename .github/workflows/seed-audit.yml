@@ -51,6 +51,34 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+            let body = `Seed audit workflow failed for ${owner}/${repo} on ${context.ref}.\n\nRun: ${runUrl}`;
+            try {
+              const p = 'website-integration/ArrowheadSolution/seed-audit.json';
+              if (fs.existsSync(p)) {
+                const r = JSON.parse(fs.readFileSync(p, 'utf8'));
+                body += `\n\nCounts: FS=${r.counts?.fs ?? 'N/A'}, DB=${r.counts?.db ?? 'N/A'}`;
+                if (r.drift) {
+                  body += `\nOnly in FS: ${(r.drift.onlyA||[]).join(', ') || '(none)'}\nOnly in DB: ${(r.drift.onlyB||[]).join(', ') || '(none)'}`;
+                }
+              }
+            } catch (e) {}
+            const title = 'Seed audit workflow failed';
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: 'open' });
+            if (issues.find(i => i.title === title)) {
+              core.info('Failure issue already open.');
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels: ['seed-failure'] });
+            }
+
       - name: Job summary
         if: always()
         run: |
@@ -63,16 +91,19 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
             const path = 'website-integration/ArrowheadSolution/seed-audit.json';
-            let body = 'Audit failed and no report was generated.';
+            let body = `Audit failed and no report was generated.\n\nRun: ${runUrl}`;
             try {
               const r = JSON.parse(fs.readFileSync(path, 'utf8'));
-              body = `Seed drift detected.\n\nCounts: FS=${r.counts.fs}, DB=${r.counts.db}\n\nOnly in FS: ${(r.drift?.onlyA||[]).join(', ') || '(none)'}\n\nOnly in DB: ${(r.drift?.onlyB||[]).join(', ') || '(none)'}\n\nTime: ${r.timestamp}`;
+              body = `Seed drift detected.\n\nCounts: FS=${r.counts.fs}, DB=${r.counts.db}\n\nOnly in FS: ${(r.drift?.onlyA||[]).join(', ') || '(none)'}\n\nOnly in DB: ${(r.drift?.onlyB||[]).join(', ') || '(none)'}\n\nTime: ${r.timestamp}\n\nRun: ${runUrl}`;
             } catch (e) {}
             const title = 'Blog seed drift detected';
-            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'seed-drift' });
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: 'seed-drift' });
             if (issues.find(i => i.title === title)) {
               core.info('Drift issue already open.');
             } else {
-              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['seed-drift'] });
+              await github.rest.issues.create({ owner, repo, title, body, labels: ['seed-drift'] });
             }
