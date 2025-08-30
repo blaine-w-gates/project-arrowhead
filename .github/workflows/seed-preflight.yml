@@ -34,7 +34,7 @@ jobs:
         run: npm ci
         working-directory: website-integration/ArrowheadSolution
 
-      - name: Preflight: tsx availability
+      - name: "Preflight: tsx availability"
         run: npx tsx --version
         working-directory: website-integration/ArrowheadSolution
 
