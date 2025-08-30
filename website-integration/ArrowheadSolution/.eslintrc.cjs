@@ -22,6 +22,15 @@ module.exports = {
     'drizzle/**',
     'content/**',
   ],
+  overrides: [
+    {
+      files: ['tests/**/*.ts', 'tests/**/*.tsx'],
+      rules: {
+        // Allow using any in test code for pragmatic flexibility
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+  ],
   rules: {
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
   },
