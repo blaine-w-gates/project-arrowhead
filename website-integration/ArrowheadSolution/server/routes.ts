@@ -7,8 +7,7 @@ import {
   insertJourneySessionSchema,
   updateJourneySessionSchema,
   insertTaskSchema,
-  updateTaskSchema,
-  type JourneyModule
+  updateTaskSchema
 } from "@shared/schema";
 import { z } from "zod";
 
