@@ -8,8 +8,8 @@ export interface UseJourneyResult {
   error: string | null;
   
   // Session Actions
-  createSession: (moduleId: string, stepData: Record<string, any>) => Promise<void>;
-  updateSession: (stepData: Record<string, any>, currentStep?: number) => Promise<void>;
+  createSession: (moduleId: string, stepData: Record<string, unknown>) => Promise<void>;
+  updateSession: (stepData: Record<string, unknown>, currentStep?: number) => Promise<void>;
   completeSession: () => Promise<void>;
   
   // Task State
@@ -69,7 +69,7 @@ export const useJourney = (sessionId: string, moduleId: string, currentStep: num
   }, [sessionId]);
 
   // Create new session
-  const createSession = useCallback(async (moduleId: string, stepData: Record<string, any>) => {
+  const createSession = useCallback(async (moduleId: string, stepData: Record<string, unknown>) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -91,7 +91,7 @@ export const useJourney = (sessionId: string, moduleId: string, currentStep: num
   }, [sessionId]);
 
   // Update session
-  const updateSession = useCallback(async (stepData: Record<string, any>, newCurrentStep?: number) => {
+  const updateSession = useCallback(async (stepData: Record<string, unknown>, newCurrentStep?: number) => {
     if (!session) return;
     
     try {
