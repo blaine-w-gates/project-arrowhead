@@ -1,9 +1,4 @@
 import { 
-  users, 
-  blogPosts, 
-  emailSubscribers, 
-  journeySessions,
-  tasks,
   type User, 
   type InsertUser, 
   type BlogPost, 
