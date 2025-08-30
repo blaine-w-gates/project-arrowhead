@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { Edit2, Trash2, GripVertical } from 'lucide-react';
-import { useTaskManager } from '../hooks/useTaskManager';
+import { useTaskManager, type Task } from '../hooks/useTaskManager';
 import AddTaskModal from '../components/AddTaskModal';
-import { convertTasksToMarkdown, convertTasksToCSV, convertTasksToJSON, generateFullProjectData, generateModuleExportData, generateTaskListPDF, generateModulePDF, generateFullProjectPDF, copyToClipboard, downloadFile, type TaskData } from '../utils/exportUtils';
+import { convertTasksToMarkdown, convertTasksToCSV, convertTasksToJSON, generateModulePDF, generateFullProjectPDF, copyToClipboard, downloadFile, type TaskData } from '../utils/exportUtils';
 
 const TaskListPage: React.FC = () => {
-  const { tasks, isLoading, error, addTask, updateTask, deleteTask, updateTaskStatus, clearError, reorderTasks } = useTaskManager();
+  const { tasks, addTask, updateTask, deleteTask, updateTaskStatus, reorderTasks } = useTaskManager();
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({ task: '', person: '', date: '' });
@@ -138,7 +138,7 @@ const TaskListPage: React.FC = () => {
   };
 
   // Edit task handlers
-  const handleEditTask = (task: any) => {
+  const handleEditTask = (task: Task) => {
     setEditingTask(task.id);
     setEditFormData({
       task: task.task,
