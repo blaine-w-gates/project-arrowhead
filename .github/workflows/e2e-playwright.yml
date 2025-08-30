@@ -44,7 +44,7 @@ jobs:
         working-directory: website-integration/ArrowheadSolution
 
       - name: Run E2E tests (chromium)
-        run: npm run test:e2e:ci
+        run: npx playwright test --project=chromium
         working-directory: website-integration/ArrowheadSolution
         env:
           # Ensure Playwright starts the webServer defined in config

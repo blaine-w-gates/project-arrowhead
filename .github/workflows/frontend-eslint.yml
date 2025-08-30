@@ -41,5 +41,5 @@ jobs:
         working-directory: website-integration/ArrowheadSolution
 
       - name: Run ESLint (CI)
-        run: npm run lint:ci --silent
+        run: npm run lint:ci
         working-directory: website-integration/ArrowheadSolution
