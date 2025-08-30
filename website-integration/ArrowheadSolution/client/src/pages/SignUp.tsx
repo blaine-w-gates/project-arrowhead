@@ -25,7 +25,7 @@ export default function SignUp() {
       const response = await apiRequest("POST", "/api/users/register", userData);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Account Created!",
         description: `Welcome to Project Arrowhead ${tier} plan!`,
@@ -33,10 +33,16 @@ export default function SignUp() {
       // In a real app, you would handle authentication here
       navigate("/");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === 'string'
+          ? error
+          : "Failed to create account. Please try again.";
       toast({
         title: "Registration Failed",
-        description: error.message || "Failed to create account. Please try again.",
+        description: message,
         variant: "destructive",
       });
     },
