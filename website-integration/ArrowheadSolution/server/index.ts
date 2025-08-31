@@ -50,7 +50,6 @@ app.use((req, res, next) => {
       changeOrigin: true,
       ws: false,
       pathRewrite: { "^/pyapi": "/api" },
-      logLevel: "warn",
     }),
   );
 })();
