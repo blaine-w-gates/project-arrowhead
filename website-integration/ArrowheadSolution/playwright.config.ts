@@ -26,6 +26,14 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+    },
+    {
       name: 'prod-chromium',
       use: {
         ...devices['Desktop Chrome'],
@@ -37,7 +45,8 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_NO_WEBSERVER
     ? undefined
     : {
-        command: 'npm run dev',
+        // Ensure the Node dev server proxies to the Python backend on 5050 during tests
+        command: 'DATABASE_URL= PY_BACKEND_PORT=5050 npm run dev',
         url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

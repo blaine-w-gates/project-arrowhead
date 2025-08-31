@@ -34,6 +34,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // HEAD health endpoints for blog APIs (used by E2E tests and CDNs)
+  app.head("/api/blog/posts", async (_req, res) => {
+    try {
+      // Touch the storage to ensure it is healthy
+      await storage.getBlogPosts();
+      res.setHeader("Cache-Control", "max-age=60, must-revalidate");
+      res.status(204).end();
+    } catch (_err) {
+      res.status(500).end();
+    }
+  });
+
+  app.head("/api/blog/posts/:slug", async (req, res) => {
+    try {
+      const post = await storage.getBlogPost(req.params.slug);
+      if (!post) {
+        return res.status(404).end();
+      }
+      res.setHeader("Cache-Control", "max-age=60, must-revalidate");
+      res.status(204).end();
+    } catch (_err) {
+      res.status(500).end();
+    }
+  });
+
   // User registration
   app.post("/api/users/register", async (req, res) => {
     try {
