@@ -147,6 +147,22 @@ export interface TaskData {
   date: string;
 }
 
+interface ModuleContentItem {
+  step: number;
+  title: string;
+  instructions: string;
+  question: string;
+  placeholder: string;
+}
+
+interface ModuleStepExport {
+  stepNumber: number;
+  title: string;
+  question: string;
+  answer: string;
+  completed: boolean;
+}
+
 // Safe date formatter to avoid "Invalid Date" and normalize common formats
 function formatDateSafe(dateStr: string): string {
   try {
@@ -163,9 +179,9 @@ function formatDateSafe(dateStr: string): string {
         return d2.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
       }
     }
-    const mdy = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    const mdy = dateStr.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
     if (mdy) {
-      let [, mm, dd, yy] = mdy;
+      const [, mm, dd, yy] = mdy;
       const yyyy = yy.length === 2 ? Number(yy) + 2000 : Number(yy);
       const d3 = new Date(yyyy, Number(mm) - 1, Number(dd));
       if (!isNaN(d3.getTime())) {
@@ -391,9 +407,9 @@ const getModuleStepCount = (moduleId: string): number => {
   }
 };
 
-const generateModuleSteps = (moduleId: string): any[] => {
+const generateModuleSteps = (moduleId: string): ModuleStepExport[] => {
   const stepCount = getModuleStepCount(moduleId);
-  const steps = [];
+  const steps: ModuleStepExport[] = [];
   
   for (let i = 1; i <= stepCount; i++) {
     steps.push({
@@ -624,7 +640,7 @@ export const generateTaskListPDF = (tasks: TaskData[]): void => {
  * Retrieve user answers from localStorage
  */
 const DEBUG_PDF = false;
-const dbg = (...args: any[]) => { if (DEBUG_PDF) console.log(...args); };
+const dbg = (...args: unknown[]) => { if (DEBUG_PDF) console.log(...args); };
 const getUserAnswers = (moduleId: string): Record<string, string> => {
   const answers: Record<string, string> = {};
   
@@ -698,7 +714,10 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
           const parsedData = JSON.parse(savedData);
           dbg(`Step ${step} parsed data:`, parsedData);
           dbg(`Step ${step} parsed data type:`, typeof parsedData);
-          dbg(`Step ${step} parsed data keys:`, Object.keys(parsedData));
+          // keys only when object
+          if (typeof parsedData === 'object' && parsedData !== null) {
+            dbg(`Step ${step} parsed data keys:`, Object.keys(parsedData as Record<string, unknown>));
+          }
           // Associate candidate values strictly to current step
           const keyHasStep = !!foundKey && keyMatchesStep(foundKey, step);
 
@@ -706,45 +725,61 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
           let userAnswer = '';
           
           if (typeof parsedData === 'object' && parsedData !== null) {
-            dbg(`Step ${step} analyzing object structure:`, Object.keys(parsedData));
+            const obj = parsedData as Record<string, unknown>;
+            dbg(`Step ${step} analyzing object structure:`, Object.keys(obj));
             
             // Strategy 1: Direct field access for common patterns
             const directFields = [
               'answer', 'response', 'value', 'text', 'content', 'userInput',
               'input', 'result', 'data'
             ];
+
+            const isStepMatch =
+              (typeof obj.step === 'number' && obj.step === step) ||
+              (typeof obj.currentStep === 'number' && obj.currentStep === step) ||
+              keyHasStep;
             
             for (const field of directFields) {
-              if (((parsedData as any).step === step || (parsedData as any).currentStep === step || keyHasStep) &&
-                  typeof (parsedData as any)[field] === 'string' && (parsedData as any)[field].trim() !== '') {
-                userAnswer = (parsedData as any)[field].trim();
+              const val = obj[field];
+              if (isStepMatch && typeof val === 'string' && val.trim() !== '') {
+                userAnswer = val.trim();
                 dbg(`Step ${step} found step-scoped answer in field '${field}':`, userAnswer.substring(0, 100) + '...');
                 break;
               }
             }
             
             // Strategy 2: Check for nested answer objects
-            if (!userAnswer && parsedData.answers && typeof parsedData.answers === 'object') {
-              dbg(`Step ${step} checking nested answers object:`, Object.keys(parsedData.answers));
+            if (!userAnswer && typeof obj.answers === 'object' && obj.answers !== null) {
+              const answersObj = obj.answers as Record<string, unknown>;
+              dbg(`Step ${step} checking nested answers object:`, Object.keys(answersObj));
               // Prefer explicit step keys only
               const stepKey = `step${step}`;
-              if (typeof parsedData.answers[stepKey] === 'string') {
-                userAnswer = parsedData.answers[stepKey].trim();
+              const ansByKey = answersObj[stepKey];
+              if (typeof ansByKey === 'string') {
+                userAnswer = ansByKey.trim();
                 dbg(`Step ${step} found answer in answers.${stepKey}:`, userAnswer.substring(0, 100) + '...');
-              } else if (typeof parsedData.answers[step] === 'string') {
-                userAnswer = parsedData.answers[step].trim();
-                dbg(`Step ${step} found answer in answers[${step}]:`, userAnswer.substring(0, 100) + '...');
+              } else {
+                const ansByIndex = answersObj[String(step)];
+                if (typeof ansByIndex === 'string') {
+                  userAnswer = ansByIndex.trim();
+                  dbg(`Step ${step} found answer in answers[${step}]:`, userAnswer.substring(0, 100) + '...');
+                }
               }
             }
             
             // Strategy 3: Check for form data structure
-            if (!userAnswer && parsedData.formData && typeof parsedData.formData === 'object') {
-              dbg(`Step ${step} checking formData structure:`, Object.keys(parsedData.formData));
-              const stepMatch = parsedData.formData.step === step || parsedData.formData.currentStep === step || keyHasStep;
+            if (!userAnswer && typeof obj.formData === 'object' && obj.formData !== null) {
+              const formData = obj.formData as Record<string, unknown>;
+              dbg(`Step ${step} checking formData structure:`, Object.keys(formData));
+              const stepMatch =
+                (typeof formData.step === 'number' && formData.step === step) ||
+                (typeof formData.currentStep === 'number' && formData.currentStep === step) ||
+                keyHasStep;
               if (stepMatch) {
                 for (const field of directFields) {
-                  if (typeof parsedData.formData[field] === 'string' && parsedData.formData[field].trim() !== '') {
-                    userAnswer = parsedData.formData[field].trim();
+                  const val = formData[field];
+                  if (typeof val === 'string' && val.trim() !== '') {
+                    userAnswer = val.trim();
                     dbg(`Step ${step} found answer in formData.${field}:`, userAnswer.substring(0, 100) + '...');
                     break;
                   }
@@ -752,8 +787,9 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
               }
               if (!userAnswer) {
                 const stepKey = `step${step}`;
-                if (typeof parsedData.formData[stepKey] === 'string' && parsedData.formData[stepKey].trim() !== '') {
-                  userAnswer = parsedData.formData[stepKey].trim();
+                const val = formData[stepKey];
+                if (typeof val === 'string' && val.trim() !== '') {
+                  userAnswer = val.trim();
                   dbg(`Step ${step} found answer in formData.${stepKey}:`, userAnswer.substring(0, 100) + '...');
                 }
               }
@@ -761,8 +797,9 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
             
             // Strategy 4: Look for textarea/input element IDs (e.g., brainstormStep5Input)
             const inputId = `${moduleId}Step${step}Input`;
-            if (!userAnswer && parsedData[inputId] && typeof parsedData[inputId] === 'string') {
-              userAnswer = parsedData[inputId].trim();
+            const dynVal = obj[inputId];
+            if (!userAnswer && typeof dynVal === 'string') {
+              userAnswer = dynVal.trim();
               dbg(`Step ${step} found answer via input ID '${inputId}':`, userAnswer.substring(0, 100) + '...');
             }
             
@@ -779,7 +816,7 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
               dbg(`Step ${step} non-object value ignored due to non step-specific key`);
             }
           }
-        } catch (parseError) {
+        } catch (_parseError) {
           // If JSON parsing fails, only use the raw string if key maps to this step
           const keyIsStepSpecific = !!foundKey && keyMatchesStep(foundKey, step);
           answers[step] = keyIsStepSpecific ? savedData : '';
@@ -806,7 +843,7 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
 const getModuleContent = (moduleId: string) => {
   // This would normally be imported from journeyContent.json
   // For now, we'll include the content directly to ensure it works
-  const journeyContent: any = {
+  const journeyContent: Record<string, ModuleContentItem[]> = {
     "brainstorm": [
       {
         "step": 1,
@@ -952,9 +989,9 @@ export const generateModulePDF = (moduleId: string): void => {
   const PAGE_TOP = 60;     // content start on continued pages (after header)
   const LINE_HEIGHT = 6;   // per-line vertical spacing
   const CONTENT_X = 20;    // left x for boxes/labels
-  const TEXT_X = 25;       // left x for paragraph text
+  const _TEXT_X = 25;       // left x for paragraph text (unused placeholder)
   const CONTENT_WIDTH = 170; // width of content boxes
-  const BOX_PADDING = 8;   // total top+bottom padding for background boxes
+  const _BOX_PADDING = 8;   // total top+bottom padding for background boxes (unused placeholder)
   
   // Professional header with module-specific colors
   let headerColor = [41, 128, 185]; // Default blue
@@ -995,7 +1032,7 @@ export const generateModulePDF = (moduleId: string): void => {
   doc.setFontSize(11);
   const descLines = doc.splitTextToSize(moduleDescription, CONTENT_WIDTH);
   let yPos = 65;
-  descLines.forEach((line: string, i: number) => {
+  descLines.forEach((line: string) => {
     doc.text(line, CONTENT_X, yPos);
     yPos += LINE_HEIGHT;
   });
@@ -1009,7 +1046,7 @@ export const generateModulePDF = (moduleId: string): void => {
   doc.text('Step-by-Step Content', 20, yPos);
   yPos += 15;
   
-  moduleSteps.forEach((step: any, index: number) => {
+  moduleSteps.forEach((step: ModuleContentItem, _index: number) => {
     // Check if we need a new page before step header
     if (yPos > PAGE_BOTTOM - 30) {
       doc.addPage();
@@ -1346,7 +1383,7 @@ export const generateFullProjectPDF = (tasks: TaskData[]): void => {
     // Module steps with full content and user answers
     const moduleSteps = getModuleContent(module.id);
     const moduleUserAnswers = getUserAnswers(module.id);
-    moduleSteps.forEach((step: any) => {
+    moduleSteps.forEach((step: ModuleContentItem) => {
       // Ensure room for step header
       if (yPos > PAGE_BOTTOM - 30) {
         doc.addPage();

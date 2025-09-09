@@ -1,10 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, useLocation } from 'wouter';
 import { JourneyStep, type JourneyStepData } from '@/components/journey';
 import { useToast } from '@/hooks/use-toast';
 import { useJourney, useSessionId } from '@/hooks/useJourney';
 import { useTaskManager } from '@/hooks/useTaskManager';
 import journeyContentData from '@/data/journeyContent.json';
+
+// Local copy of the StepCompletePayload to match JourneyStep's onStepComplete
+type StepCompletePayload = {
+  stepNumber: number;
+  stepId: string;
+  answers: Record<string, string>;
+  lastSaved?: string;
+  autoSaved?: boolean;
+  completedAt?: string;
+  manualSave?: boolean;
+};
 
 // Function to dynamically create step data from JSON content
 const createStepData = (moduleId: string, stepNumber: number): JourneyStepData | null => {
@@ -58,16 +69,10 @@ const JourneyStepPage: React.FC = () => {
 
   // Use the journey hook for backend integration
   const {
-    session,
     isLoading,
     error,
-    createSession,
     updateSession,
-    completeSession,
-    tasks: journeyTasks,
-    createTask,
-    updateTask,
-    deleteTask
+    createTask
   } = useJourney(sessionId, moduleId, currentStep);
 
   // Use unified task manager for consistent task management
@@ -108,7 +113,7 @@ const JourneyStepPage: React.FC = () => {
 
   // Session initialization is now handled in useJourney hook
 
-  const handleStepComplete = async (stepData: Record<string, any>) => {
+  const handleStepComplete = async (stepData: StepCompletePayload) => {
     try {
       const stepKey = `step_${currentStep}`;
       await updateSession({ [stepKey]: stepData }, currentStep);
