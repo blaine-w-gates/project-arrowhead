@@ -6,7 +6,7 @@ export interface JourneySession {
   userId?: number;
   module: string;
   currentStep: number;
-  stepData: Record<string, any>;
+  stepData: Record<string, unknown>;
   completedSteps: string[];
   isCompleted: boolean;
   completedAt?: string;

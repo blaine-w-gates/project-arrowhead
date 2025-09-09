@@ -41,7 +41,7 @@ async function newProdRequestContext(extraHTTPHeaders?: Record<string, string>) 
 }
 
 // Positive case: valid token can fetch admin assets
-test('PROD Access: allows /admin with valid service token', async ({}, testInfo) => {
+test('PROD Access: allows /admin with valid service token', async ({ page: _page }, testInfo) => {
   await ensureProdProject(testInfo);
   ensureAccessEnvOrSkip();
 
@@ -66,7 +66,7 @@ test('PROD Access: allows /admin with valid service token', async ({}, testInfo)
 });
 
 // Negative case: no headers -> should be blocked by Cloudflare Access
-test('PROD Access: denies /admin without Access headers', async ({}, testInfo) => {
+test('PROD Access: denies /admin without Access headers', async ({ page: _page }, testInfo) => {
   await ensureProdProject(testInfo);
 
   const ctx = await newProdRequestContext();
@@ -81,7 +81,7 @@ test('PROD Access: denies /admin without Access headers', async ({}, testInfo) =
 });
 
 // Negative case: invalid random token -> should be blocked
-test('PROD Access: denies /admin with invalid token headers', async ({}, testInfo) => {
+test('PROD Access: denies /admin with invalid token headers', async ({ page: _page }, testInfo) => {
   await ensureProdProject(testInfo);
 
   const ctx = await newProdRequestContext({

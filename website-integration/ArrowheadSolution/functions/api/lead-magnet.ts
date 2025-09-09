@@ -105,18 +105,22 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
     }
   }
 
-  let body: any;
+  let obj: Record<string, unknown>;
   try {
     const text = await request.text();
     if (text.length > maxBytes) {
       return jsonWithCors(413, { success: false, error: "Payload too large" }, cors);
     }
-    body = JSON.parse(text);
+    const parsed: unknown = JSON.parse(text);
+    if (typeof parsed !== "object" || parsed === null) {
+      return jsonWithCors(400, { success: false, error: "Invalid JSON body" }, cors);
+    }
+    obj = parsed as Record<string, unknown>;
   } catch {
     return jsonWithCors(400, { success: false, error: "Invalid JSON body" }, cors);
   }
 
-  const emailRaw = typeof body?.email === "string" ? body.email : "";
+  const emailRaw = typeof obj.email === "string" ? (obj.email as string) : "";
   const email = emailRaw.trim().toLowerCase();
   if (!emailValid(email)) {
     return jsonWithCors(400, { success: false, error: "Invalid email" }, cors);
@@ -127,9 +131,10 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
     const turnstileSecret = env.TURNSTILE_SECRET_KEY || "";
     const requireTurnstile = (env.TURNSTILE_REQUIRED || "").toLowerCase() === "true";
     if (turnstileSecret && requireTurnstile) {
-      const token = typeof body?.turnstileToken === "string"
-        ? body.turnstileToken.trim()
-        : (typeof body?.["cf-turnstile-response"] === "string" ? (body["cf-turnstile-response"] as string).trim() : "");
+      const token =
+        typeof obj["turnstileToken"] === "string"
+          ? (obj["turnstileToken"] as string).trim()
+          : (typeof obj["cf-turnstile-response"] === "string" ? (obj["cf-turnstile-response"] as string).trim() : "");
       if (!token) {
         return jsonWithCors(400, { success: false, error: "Captcha required" }, cors);
       }
@@ -141,7 +146,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: bodyParams.toString(),
       });
-      const tsJson = await tsRes.json().catch(() => ({ success: false }));
+      const tsJson = (await tsRes.json().catch(() => ({ success: false }))) as { success?: boolean };
       if (!tsJson?.success) {
         return jsonWithCors(400, { success: false, error: "Captcha verification failed" }, cors);
       }
@@ -183,7 +188,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
 
     const text = await res.text();
     return jsonWithCors(502, { success: false, error: "Upstream error", detail: text.slice(0, 200) }, cors);
-  } catch (e: any) {
+  } catch {
     return jsonWithCors(500, { success: false, error: "Unexpected error" }, cors);
   }
 };

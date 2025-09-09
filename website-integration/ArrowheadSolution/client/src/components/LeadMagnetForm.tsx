@@ -23,7 +23,9 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
   const [errorMessage, setErrorMessage] = useState('');
   const [tsToken, setTsToken] = useState('');
   const widgetRef = useRef<HTMLDivElement | null>(null);
-  const siteKey = (import.meta as any).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
+  const siteKey = (
+    import.meta as ImportMeta & { env?: { VITE_TURNSTILE_SITE_KEY?: string } }
+  ).env?.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -66,8 +68,16 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({} as any));
-        const serverMsg = (errorData && (errorData.error || errorData.message)) || "";
+        const errorData = await response
+          .json()
+          .catch(() => ({} as Record<string, unknown>));
+
+        let serverMsg = '';
+        if (typeof errorData === 'object' && errorData !== null) {
+          const obj = errorData as { error?: unknown; message?: unknown };
+          if (typeof obj.error === 'string') serverMsg = obj.error;
+          else if (typeof obj.message === 'string') serverMsg = obj.message;
+        }
         const friendly =
           serverMsg ||
           (response.status === 403
@@ -138,7 +148,7 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
             action: 'lead_magnet_submit',
           });
         }
-      } catch {}
+      } catch { void 0; }
     };
     if (window.turnstile) {
       ensureRender();
@@ -151,7 +161,7 @@ const LeadMagnetForm: React.FC<LeadMagnetFormProps> = ({ onSuccess, className = 
     script.onload = ensureRender;
     document.head.appendChild(script);
     return () => {
-      try { window.turnstile?.reset?.(); } catch {}
+      try { window.turnstile?.reset?.(); } catch { void 0; }
     };
   }, [siteKey]);
 

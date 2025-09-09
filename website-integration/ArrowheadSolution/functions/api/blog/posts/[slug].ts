@@ -1,4 +1,4 @@
-export const onRequestGet = async ({ request, params, env }: { request: Request; params: Record<string, string>; env: any }) => {
+export const onRequestGet = async ({ request, params, env }: { request: Request; params: Record<string, string>; env: { ASSETS?: { fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response> } } }) => {
   try {
     const slug = params?.slug;
     if (!slug) {
@@ -30,7 +30,7 @@ export const onRequestGet = async ({ request, params, env }: { request: Request;
     headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
 
     return new Response(res.body, { status: res.status, headers });
-  } catch (err: any) {
+  } catch (err) {
     return new Response(JSON.stringify({ message: "Failed to fetch blog post" }), {
       status: 500,
       headers: { "Content-Type": "application/json", "X-Content-Type-Options": "nosniff", "Strict-Transport-Security": "max-age=31536000; includeSubDomains" },
@@ -39,7 +39,7 @@ export const onRequestGet = async ({ request, params, env }: { request: Request;
 };
 
 // Lightweight HEAD for health/caching metadata
-export const onRequestHead = async ({ request, params, env }: { request: Request; params: Record<string, string>; env: any }) => {
+export const onRequestHead = async ({ request, params, env }: { request: Request; params: Record<string, string>; env: { ASSETS?: { fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response> } } }) => {
   try {
     const slug = params?.slug;
     if (!slug) {
