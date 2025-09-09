@@ -37,7 +37,11 @@ jobs:
       - name: Install ESLint (CI-only, no lockfile commit)
         run: |
           npm i -D --no-audit --no-fund \
-            eslint@^8 @typescript-eslint/parser@^7 @typescript-eslint/eslint-plugin@^7
+            eslint@8.57.1 @typescript-eslint/parser@^7 @typescript-eslint/eslint-plugin@^7
+        working-directory: website-integration/ArrowheadSolution
+
+      - name: Show ESLint version
+        run: npx eslint --version
         working-directory: website-integration/ArrowheadSolution
 
       - name: Run ESLint (CI)
