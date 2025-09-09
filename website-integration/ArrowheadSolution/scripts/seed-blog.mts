@@ -3,7 +3,7 @@
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { writeFile } from 'fs/promises';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { getDb, closeDb } from '../server/db.ts';
 import { blogPosts, type InsertBlogPost } from '../shared/schema.ts';
 import { FileBlogStorage } from '../server/fileStorage.ts';
@@ -42,6 +42,45 @@ async function restUpsertBlogPosts(posts: BlogPost[], supabaseUrl: string, servi
   return { count, data: Array.isArray(data) ? data : [] };
 }
 
+async function fetchRestPublishedSlugs(supabaseUrl: string, serviceKey: string): Promise<string[]> {
+  const base = supabaseUrl.replace(/\/$/, '');
+  const url = `${base}/rest/v1/blog_posts?select=slug&published=eq.true`;
+  const res = await fetch(url, {
+    headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`REST fetch published slugs failed: ${res.status} ${res.statusText} - ${text}`);
+  }
+  const arr = await res.json().catch(() => []);
+  return Array.isArray(arr) ? arr.map((r: any) => r.slug).filter(Boolean) : [];
+}
+
+async function unpublishRestSlugs(slugs: string[], supabaseUrl: string, serviceKey: string): Promise<number> {
+  if (!slugs.length) return 0;
+  const base = supabaseUrl.replace(/\/$/, '');
+  let changed = 0;
+  for (const slug of slugs) {
+    const url = `${base}/rest/v1/blog_posts?slug=eq.${encodeURIComponent(slug)}`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ published: false, published_at: null }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`REST unpublish failed for slug ${slug}: ${res.status} ${res.statusText} - ${text}`);
+    }
+    changed += 1;
+  }
+  return changed;
+}
+
 // Idempotent seeding: insert-or-update by slug
 async function run() {
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -61,11 +100,24 @@ async function run() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (supabaseUrl && serviceKey) {
     const { count } = await restUpsertBlogPosts(publishedPosts, supabaseUrl, serviceKey);
+    // Reconcile: unpublish DB rows that are no longer present in FS published set
+    const fsSlugs = publishedPosts.map(p => p.slug);
+    const dbPublishedSlugs = await fetchRestPublishedSlugs(supabaseUrl, serviceKey);
+    const extras = dbPublishedSlugs.filter(s => !fsSlugs.includes(s));
+    let unpublished = 0;
+    if (extras.length) {
+      unpublished = await unpublishRestSlugs(extras, supabaseUrl, serviceKey);
+      console.log(`[seed-blog] Reconciled REST: unpublished extras ${unpublished} [${extras.join(', ')}]`);
+    } else {
+      console.log('[seed-blog] Reconciled REST: no extras to unpublish');
+    }
     const report = {
       mode: 'rest',
       upserted: count,
       total: publishedPosts.length,
-      slugs: publishedPosts.map(p => p.slug),
+      unpublishedExtras: unpublished,
+      unpublishedSlugs: extras,
+      slugs: fsSlugs,
       timestamp: new Date().toISOString(),
     };
     await writeFile(path.join(repoRoot, 'seed-report.json'), JSON.stringify(report, null, 2));
@@ -111,12 +163,29 @@ async function run() {
   }
 
   console.log(`[seed-blog] Completed. Inserted: ${inserted}, Updated: ${updated}, Total processed (published): ${publishedPosts.length}`);
+  // Reconcile (DB mode): unpublish rows present in DB but not in FS
+  const fsSlugs = publishedPosts.map(p => p.slug);
+  const rows = await db.select({ slug: blogPosts.slug }).from(blogPosts).where(eq(blogPosts.published, true));
+  const dbPublishedSlugs = rows.map(r => r.slug).filter(Boolean);
+  const extras = dbPublishedSlugs.filter(s => !fsSlugs.includes(s));
+  let unpublished = 0;
+  if (extras.length) {
+    await db.update(blogPosts)
+      .set({ published: false, publishedAt: null })
+      .where(inArray(blogPosts.slug, extras));
+    unpublished = extras.length;
+    console.log(`[seed-blog] Reconciled DB: unpublished extras ${unpublished} [${extras.join(', ')}]`);
+  } else {
+    console.log('[seed-blog] Reconciled DB: no extras to unpublish');
+  }
   const report = {
     mode: 'db',
     inserted,
     updated,
     total: publishedPosts.length,
-    slugs: publishedPosts.map(p => p.slug),
+    unpublishedExtras: unpublished,
+    unpublishedSlugs: extras,
+    slugs: fsSlugs,
     timestamp: new Date().toISOString(),
   };
   await writeFile(path.join(repoRoot, 'seed-report.json'), JSON.stringify(report, null, 2));
