@@ -14,6 +14,7 @@ export type DataHealth = {
     expires_at?: string | null;
   } | null;
   cached?: boolean;
+  stale?: boolean;
   fetched_at?: string;
   cache_ttl_seconds?: number;
 };
