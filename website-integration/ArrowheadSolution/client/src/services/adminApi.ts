@@ -7,11 +7,11 @@ export const API_BASE = (
   import.meta as ImportMeta & { env?: { VITE_ADMIN_API_BASE?: string } }
 ).env?.VITE_ADMIN_API_BASE ?? "/pyapi";
 
-export async function getDataHealth(adminKey: string): Promise<DataHealth> {
+export async function getDataHealth(adminKey: string, opts?: { noCache?: boolean }): Promise<DataHealth> {
   if (!adminKey) {
     throw new AdminApiError(403, "Missing admin key");
   }
-  const url = `${API_BASE}/admin/data-health`;
+  const url = `${API_BASE}/admin/data-health${opts?.noCache ? "?noCache=1" : ""}`;
   const res = await fetch(url, {
     method: "GET",
     headers: {

@@ -4,12 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useDataHealth } from "@/hooks/useDataHealth";
+import { useQueryClient } from "@tanstack/react-query";
+import { getDataHealth } from "@/services/adminApi";
 
 interface Props {
   adminKey: string;
 }
 
 export default function DataHealthCard({ adminKey }: Props) {
+  const queryClient = useQueryClient();
   const { data, isLoading, error, refetch, isFetching } = useDataHealth(adminKey);
 
   const driftBadge = useMemo(() => {
@@ -21,14 +24,25 @@ export default function DataHealthCard({ adminKey }: Props) {
     );
   }, [data]);
 
+  const handleForceRefresh = async () => {
+    if (!adminKey) return;
+    const fresh = await getDataHealth(adminKey, { noCache: true });
+    queryClient.setQueryData(["/api", "admin", "data-health", adminKey || "_"], fresh);
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Data Health</CardTitle>
         <div className="flex items-center gap-2">
           {data && driftBadge}
+          {data?.stale && <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-800">Stale</Badge>}
+          {data?.cached && !data?.stale && <Badge variant="secondary">Cached</Badge>}
           <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
             Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleForceRefresh} disabled={isFetching}>
+            Force Refresh
           </Button>
         </div>
       </CardHeader>
