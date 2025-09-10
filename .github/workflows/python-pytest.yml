@@ -1,0 +1,45 @@
+name: Python Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**/*.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'backend/**'
+      - 'tests/**'
+      - 'app.py'
+  pull_request:
+    paths:
+      - '**/*.py'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'backend/**'
+      - 'tests/**'
+      - 'app.py'
+
+jobs:
+  pytest:
+    name: Run Pytest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pytest
+        env:
+          ADMIN_API_KEY: ci-admin-key
+          PYTHONUNBUFFERED: '1'
+        run: pytest -q
