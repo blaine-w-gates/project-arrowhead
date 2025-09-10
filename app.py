@@ -31,6 +31,21 @@ WORKFLOW_STATUS_TTL_SECONDS = 20
 DATA_HEALTH_CACHE = None
 DATA_HEALTH_TTL_SECONDS = 60
 
+def _get_data_health_ttl_seconds() -> int:
+    """Return TTL seconds for Data Health cache, overridable via env.
+
+    Falls back to module default when env is missing or invalid.
+    """
+    try:
+        raw = os.environ.get("DATA_HEALTH_TTL_SECONDS")
+        if not raw:
+            return DATA_HEALTH_TTL_SECONDS
+        ttl = int(raw)
+        # Guard against nonsensical values
+        return ttl if ttl > 0 else DATA_HEALTH_TTL_SECONDS
+    except Exception:
+        return DATA_HEALTH_TTL_SECONDS
+
 def _now_utc():
     return datetime.now(timezone.utc)
 
@@ -173,12 +188,13 @@ def api_admin_data_health():
         resp.status_code = 403
         return _maybe_add_cors(resp)
 
-    # Cache check
+    # Cache check (allow bypass via noCache=1)
     global DATA_HEALTH_CACHE
-    if DATA_HEALTH_CACHE:
+    no_cache = (request.args.get("noCache") or "").strip().lower() in ("1", "true", "yes")
+    if DATA_HEALTH_CACHE and not no_cache:
         fetched_at = DATA_HEALTH_CACHE.get("fetched_at")
-        if fetched_at and (_now_utc() - fetched_at) < timedelta(seconds=DATA_HEALTH_TTL_SECONDS):
-            payload = dict(DATA_HEALTH_CACHE["data"])
+        if fetched_at and (_now_utc() - fetched_at) < timedelta(seconds=_get_data_health_ttl_seconds()):
+            payload = dict(DATA_HEALTH_CACHE["data"])  # shallow copy
             payload["cached"] = True
             resp = jsonify(payload)
             return _maybe_add_cors(resp)
@@ -239,13 +255,21 @@ def api_admin_data_health():
             },
             "cached": False,
             "fetched_at": _now_utc().isoformat(),
-            "cache_ttl_seconds": DATA_HEALTH_TTL_SECONDS,
+            "cache_ttl_seconds": _get_data_health_ttl_seconds(),
         }
 
         DATA_HEALTH_CACHE = {"data": data, "fetched_at": _now_utc()}
         resp = jsonify(data)
         return _maybe_add_cors(resp)
     except Exception as e:
+        # Fallback-to-cache: if we have a previous good payload, serve it as stale
+        if DATA_HEALTH_CACHE and DATA_HEALTH_CACHE.get("data"):
+            payload = dict(DATA_HEALTH_CACHE["data"])  # shallow copy
+            payload["cached"] = True
+            payload["stale"] = True
+            resp = jsonify(payload)
+            return _maybe_add_cors(resp)
+        # No cache to fall back to: propagate an error with 502
         resp = jsonify({"ok": False, "error": str(e)})
         resp.status_code = 502
         return _maybe_add_cors(resp)

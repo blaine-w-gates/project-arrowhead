@@ -7,6 +7,7 @@ import types
 import zipfile
 
 import pytest
+import os
 
 
 class FakeGitHubClient:
@@ -71,7 +72,7 @@ def test_404_when_no_seed_audit_artifact(app_client):
         ]
     }
 
-    resp = c.get("/api/admin/data-health", headers={"X-Admin-Key": "test-admin"})
+    resp = c.get("/api/admin/data-health?noCache=1", headers={"X-Admin-Key": "test-admin"})
     assert resp.status_code == 404
     body = resp.get_json()
     assert body["ok"] is False
@@ -80,6 +81,8 @@ def test_404_when_no_seed_audit_artifact(app_client):
 def test_success_and_caching(app_client):
     c = app_client.client
     fake = app_client.fake
+    # Ensure a clean cache state for this test
+    app_client.app_module.DATA_HEALTH_CACHE = None
 
     # Newest artifact should be chosen
     fake.artifacts = {
@@ -128,3 +131,125 @@ def test_success_and_caching(app_client):
     assert body2["cached"] is True
     # Only one call to list_artifacts should have happened
     assert fake.list_calls == 1
+
+
+def test_no_cache_query_bypasses_cache(app_client, monkeypatch):
+    c = app_client.client
+    fake = app_client.fake
+    # Ensure a clean cache state for this test
+    app_client.app_module.DATA_HEALTH_CACHE = None
+
+    # Prepare artifacts and initial audit
+    fake.artifacts = {
+        "artifacts": [
+            {
+                "id": 201,
+                "name": "seed-audit-latest",
+                "expired": False,
+                "created_at": "2025-08-29T12:00:00Z",
+                "workflow_run": {"id": 333},
+            }
+        ]
+    }
+
+    audit1 = {
+        "counts": {"fs": 5, "db": 5},
+        "drift": {"onlyA": [], "onlyB": []},
+        "timestamp": "2025-08-29T12:01:00Z",
+    }
+    fake.zip_by_id[201] = make_zip_with_audit(audit1)
+
+    # First call seeds the cache
+    resp1 = c.get("/api/admin/data-health", headers={"X-Admin-Key": "test-admin"})
+    assert resp1.status_code == 200
+    body1 = resp1.get_json()
+    assert body1["cached"] is False
+    assert body1["counts"] == {"fs": 5, "db": 5}
+
+    # Update the audit to simulate a new upstream state
+    audit2 = {
+        "counts": {"fs": 6, "db": 6},
+        "drift": {"onlyA": [], "onlyB": []},
+        "timestamp": "2025-08-29T12:02:00Z",
+    }
+    fake.zip_by_id[201] = make_zip_with_audit(audit2)
+
+    # Second call within TTL but with ?noCache=1 must bypass cache and fetch fresh
+    resp2 = c.get("/api/admin/data-health?noCache=1", headers={"X-Admin-Key": "test-admin"})
+    assert resp2.status_code == 200
+    body2 = resp2.get_json()
+    assert body2["cached"] is False
+    assert body2["counts"] == {"fs": 6, "db": 6}
+    assert fake.list_calls >= 2
+
+
+def test_ttl_env_override_reflected_in_response(app_client, monkeypatch):
+    c = app_client.client
+    fake = app_client.fake
+    # Ensure a clean cache state for this test
+    app_client.app_module.DATA_HEALTH_CACHE = None
+
+    # Override TTL to a custom value
+    monkeypatch.setenv("DATA_HEALTH_TTL_SECONDS", "5")
+
+    fake.artifacts = {
+        "artifacts": [
+            {
+                "id": 301,
+                "name": "seed-audit-latest",
+                "expired": False,
+                "created_at": "2025-08-29T12:00:00Z",
+                "workflow_run": {"id": 444},
+            }
+        ]
+    }
+    audit = {"counts": {"fs": 1, "db": 1}, "drift": {"onlyA": [], "onlyB": []}}
+    fake.zip_by_id[301] = make_zip_with_audit(audit)
+
+    resp = c.get("/api/admin/data-health", headers={"X-Admin-Key": "test-admin"})
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["cache_ttl_seconds"] == 5
+
+
+def test_fallback_to_cache_on_error(app_client, monkeypatch):
+    c = app_client.client
+    fake = app_client.fake
+    # Ensure a clean cache state for this test
+    app_client.app_module.DATA_HEALTH_CACHE = None
+
+    # Seed cache with a successful response first
+    fake.artifacts = {
+        "artifacts": [
+            {
+                "id": 401,
+                "name": "seed-audit-latest",
+                "expired": False,
+                "created_at": "2025-08-29T12:00:00Z",
+                "workflow_run": {"id": 555},
+            }
+        ]
+    }
+    audit_ok = {"counts": {"fs": 2, "db": 2}, "drift": {"onlyA": [], "onlyB": []}}
+    fake.zip_by_id[401] = make_zip_with_audit(audit_ok)
+
+    resp1 = c.get("/api/admin/data-health", headers={"X-Admin-Key": "test-admin"})
+    assert resp1.status_code == 200
+    body1 = resp1.get_json()
+    assert body1["ok"] is True
+    assert body1["cached"] is False
+
+    # Now force GitHub call to fail and ensure we serve stale from cache
+    class ErrorClient(FakeGitHubClient):
+        def list_artifacts(self, per_page: int = 50):
+            raise RuntimeError("GitHub API down")
+
+    monkeypatch.setattr(app_client.app_module, "get_github_client", lambda: ErrorClient())
+
+    resp2 = c.get("/api/admin/data-health?noCache=1", headers={"X-Admin-Key": "test-admin"})
+    assert resp2.status_code == 200  # served from cache despite upstream error
+    body2 = resp2.get_json()
+    assert body2.get("stale") is True
+    assert body2.get("cached") is True
+    # Counts from the cached good response remain intact
+    assert body2["counts"] == {"fs": 2, "db": 2}
