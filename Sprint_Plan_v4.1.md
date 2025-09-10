@@ -119,6 +119,7 @@ E2E happy path green.
 
 
 Sprint 3 — Control Panel v2: Data Health & QA (4–6 days)
+Status: Completed on 2025-09-10. Delivered: Backend Data Health API (noCache/TTL/stale fallback), React UI DataHealthCard with badges and Force Refresh, E2E coverage incl. stale badge, and incident runbook; CI pytest workflow stabilized.
 GET /api/admin/data-health (latest seed-audit.json artifact)
 
 
