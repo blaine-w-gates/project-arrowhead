@@ -100,6 +100,17 @@ export default function DataHealthCard({ adminKey }: Props) {
                 View run in GitHub
               </a>
             )}
+
+            <div>
+              <a
+                href="https://github.com/blaine-w-gates/project-arrowhead/blob/main/docs/data-health-runbook.md"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs text-muted-foreground underline"
+              >
+                Incident runbook
+              </a>
+            </div>
           </div>
         )}
       </CardContent>
