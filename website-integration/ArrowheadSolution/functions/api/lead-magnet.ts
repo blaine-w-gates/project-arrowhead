@@ -69,10 +69,42 @@ function jsonWithCors(status: number, data: unknown, cors: HeadersInit): Respons
   });
 }
 
+// --- Debug helpers (temporary for CORS ground-truth) ---
+function redactHeaders(h: Headers): Record<string, string> {
+  const redacted = Object.create(null) as Record<string, string>;
+  const SENSITIVE = new Set(["authorization", "cookie", "cf-access-client-secret"]);
+  for (const [k, v] of h.entries()) {
+    redacted[k.toLowerCase()] = SENSITIVE.has(k.toLowerCase()) ? "***" : v;
+  }
+  return redacted;
+}
+function logCorsDebug(kind: string, req: Request, origin: string | null, allowed: Set<string>, cors: HeadersInit) {
+  try {
+    const oRaw = req.headers.get("Origin");
+    const oNorm = origin;
+    const oTrim = oNorm ? oNorm.replace(/\/$/, "") : null;
+    const acao = (cors as Record<string, string>)["Access-Control-Allow-Origin"] || undefined;
+    const allowedHas = oTrim ? allowed.has(oTrim) : false;
+    const flex = isAllowedOriginFlexible(oTrim);
+    // Structured one-line JSON for easy log scraping
+    console.log(JSON.stringify({
+      evt: "cors_debug",
+      kind,
+      origin_raw: oRaw,
+      origin_norm: oNorm,
+      allowed_has: allowedHas,
+      flexible: flex,
+      acao,
+      headers: redactHeaders(req.headers),
+    }));
+  } catch { /* ignore logging errors */ }
+}
+
 export const onRequestOptions = async ({ request, env }: { request: Request; env: Record<string, string> }) => {
   const origin = normalizeOrigin(request.headers.get("Origin"));
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
+  logCorsDebug("OPTIONS", request, origin, allowed, cors);
   // Respond 204 for preflight regardless; CORS headers still reflect allowed origin if present
   return new Response(null, { status: 204, headers: { ...(cors as Record<string, string>), "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "Allow": "POST, OPTIONS, HEAD" } });
 };
@@ -82,6 +114,7 @@ export const onRequestHead = async ({ request, env }: { request: Request; env: R
   const origin = normalizeOrigin(request.headers.get("Origin"));
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
+  logCorsDebug("HEAD", request, origin, allowed, cors);
   return new Response(null, { status: 204, headers: { ...(cors as Record<string, string>), "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "Allow": "POST, OPTIONS, HEAD" } });
 };
 
@@ -90,6 +123,7 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: Re
   const origin = normalizeOrigin(request.headers.get("Origin"));
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
+  logCorsDebug("GET", request, origin, allowed, cors);
   return new Response(null, { status: 405, headers: { ...(cors as Record<string, string>), "Allow": "POST, OPTIONS, HEAD", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } });
 };
 
@@ -97,10 +131,12 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
   const origin = normalizeOrigin(request.headers.get("Origin"));
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
+  logCorsDebug("POST", request, origin, allowed, cors);
 
   if (!origin || !(allowed.has(origin) || isAllowedOriginFlexible(origin))) {
     // Block disallowed origins
-    return jsonWithCors(403, { success: false, error: "Origin not allowed" }, cors);
+    const originRaw = request.headers.get("Origin");
+    return jsonWithCors(403, { success: false, error: "Origin not allowed", received_origin: originRaw, normalized_origin: origin }, cors);
   }
 
   // Enforce JSON Content-Type and small payloads
