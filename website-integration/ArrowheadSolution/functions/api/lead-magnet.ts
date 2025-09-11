@@ -42,7 +42,8 @@ function isAllowedOriginFlexible(origin: string | null): boolean {
 function buildCorsHeaders(origin: string | null, allowed: Set<string>): HeadersInit {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "POST, OPTIONS, HEAD",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    // Default to a permissive-but-reasonable superset; OPTIONS handler may override with the requested headers
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, X-Requested-With, cf-turnstile-response",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
@@ -106,7 +107,9 @@ export const onRequestOptions = async ({ request, env }: { request: Request; env
   const cors = buildCorsHeaders(origin, allowed);
   logCorsDebug("OPTIONS", request, origin, allowed, cors);
   // Respond 204 for preflight regardless; CORS headers still reflect allowed origin if present
-  return new Response(null, { status: 204, headers: { ...(cors as Record<string, string>), "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "Allow": "POST, OPTIONS, HEAD" } });
+  const acrh = request.headers.get("Access-Control-Request-Headers");
+  const defaultAllow = (cors as Record<string, string>)["Access-Control-Allow-Headers"] || "Content-Type, Authorization, Accept, X-Requested-With, cf-turnstile-response";
+  return new Response(null, { status: 204, headers: { ...(cors as Record<string, string>), "Access-Control-Allow-Headers": acrh || defaultAllow, "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow", "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "Allow": "POST, OPTIONS, HEAD" } });
 };
 
 // Lightweight health/CORS check
