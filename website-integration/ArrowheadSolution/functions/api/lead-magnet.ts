@@ -233,7 +233,50 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
     });
 
     if (res.ok || res.status === 409) {
-      // Treat conflict (duplicate) as success to avoid leaking existence
+      // Supabase insert accepted. Best-effort ConvertKit subscribe if enabled.
+      try {
+        const ckEnabled = (env.CONVERTKIT_ENABLED || "").toLowerCase() === "true";
+        if (ckEnabled) {
+          const base = (env.CONVERTKIT_BASE_URL || "https://api.convertkit.com/v3").replace(/\/$/, "");
+          const formId = (env.CONVERTKIT_FORM_ID || "").trim();
+          const apiSecret = (env.CONVERTKIT_API_SECRET || env.CONVERTKIT_API_KEY || "").trim();
+          const doubleOptIn = (env.CONVERTKIT_DOUBLE_OPT_IN || "false").toLowerCase() === "true";
+          const timeoutMsRaw = parseInt(String(env.CONVERTKIT_TIMEOUT_MS || 4000), 10);
+          const timeoutMs = Number.isFinite(timeoutMsRaw) ? Math.max(1000, Math.min(timeoutMsRaw, 15000)) : 4000;
+
+          if (!formId || !apiSecret) {
+            console.log(JSON.stringify({ evt: "ck_debug", stage: "skip", reason: "missing_config", formId_present: !!formId, secret_present: !!apiSecret }));
+          } else {
+            const url = `${base}/forms/${encodeURIComponent(formId)}/subscribe`;
+            const controller = new AbortController();
+            const to = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+              const body = { email, api_secret: apiSecret, double_opt_in: doubleOptIn } as Record<string, unknown>;
+              const ckRes = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Accept: "application/json" },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+              });
+              const text = await ckRes.text().catch(() => "");
+              console.log(JSON.stringify({ evt: "ck_debug", stage: "response", status: ckRes.status, ok: ckRes.ok, url, double_opt_in: doubleOptIn, body: text.slice(0, 300) }));
+            } catch (err) {
+              const kind = (err as Error)?.name === 'AbortError' ? 'timeout' : 'error';
+              console.log(JSON.stringify({ evt: "ck_debug", stage: kind, message: (err as Error)?.message || String(err), timeout_ms: timeoutMs }));
+            } finally {
+              // Always clear the timeout; clearTimeout does not throw
+              clearTimeout(to);
+            }
+          }
+        } else {
+          console.log(JSON.stringify({ evt: "ck_debug", stage: "disabled" }));
+        }
+      } catch (e) {
+        // Never fail user flow on ConvertKit issues
+        console.log(JSON.stringify({ evt: "ck_debug", stage: "wrapper_catch", message: (e as Error)?.message || String(e) }));
+      }
+
+      // Success to client regardless of ConvertKit outcome
       return jsonWithCors(200, { success: true, message: "Thanks! You're on the list." }, cors);
     }
 
