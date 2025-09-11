@@ -241,7 +241,6 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
           const formId = (env.CONVERTKIT_FORM_ID || "").trim();
           const apiKey = (env.CONVERTKIT_API_KEY || "").trim();
           const apiSecret = (env.CONVERTKIT_API_SECRET || "").trim();
-          const doubleOptIn = (env.CONVERTKIT_DOUBLE_OPT_IN || "false").toLowerCase() === "true";
           const timeoutMsRaw = parseInt(String(env.CONVERTKIT_TIMEOUT_MS || 4000), 10);
           const timeoutMs = Number.isFinite(timeoutMsRaw) ? Math.max(1000, Math.min(timeoutMsRaw, 15000)) : 4000;
 
