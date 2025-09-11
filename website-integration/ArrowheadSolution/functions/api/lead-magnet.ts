@@ -239,19 +239,22 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
         if (ckEnabled) {
           const base = (env.CONVERTKIT_BASE_URL || "https://api.convertkit.com/v3").replace(/\/$/, "");
           const formId = (env.CONVERTKIT_FORM_ID || "").trim();
-          const apiSecret = (env.CONVERTKIT_API_SECRET || env.CONVERTKIT_API_KEY || "").trim();
+          const apiKey = (env.CONVERTKIT_API_KEY || "").trim();
+          const apiSecret = (env.CONVERTKIT_API_SECRET || "").trim();
           const doubleOptIn = (env.CONVERTKIT_DOUBLE_OPT_IN || "false").toLowerCase() === "true";
           const timeoutMsRaw = parseInt(String(env.CONVERTKIT_TIMEOUT_MS || 4000), 10);
           const timeoutMs = Number.isFinite(timeoutMsRaw) ? Math.max(1000, Math.min(timeoutMsRaw, 15000)) : 4000;
 
-          if (!formId || !apiSecret) {
-            console.log(JSON.stringify({ evt: "ck_debug", stage: "skip", reason: "missing_config", formId_present: !!formId, secret_present: !!apiSecret }));
+          if (!formId || (!apiKey && !apiSecret)) {
+            console.log(JSON.stringify({ evt: "ck_debug", stage: "skip", reason: "missing_config", formId_present: !!formId, api_key_present: !!apiKey, api_secret_present: !!apiSecret }));
           } else {
             const url = `${base}/forms/${encodeURIComponent(formId)}/subscribe`;
             const controller = new AbortController();
             const to = setTimeout(() => controller.abort(), timeoutMs);
             try {
-              const body = { email, api_secret: apiSecret, double_opt_in: doubleOptIn } as Record<string, unknown>;
+              const body: Record<string, unknown> = { email };
+              if (apiKey) body.api_key = apiKey;
+              else body.api_secret = apiSecret;
               const ckRes = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -259,7 +262,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
                 signal: controller.signal,
               });
               const text = await ckRes.text().catch(() => "");
-              console.log(JSON.stringify({ evt: "ck_debug", stage: "response", status: ckRes.status, ok: ckRes.ok, url, double_opt_in: doubleOptIn, body: text.slice(0, 300) }));
+              console.log(JSON.stringify({ evt: "ck_debug", stage: "response", status: ckRes.status, ok: ckRes.ok, url, used_credential: apiKey ? "api_key" : "api_secret", body: text.slice(0, 300) }));
             } catch (err) {
               const kind = (err as Error)?.name === 'AbortError' ? 'timeout' : 'error';
               console.log(JSON.stringify({ evt: "ck_debug", stage: kind, message: (err as Error)?.message || String(err), timeout_ms: timeoutMs }));
