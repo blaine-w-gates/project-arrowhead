@@ -264,7 +264,8 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
               const kind = (err as Error)?.name === 'AbortError' ? 'timeout' : 'error';
               console.log(JSON.stringify({ evt: "ck_debug", stage: kind, message: (err as Error)?.message || String(err), timeout_ms: timeoutMs }));
             } finally {
-              try { clearTimeout(to); } catch {}
+              // Always clear the timeout; clearTimeout does not throw
+              clearTimeout(to);
             }
           }
         } else {
