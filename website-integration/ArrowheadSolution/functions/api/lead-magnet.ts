@@ -28,6 +28,17 @@ function parseAllowedOrigins(env: Record<string, string>): Set<string> {
   return set;
 }
 
+// Flexible preview-aware origin check for Pages preview deployments
+function isAllowedOriginFlexible(origin: string | null): boolean {
+  if (!origin) return false;
+  const o = origin.replace(/\/$/, "");
+  return (
+    o.endsWith('.project-arrowhead.pages.dev') ||
+    o === 'https://project-arrowhead.pages.dev' ||
+    o === 'http://localhost:5173'
+  );
+}
+
 function buildCorsHeaders(origin: string | null, allowed: Set<string>): HeadersInit {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": "POST, OPTIONS, HEAD",
@@ -36,7 +47,8 @@ function buildCorsHeaders(origin: string | null, allowed: Set<string>): HeadersI
     Vary: "Origin",
   };
   const o = origin ? origin.replace(/\/$/, "") : null;
-  if (o && allowed.has(o)) {
+  // Allow either explicitly configured origins OR preview/main/local origins per flexible policy
+  if (o && (allowed.has(o) || isAllowedOriginFlexible(o))) {
     headers["Access-Control-Allow-Origin"] = o;
   }
   return headers;
@@ -86,7 +98,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
   const allowed = parseAllowedOrigins(env);
   const cors = buildCorsHeaders(origin, allowed);
 
-  if (!origin || !allowed.has(origin)) {
+  if (!origin || !(allowed.has(origin) || isAllowedOriginFlexible(origin))) {
     // Block disallowed origins
     return jsonWithCors(403, { success: false, error: "Origin not allowed" }, cors);
   }
