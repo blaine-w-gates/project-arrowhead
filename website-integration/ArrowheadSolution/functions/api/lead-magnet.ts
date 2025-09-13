@@ -241,6 +241,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
           const formId = (env.CONVERTKIT_FORM_ID || "").trim();
           const apiKey = (env.CONVERTKIT_API_KEY || "").trim();
           const apiSecret = (env.CONVERTKIT_API_SECRET || "").trim();
+          const sequenceId = (env.CONVERTKIT_SEQUENCE_ID || "").trim();
           const timeoutMsRaw = parseInt(String(env.CONVERTKIT_TIMEOUT_MS || 4000), 10);
           const timeoutMs = Number.isFinite(timeoutMsRaw) ? Math.max(1000, Math.min(timeoutMsRaw, 15000)) : 4000;
 
@@ -252,8 +253,8 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
             const to = setTimeout(() => controller.abort(), timeoutMs);
             try {
               const body: Record<string, unknown> = { email };
-              if (apiKey) body.api_key = apiKey;
-              else body.api_secret = apiSecret;
+              // Prefer server-side secret when both are present
+              if (apiSecret) body.api_secret = apiSecret; else body.api_key = apiKey;
               const ckRes = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -261,13 +262,42 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
                 signal: controller.signal,
               });
               const text = await ckRes.text().catch(() => "");
-              console.log(JSON.stringify({ evt: "ck_debug", stage: "response", status: ckRes.status, ok: ckRes.ok, url, used_credential: apiKey ? "api_key" : "api_secret", body: text.slice(0, 300) }));
+              console.log(JSON.stringify({ evt: "ck_debug", stage: "response", status: ckRes.status, ok: ckRes.ok, url, used_credential: apiSecret ? "api_secret" : "api_key", body: text.slice(0, 300) }));
             } catch (err) {
               const kind = (err as Error)?.name === 'AbortError' ? 'timeout' : 'error';
               console.log(JSON.stringify({ evt: "ck_debug", stage: kind, message: (err as Error)?.message || String(err), timeout_ms: timeoutMs }));
             } finally {
               // Always clear the timeout; clearTimeout does not throw
               clearTimeout(to);
+            }
+
+            // Directly enroll subscriber into a Sequence via API to avoid paid Visual Automations
+            if (sequenceId) {
+              if (!apiKey) {
+                console.log(JSON.stringify({ evt: "ck_debug", stage: "seq_skip", reason: "missing_api_key", sequence_id_present: !!sequenceId }));
+              } else {
+                const seqUrl = `${base}/sequences/${encodeURIComponent(sequenceId)}/subscribe`;
+                const seqController = new AbortController();
+                const seqTo = setTimeout(() => seqController.abort(), timeoutMs);
+                try {
+                  const seqBody = { email, api_key: apiKey } as Record<string, unknown>;
+                  const seqRes = await fetch(seqUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Accept: "application/json" },
+                    body: JSON.stringify(seqBody),
+                    signal: seqController.signal,
+                  });
+                  const seqText = await seqRes.text().catch(() => "");
+                  console.log(JSON.stringify({ evt: "ck_debug", stage: "seq_response", status: seqRes.status, ok: seqRes.ok, url: seqUrl, used_credential: "api_key", sequence_id: sequenceId, body: seqText.slice(0, 300) }));
+                } catch (err) {
+                  const kind = (err as Error)?.name === 'AbortError' ? 'seq_timeout' : 'seq_error';
+                  console.log(JSON.stringify({ evt: "ck_debug", stage: kind, message: (err as Error)?.message || String(err), timeout_ms: timeoutMs, sequence_id: sequenceId }));
+                } finally {
+                  clearTimeout(seqTo);
+                }
+              }
+            } else {
+              console.log(JSON.stringify({ evt: "ck_debug", stage: "seq_skip", reason: "missing_sequence_id" }));
             }
           }
         } else {
