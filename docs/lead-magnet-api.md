@@ -7,19 +7,25 @@ This document explains how the Lead Magnet Cloudflare Function integrates with C
 - Behavior:
   - Validates input and inserts the email into Supabase (idempotent on conflict)
   - If `CONVERTKIT_ENABLED=true`, best-effort subscribe to ConvertKit Form
+  - If `CONVERTKIT_SEQUENCE_ID` is set, also enroll the subscriber directly into that Sequence via API (bypasses Visual Automations)
   - Always returns success to the client after Supabase insert (UX-first), while logging ConvertKit outcomes to Cloudflare logs (`ck_debug`)
 
 ## Environment Variables (Cloudflare Pages → Settings → Variables)
 - `CONVERTKIT_ENABLED` (true|false) — Feature flag for ESP integration
-- `CONVERTKIT_API_SECRET` — Preferred server-side credential
-- `CONVERTKIT_API_KEY` — Optional; only used if `CONVERTKIT_API_SECRET` is not set
+- `CONVERTKIT_API_SECRET` — Preferred server-side credential for Form subscribe
+- `CONVERTKIT_API_KEY` — Required only for direct Sequence enroll (used by `/v3/sequences/:id/subscribe`)
 - `CONVERTKIT_FORM_ID` — ConvertKit Form ID to subscribe to (e.g., `8546551`)
+- `CONVERTKIT_SEQUENCE_ID` — ConvertKit Sequence ID for direct enrollment (optional but recommended)
 - `CONVERTKIT_BASE_URL` — Default `https://api.convertkit.com/v3`
 - `CONVERTKIT_TIMEOUT_MS` — Default `4000` (1s–15s guarded)
 
 Credential preference in code:
-- The function now prefers `CONVERTKIT_API_SECRET` when both secret and key are present. If the secret is missing, it falls back to `CONVERTKIT_API_KEY`.
-- Recommended: set only `CONVERTKIT_API_SECRET` to avoid ambiguity.
+- The function prefers `CONVERTKIT_API_SECRET` for the Form subscribe call. If the secret is missing, it falls back to `CONVERTKIT_API_KEY`.
+- The Sequence enroll call requires `CONVERTKIT_API_KEY` specifically (per API docs).
+
+## Get IDs in ConvertKit
+- Form ID: Grow → Landing Pages & Forms → open form → URL contains the numeric ID, or use the API `/v3/forms`.
+- Sequence ID: Send → Sequences → open sequence → URL contains the numeric ID, or use the API `/v3/sequences`.
 
 ## ConvertKit: Single vs Double Opt-In
 Single/Double Opt-In is controlled in ConvertKit Form settings. The API request does not need to include any opt-in flag.
@@ -33,13 +39,14 @@ Steps to enable Single Opt-In (auto-confirm subscribers):
 
 Notes:
 - With incentive email disabled, subscribers are auto-confirmed (single opt-in). Deliverability best practices (SPF/DKIM/DMARC) are important.
-- Ensure an Automation rule enrolls new Form subscribers into the "Endeavour Cycle" sequence, and that the sequence is published.
+- If Visual Automations are unavailable on your plan, the function can still enroll the subscriber into a Sequence directly via API.
 
 ## Observability
 - The function emits structured logs in Cloudflare: `{ "evt": "ck_debug", ... }` with `stage`, `status`, and truncated response body.
-- Example success log:
+- Example success logs:
   ```json
-  {"evt":"ck_debug","stage":"response","status":201,"ok":true,"url":"https://api.convertkit.com/v3/forms/8546551/subscribe","used_credential":"api_secret","body":"{...}"}
+  {"evt":"ck_debug","stage":"response","status":200,"ok":true,"url":"https://api.convertkit.com/v3/forms/8546551/subscribe","used_credential":"api_secret","body":"{...}"}
+  {"evt":"ck_debug","stage":"seq_response","status":200,"ok":true,"url":"https://api.convertkit.com/v3/sequences/SEQUENCE_ID/subscribe","used_credential":"api_key","sequence_id":"SEQUENCE_ID","body":"{...}"}
   ```
 - Use these logs to diagnose 401/404/422 responses.
 
