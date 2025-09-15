@@ -233,6 +233,50 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
     });
 
     if (res.ok || res.status === 409) {
+      // Best-effort MailerLite subscribe if enabled (does not affect client response)
+      try {
+        const mlEnabled = (env.MAILERLITE_ENABLED || "").toLowerCase() === "true";
+        if (mlEnabled) {
+          const mlBase = (env.MAILERLITE_BASE_URL || "https://connect.mailerlite.com/api").replace(/\/$/, "");
+          const mlApiKey = (env.MAILERLITE_API_KEY || "").trim();
+          const mlGroupId = (env.MAILERLITE_GROUP_ID || "").trim();
+          const mlTimeoutRaw = parseInt(String(env.MAILERLITE_TIMEOUT_MS || 4000), 10);
+          const mlTimeout = Number.isFinite(mlTimeoutRaw) ? Math.max(1000, Math.min(mlTimeoutRaw, 15000)) : 4000;
+
+          if (!mlApiKey || !mlGroupId) {
+            console.log(JSON.stringify({ evt: "ml_debug", stage: "skip", reason: "missing_config", api_key_present: !!mlApiKey, group_id_present: !!mlGroupId }));
+          } else {
+            const mlUrl = `${mlBase}/subscribers`;
+            const controller = new AbortController();
+            const to = setTimeout(() => controller.abort(), mlTimeout);
+            try {
+              const body = { email, groups: [mlGroupId] } as Record<string, unknown>;
+              const mlRes = await fetch(mlUrl, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${mlApiKey}`,
+                  "Content-Type": "application/json",
+                  Accept: "application/json",
+                },
+                body: JSON.stringify(body),
+                signal: controller.signal,
+              });
+              const text = await mlRes.text().catch(() => "");
+              console.log(JSON.stringify({ evt: "ml_debug", stage: "response", status: mlRes.status, ok: mlRes.ok, url: mlUrl, group_id: mlGroupId, body: text.slice(0, 300) }));
+            } catch (err) {
+              const kind = (err as Error)?.name === 'AbortError' ? 'timeout' : 'error';
+              console.log(JSON.stringify({ evt: "ml_debug", stage: kind, message: (err as Error)?.message || String(err) }));
+            } finally {
+              clearTimeout(to);
+            }
+          }
+        } else {
+          console.log(JSON.stringify({ evt: "ml_debug", stage: "disabled" }));
+        }
+      } catch (e) {
+        console.log(JSON.stringify({ evt: "ml_debug", stage: "wrapper_catch", message: (e as Error)?.message || String(e) }));
+      }
+
       // Treat conflict (duplicate) as success to avoid leaking existence
       return jsonWithCors(200, { success: true, message: "Thanks! You're on the list." }, cors);
     }
