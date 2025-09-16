@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
-import { webcrypto as nodeCrypto } from 'node:crypto';
+import { webcrypto as nodeCrypto } from 'crypto';
 
 // Import the Cloudflare Pages Function handlers
 // NOTE: path goes up from client/src/__tests__ to functions/api
@@ -153,6 +153,37 @@ describe('Lead Magnet MailerLite integration (function-level)', () => {
     });
 
     const res = await onRequestPost({ request: makeRequest('user+timeout@test.com'), env });
+    expect(res.status).toBe(200);
+  });
+
+  it('continues gracefully when ML returns 403', async () => {
+    const env = makeEnv({ MAILERLITE_ENABLED: 'true', MAILERLITE_API_KEY: 'forbidden', MAILERLITE_GROUP_ID: 'g' });
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : (input as URL).toString();
+      if (url === SUPABASE_INSERT) return new Response(null, { status: 201 });
+      if (url === ML_POST) return new Response('Forbidden', { status: 403 });
+      throw new Error('Unexpected fetch: ' + url);
+    });
+
+    const res = await onRequestPost({ request: makeRequest('user+403@test.com'), env });
+    expect(res.status).toBe(200);
+  });
+
+  it('continues gracefully when ML returns 422 (validation error)', async () => {
+    const env = makeEnv({ MAILERLITE_ENABLED: 'true', MAILERLITE_API_KEY: 'k', MAILERLITE_GROUP_ID: 'invalid-group' });
+
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : (input as URL).toString();
+      if (url === SUPABASE_INSERT) return new Response(null, { status: 201 });
+      if (url === ML_POST) {
+        const body = { error: { code: 422, message: 'Validation error', details: { groups: ['Invalid group'] } } };
+        return new Response(JSON.stringify(body), { status: 422, headers: { 'Content-Type': 'application/json' } });
+      }
+      throw new Error('Unexpected fetch: ' + url);
+    });
+
+    const res = await onRequestPost({ request: makeRequest('user+422@test.com'), env });
     expect(res.status).toBe(200);
   });
 });
