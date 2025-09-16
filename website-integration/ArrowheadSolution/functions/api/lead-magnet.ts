@@ -70,6 +70,19 @@ function jsonWithCors(status: number, data: unknown, cors: HeadersInit): Respons
   });
 }
 
+// Non-PII hashing helper for diagnostics
+async function sha256Hex(input: string): Promise<string> {
+  const enc = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", enc);
+  const bytes = new Uint8Array(digest);
+  let out = "";
+  for (let i = 0; i < bytes.length; i++) {
+    const b = bytes[i].toString(16).padStart(2, "0");
+    out += b;
+  }
+  return out;
+}
+
 // --- Debug helpers (temporary for CORS ground-truth) ---
 function redactHeaders(h: Headers): Record<string, string> {
   const redacted = Object.create(null) as Record<string, string>;
@@ -177,6 +190,9 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
     return jsonWithCors(400, { success: false, error: "Invalid email" }, cors);
   }
 
+  // PII-safe diagnostic hash (first 10 chars only in logs)
+  const emailHash = (await sha256Hex(email)).slice(0, 10);
+
   // Optional Cloudflare Turnstile verification
   try {
     const turnstileSecret = env.TURNSTILE_SECRET_KEY || "";
@@ -244,7 +260,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
           const mlTimeout = Number.isFinite(mlTimeoutRaw) ? Math.max(1000, Math.min(mlTimeoutRaw, 15000)) : 4000;
 
           if (!mlApiKey || !mlGroupId) {
-            console.log(JSON.stringify({ evt: "ml_debug", stage: "skip", reason: "missing_config", api_key_present: !!mlApiKey, group_id_present: !!mlGroupId }));
+            console.log(JSON.stringify({ evt: "ml_debug", stage: "skip", reason: "missing_config", api_key_present: !!mlApiKey, group_id_present: !!mlGroupId, email_hash: emailHash }));
           } else {
             const mlUrl = `${mlBase}/subscribers`;
             const controller = new AbortController();
@@ -262,19 +278,43 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
                 signal: controller.signal,
               });
               const text = await mlRes.text().catch(() => "");
-              console.log(JSON.stringify({ evt: "ml_debug", stage: "response", status: mlRes.status, ok: mlRes.ok, url: mlUrl, group_id: mlGroupId, body: text.slice(0, 300) }));
+              console.log(JSON.stringify({ evt: "ml_debug", stage: "response", status: mlRes.status, ok: mlRes.ok, url: mlUrl, group_id: mlGroupId, body: text.slice(0, 300), email_hash: emailHash }));
+
+              // Optional verification: fetch the created subscriber by id to confirm presence (non-PII)
+              try {
+                const diagVerify = (env.MAILERLITE_DIAG_VERIFY || "").toLowerCase() === "true";
+                if (diagVerify && text) {
+                  let id: string | undefined;
+                  try {
+                    const parsed = JSON.parse(text) as { data?: { id?: string; status?: string } };
+                    id = parsed?.data?.id;
+                  } catch { /* ignore parse errors */ }
+                  if (id) {
+                    const verifyUrl = `${mlBase}/subscribers/${encodeURIComponent(id)}`;
+                    const vRes = await fetch(verifyUrl, {
+                      method: "GET",
+                      headers: { Authorization: `Bearer ${mlApiKey}`, Accept: "application/json" },
+                      signal: controller.signal,
+                    });
+                    const vText = await vRes.text().catch(() => "");
+                    console.log(JSON.stringify({ evt: "ml_debug", stage: "verify", status: vRes.status, ok: vRes.ok, id_trunc: String(id).slice(0, 12), body: vText.slice(0, 200), email_hash: emailHash }));
+                  }
+                }
+              } catch (verr) {
+                console.log(JSON.stringify({ evt: "ml_debug", stage: "verify_error", message: (verr as Error)?.message || String(verr), email_hash: emailHash }));
+              }
             } catch (err) {
               const kind = (err as Error)?.name === 'AbortError' ? 'timeout' : 'error';
-              console.log(JSON.stringify({ evt: "ml_debug", stage: kind, message: (err as Error)?.message || String(err) }));
+              console.log(JSON.stringify({ evt: "ml_debug", stage: kind, message: (err as Error)?.message || String(err), email_hash: emailHash }));
             } finally {
               clearTimeout(to);
             }
           }
         } else {
-          console.log(JSON.stringify({ evt: "ml_debug", stage: "disabled" }));
+          console.log(JSON.stringify({ evt: "ml_debug", stage: "disabled", email_hash: emailHash }));
         }
       } catch (e) {
-        console.log(JSON.stringify({ evt: "ml_debug", stage: "wrapper_catch", message: (e as Error)?.message || String(e) }));
+        console.log(JSON.stringify({ evt: "ml_debug", stage: "wrapper_catch", message: (e as Error)?.message || String(e), email_hash: emailHash }));
       }
 
       // Treat conflict (duplicate) as success to avoid leaking existence
