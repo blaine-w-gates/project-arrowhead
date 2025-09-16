@@ -87,9 +87,9 @@ async function sha256Hex(input: string): Promise<string> {
 function redactHeaders(h: Headers): Record<string, string> {
   const redacted = Object.create(null) as Record<string, string>;
   const SENSITIVE = new Set(["authorization", "cookie", "cf-access-client-secret"]);
-  for (const [k, v] of h.entries()) {
+  h.forEach((v, k) => {
     redacted[k.toLowerCase()] = SENSITIVE.has(k.toLowerCase()) ? "***" : v;
-  }
+  });
   return redacted;
 }
 function logCorsDebug(kind: string, req: Request, origin: string | null, allowed: Set<string>, cors: HeadersInit) {
