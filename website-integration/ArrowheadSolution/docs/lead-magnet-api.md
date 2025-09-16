@@ -85,6 +85,23 @@ Requirements:
  - `TURNSTILE_SECRET_KEY` (optional; enable Cloudflare Turnstile verification)
  - `TURNSTILE_REQUIRED` (optional; set to `true` to enforce Turnstile)
 
+### ESP integrations (feature flags)
+
+This function supports ESP calls as a best-effort step after the Supabase insert. These calls never affect the user-facing success response.
+
+- `MAILERLITE_ENABLED` (true|false)
+  - When `true`, the function will POST to MailerLite to add the email to a group.
+- `MAILERLITE_API_KEY` (secret)
+  - Bearer token for MailerLite API.
+- `MAILERLITE_GROUP_ID` (plaintext)
+  - Numeric group ID for the onboarding sequence (e.g., "Endeavour Cycle").
+- `MAILERLITE_BASE_URL` (optional, default `https://connect.mailerlite.com/api`)
+- `MAILERLITE_TIMEOUT_MS` (optional, default `4000`, clamped 1000–15000)
+
+Notes:
+- Set `CONVERTKIT_ENABLED=false` while using MailerLite to avoid double calls.
+- ConvertKit integration has been archived for future use; see `docs/convertkit-handoff.md`.
+
 ### Frontend (Vite)
 
 - `VITE_TURNSTILE_SITE_KEY` (optional)
@@ -152,3 +169,24 @@ Tests cover:
 - 400 Invalid email: ensure valid email format and JSON body `{ "email": "..." }`.
 - 502 Upstream error: check Supabase credentials, REST URL, and table name. Cloudflare Pages logs will include more details.
 - CORS headers: Preflight OPTIONS and HEAD responses include appropriate CORS headers; make sure requests include `Origin` and `Content-Type: application/json` when required.
+
+## Observability (ESP calls)
+
+The function emits structured JSON logs to Cloudflare Pages Functions logs. These logs are best-effort and do not change client responses.
+
+MailerLite examples:
+```
+{ "evt":"ml_debug", "stage":"response", "status":200, "ok":true, "url":"https://connect.mailerlite.com/api/subscribers", "group_id":"<id>", "body":"<truncated>" }
+{ "evt":"ml_debug", "stage":"timeout", "message":"The operation was aborted" }
+{ "evt":"ml_debug", "stage":"error", "message":"<reason>" }
+{ "evt":"ml_debug", "stage":"skip", "reason":"missing_config", "api_key_present":true, "group_id_present":false }
+{ "evt":"ml_debug", "stage":"disabled" }
+{ "evt":"ml_debug", "stage":"wrapper_catch", "message":"<error>" }
+```
+
+Interpretation:
+- `response` indicates a MailerLite HTTP response (200/201 expected on success).
+- `timeout` indicates the request exceeded `MAILERLITE_TIMEOUT_MS` and was aborted.
+- `error` indicates a network or fetch error.
+- `skip` logs when required configuration is missing.
+- `disabled` logs when `MAILERLITE_ENABLED` is not `true`.
