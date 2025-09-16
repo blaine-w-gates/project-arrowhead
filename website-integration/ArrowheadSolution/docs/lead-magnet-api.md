@@ -98,6 +98,13 @@ This function supports ESP calls as a best-effort step after the Supabase insert
 - `MAILERLITE_BASE_URL` (optional, default `https://connect.mailerlite.com/api`)
 - `MAILERLITE_TIMEOUT_MS` (optional, default `4000`, clamped 1000–15000)
 
+Optional diagnostics:
+
+- `MAILERLITE_DIAG_VERIFY` (optional, default `false`)
+  - When `true`, after a successful MailerLite POST (2xx), the function performs a quick GET to `GET /subscribers/{id}` to confirm presence and logs a concise `ml_debug` entry with `stage="verify"`.
+  - The verification shares the same timeout window as the POST and is best‑effort (it never affects the client response).
+  - Recommended policy: keep `MAILERLITE_DIAG_VERIFY=true` in Preview, and enable it in Production only during short observation windows (e.g., 24–48 hours) to reduce extra API calls.
+
 Notes:
 - Set `CONVERTKIT_ENABLED=false` while using MailerLite to avoid double calls.
 - ConvertKit integration has been archived for future use; see `docs/convertkit-handoff.md`.
@@ -183,6 +190,18 @@ MailerLite examples:
 { "evt":"ml_debug", "stage":"disabled" }
 { "evt":"ml_debug", "stage":"wrapper_catch", "message":"<error>" }
 ```
+
+When diagnostics are enabled, logs include a non‑PII email hash and a verify stage:
+
+```
+{ "evt":"ml_debug", "stage":"response", "status":201, "ok":true, "url":"https://connect.mailerlite.com/api/subscribers", "group_id":"<id>", "body":"{...}", "email_hash":"62acd6e8d6" }
+{ "evt":"ml_debug", "stage":"verify",   "status":200, "ok":true,  "id_trunc":"165687378751", "body":"{...}",       "email_hash":"62acd6e8d6" }
+```
+
+Notes:
+- `email_hash` is the first 10 hex chars of `sha256(email)`, used only for correlating related log lines. It does not expose the email.
+- `stage="verify"` appears only when `MAILERLITE_DIAG_VERIFY=true` and the POST returned a subscriber `id` promptly. Its absence is not an error.
+- If `verify` regularly times out, consider increasing `MAILERLITE_TIMEOUT_MS` slightly (e.g., 6000–8000). Keep in mind all ESP work is best‑effort and never affects client responses.
 
 Interpretation:
 - `response` indicates a MailerLite HTTP response (200/201 expected on success).
