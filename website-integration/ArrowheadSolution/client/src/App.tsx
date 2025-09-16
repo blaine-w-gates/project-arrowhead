@@ -24,8 +24,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Homepage} />
       <Route path="/pricing" component={Pricing} />
-      <Route path="/blog" component={Blog} />
+      {/* Place the dynamic blog post route before the list route to avoid shadowing */}
       <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/blog" component={Blog} />
       <Route path="/lead-magnet" component={LeadMagnet} />
       <Route path="/signup" component={SignUp} />
       <Route path="/free-tool" component={FreeTool} />
