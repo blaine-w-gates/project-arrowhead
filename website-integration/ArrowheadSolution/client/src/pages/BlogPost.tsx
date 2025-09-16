@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,12 +8,17 @@ import { format } from "date-fns";
 import type { BlogPost } from "@shared/schema";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import { Helmet } from "react-helmet-async";
+import TableOfContents, { type TocHeading } from "@/components/blog/TableOfContents";
 
 export default function BlogPost() {
   const { slug } = useParams();
   
   const { data: post, isLoading, error } = useQuery<BlogPost>({
     queryKey: ["/api/blog/posts", slug],
+  });
+  const { data: allPosts } = useQuery<BlogPost[]>({
+    queryKey: ["/api/blog/posts"],
   });
 
   if (isLoading) {
@@ -51,9 +57,56 @@ export default function BlogPost() {
   const html = typeof parsed === "string" ? parsed : "";
   const safeHtml = DOMPurify.sanitize(html);
 
+  // Build ToC and ensure headings (h2/h3) have stable IDs; render final HTML string
+  const [contentHtml, setContentHtml] = useState<string>("");
+  const [toc, setToc] = useState<TocHeading[]>([]);
+  useEffect(() => {
+    const container = document.createElement("div");
+    container.innerHTML = safeHtml;
+    const headings = Array.from(container.querySelectorAll("h2, h3"));
+    const newToc: TocHeading[] = headings.map((el) => {
+      const depth = el.tagName.toLowerCase() === "h2" ? 2 : 3;
+      const text = (el.textContent || "").trim();
+      const id = (el.getAttribute("id") || slugify(text));
+      el.setAttribute("id", id);
+      return { id, text, depth: depth as 2 | 3 };
+    });
+    setToc(newToc);
+    setContentHtml(container.innerHTML);
+  }, [safeHtml]);
+
+  // Previous/Next navigation from the post list (sorted desc by publishedAt)
+  const { prev, next } = useMemo(() => {
+    if (!allPosts || !post) return { prev: null as BlogPost | null, next: null as BlogPost | null };
+    const idx = allPosts.findIndex((p) => p.slug === post.slug);
+    const newer = idx > 0 ? allPosts[idx - 1] : null; // previous button points to older; next to newer
+    const older = idx >= 0 && idx < allPosts.length - 1 ? allPosts[idx + 1] : null;
+    return { prev: older, next: newer };
+  }, [allPosts, post]);
+
+  // SEO meta
+  const canonicalUrl = (typeof window !== "undefined")
+    ? `${window.location.origin}/blog/${post.slug}`
+    : `/blog/${post.slug}`;
+
   return (
     <div className="py-24 bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Helmet>
+          <title>{`${post.title} | Strategic Insights Blog`}</title>
+          <link rel="canonical" href={canonicalUrl} />
+          {post.excerpt && <meta name="description" content={post.excerpt} />}
+          <meta property="og:type" content="article" />
+          <meta property="og:title" content={post.title} />
+          {post.excerpt && <meta property="og:description" content={post.excerpt} />}
+          <meta property="og:url" content={canonicalUrl} />
+          {post.imageUrl && <meta property="og:image" content={post.imageUrl} />}
+          <meta name="twitter:card" content={post.imageUrl ? "summary_large_image" : "summary"} />
+          <meta name="twitter:title" content={post.title} />
+          {post.excerpt && <meta name="twitter:description" content={post.excerpt} />}
+          {post.imageUrl && <meta name="twitter:image" content={post.imageUrl} />}
+        </Helmet>
+
         <div className="mb-8">
           <Button asChild variant="ghost" className="mb-4">
             <Link href="/blog">
@@ -88,23 +141,45 @@ export default function BlogPost() {
           </div>
         )}
 
+        {/* Table of Contents */}
+        <TableOfContents headings={toc} />
+
         <Card>
           <CardContent className="p-8">
             <div className="prose prose-lg max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
+              <div dangerouslySetInnerHTML={{ __html: contentHtml || safeHtml }} />
             </div>
           </CardContent>
         </Card>
 
-        <div className="mt-8 text-center">
-          <Button asChild>
-            <Link href="/blog">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Blog
-            </Link>
-          </Button>
+        {/* Prev / Next navigation */}
+        <div className="mt-10 flex items-center justify-between">
+          <div>
+            {prev && (
+              <Button asChild variant="outline">
+                <Link href={`/blog/${prev.slug}`}>← {prev.title}</Link>
+              </Button>
+            )}
+          </div>
+          <div>
+            {next && (
+              <Button asChild>
+                <Link href={`/blog/${next.slug}`}>{next.title} →</Link>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+// Simple slugify for heading IDs
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
