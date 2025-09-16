@@ -13,15 +13,53 @@ import TableOfContents, { type TocHeading } from "@/components/blog/TableOfConte
 
 export default function BlogPost() {
   const { slug } = useParams();
+  const slugReady = typeof slug === "string" && slug.length > 0;
   
   const { data: post, isLoading, error } = useQuery<BlogPost>({
     queryKey: ["/api/blog/posts", slug],
+    enabled: slugReady,
   });
   const { data: allPosts } = useQuery<BlogPost[]>({
     queryKey: ["/api/blog/posts"],
   });
 
-  if (isLoading) {
+  // Hooks must be declared unconditionally before any early returns
+  const [contentHtml, setContentHtml] = useState<string>("");
+  const [toc, setToc] = useState<TocHeading[]>([]);
+
+  // Convert Markdown to HTML and sanitize to prevent XSS
+  const safeHtml = useMemo(() => {
+    const parsed = marked.parse(post?.content || "");
+    const html = typeof parsed === "string" ? parsed : "";
+    return DOMPurify.sanitize(html);
+  }, [post?.content]);
+
+  // Build ToC and ensure headings (h2/h3) have stable IDs; render final HTML string
+  useEffect(() => {
+    const container = document.createElement("div");
+    container.innerHTML = safeHtml;
+    const headings = Array.from(container.querySelectorAll("h2, h3"));
+    const newToc: TocHeading[] = headings.map((el) => {
+      const depth = el.tagName.toLowerCase() === "h2" ? 2 : 3;
+      const text = (el.textContent || "").trim();
+      const id = el.getAttribute("id") || slugify(text);
+      el.setAttribute("id", id);
+      return { id, text, depth: depth as 2 | 3 };
+    });
+    setToc(newToc);
+    setContentHtml(container.innerHTML);
+  }, [safeHtml]);
+
+  // Previous/Next navigation from the post list (sorted desc by publishedAt)
+  const { prev, next } = useMemo(() => {
+    if (!allPosts || !post) return { prev: null as BlogPost | null, next: null as BlogPost | null };
+    const idx = allPosts.findIndex((p) => p.slug === post.slug);
+    const newer = idx > 0 ? allPosts[idx - 1] : null; // previous button points to older; next to newer
+    const older = idx >= 0 && idx < allPosts.length - 1 ? allPosts[idx + 1] : null;
+    return { prev: older, next: newer };
+  }, [allPosts, post]);
+
+  if (!slugReady || isLoading || (!post && !error)) {
     return (
       <div className="py-24 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,7 +71,7 @@ export default function BlogPost() {
     );
   }
 
-  if (error || !post) {
+  if (error) {
     return (
       <div className="py-24 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -51,38 +89,6 @@ export default function BlogPost() {
       </div>
     );
   }
-
-  // Convert Markdown to HTML and sanitize to prevent XSS
-  const parsed = marked.parse(post.content || "");
-  const html = typeof parsed === "string" ? parsed : "";
-  const safeHtml = DOMPurify.sanitize(html);
-
-  // Build ToC and ensure headings (h2/h3) have stable IDs; render final HTML string
-  const [contentHtml, setContentHtml] = useState<string>("");
-  const [toc, setToc] = useState<TocHeading[]>([]);
-  useEffect(() => {
-    const container = document.createElement("div");
-    container.innerHTML = safeHtml;
-    const headings = Array.from(container.querySelectorAll("h2, h3"));
-    const newToc: TocHeading[] = headings.map((el) => {
-      const depth = el.tagName.toLowerCase() === "h2" ? 2 : 3;
-      const text = (el.textContent || "").trim();
-      const id = (el.getAttribute("id") || slugify(text));
-      el.setAttribute("id", id);
-      return { id, text, depth: depth as 2 | 3 };
-    });
-    setToc(newToc);
-    setContentHtml(container.innerHTML);
-  }, [safeHtml]);
-
-  // Previous/Next navigation from the post list (sorted desc by publishedAt)
-  const { prev, next } = useMemo(() => {
-    if (!allPosts || !post) return { prev: null as BlogPost | null, next: null as BlogPost | null };
-    const idx = allPosts.findIndex((p) => p.slug === post.slug);
-    const newer = idx > 0 ? allPosts[idx - 1] : null; // previous button points to older; next to newer
-    const older = idx >= 0 && idx < allPosts.length - 1 ? allPosts[idx + 1] : null;
-    return { prev: older, next: newer };
-  }, [allPosts, post]);
 
   // SEO meta
   const canonicalUrl = (typeof window !== "undefined")
