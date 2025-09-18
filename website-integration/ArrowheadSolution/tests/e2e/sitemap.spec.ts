@@ -9,4 +9,6 @@ test('sitemap.xml exists and contains blog urls', async ({ page }) => {
   expect(body).toContain('<urlset');
   expect(body).toContain('<loc>');
   expect(body).toMatch(/\/blog\//);
+  // Ensure security fixture post is excluded from SEO endpoints
+  expect(body).not.toContain('/blog/xss-test');
 });

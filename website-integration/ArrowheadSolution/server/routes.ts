@@ -306,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SEO: Sitemap
   app.get("/sitemap.xml", async (req, res) => {
     try {
-      const posts = await storage.getBlogPosts();
+      const posts = (await storage.getBlogPosts()).filter((p) => p.slug !== "xss-test");
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const urls = posts
         .map((p) => {
@@ -326,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SEO: RSS feed
   app.get("/rss.xml", async (req, res) => {
     try {
-      const posts = await storage.getBlogPosts();
+      const posts = (await storage.getBlogPosts()).filter((p) => p.slug !== "xss-test");
       const baseUrl = `${req.protocol}://${req.get("host")}`;
       const items = posts
         .map((p) => {
