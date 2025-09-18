@@ -14,12 +14,14 @@ import TableOfContents, { type TocHeading } from "@/components/blog/TableOfConte
 export default function BlogPost() {
   const { slug } = useParams();
   const slugReady = typeof slug === "string" && slug.length > 0;
+  // Extend BlogPost with optional SEO fields coming from file storage
+  type BlogPostWithSEO = BlogPost & { seoTitle?: string | null; seoDescription?: string | null };
   
-  const { data: post, isLoading, error } = useQuery<BlogPost>({
+  const { data: post, isLoading, error } = useQuery<BlogPostWithSEO>({
     queryKey: ["/api/blog/posts", slug],
     enabled: slugReady,
   });
-  const { data: allPosts } = useQuery<BlogPost[]>({
+  const { data: allPosts } = useQuery<BlogPostWithSEO[]>({
     queryKey: ["/api/blog/posts"],
   });
 
@@ -94,22 +96,24 @@ export default function BlogPost() {
   const canonicalUrl = (typeof window !== "undefined")
     ? `${window.location.origin}/blog/${post.slug}`
     : `/blog/${post.slug}`;
+  const metaTitle = post.seoTitle || `${post.title} | Strategic Insights Blog`;
+  const metaDescription = post.seoDescription || post.excerpt || undefined;
 
   return (
     <div className="py-24 bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <Helmet>
-          <title>{`${post.title} | Strategic Insights Blog`}</title>
+          <title>{metaTitle}</title>
           <link rel="canonical" href={canonicalUrl} />
-          {post.excerpt && <meta name="description" content={post.excerpt} />}
+          {metaDescription && <meta name="description" content={metaDescription} />}
           <meta property="og:type" content="article" />
-          <meta property="og:title" content={post.title} />
-          {post.excerpt && <meta property="og:description" content={post.excerpt} />}
+          <meta property="og:title" content={post.seoTitle || post.title} />
+          {metaDescription && <meta property="og:description" content={metaDescription} />}
           <meta property="og:url" content={canonicalUrl} />
           {post.imageUrl && <meta property="og:image" content={post.imageUrl} />}
           <meta name="twitter:card" content={post.imageUrl ? "summary_large_image" : "summary"} />
-          <meta name="twitter:title" content={post.title} />
-          {post.excerpt && <meta name="twitter:description" content={post.excerpt} />}
+          <meta name="twitter:title" content={post.seoTitle || post.title} />
+          {metaDescription && <meta name="twitter:description" content={metaDescription} />}
           {post.imageUrl && <meta name="twitter:image" content={post.imageUrl} />}
         </Helmet>
 
