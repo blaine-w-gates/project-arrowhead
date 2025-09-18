@@ -22,8 +22,8 @@ test.describe('Blog API HEAD endpoints', () => {
   });
 
   test('HEAD /api/blog/posts/[slug] returns 200/204 and caching headers', async ({ request }) => {
-    // Use a known slug from fixtures/content; align with blog.spec.ts detailSlug
-    const slug = 'hse-framework-guide';
+    // Use a known published slug; align with blog.spec.ts detailSlug
+    const slug = 'beyond-the-buzzwords';
     const res = await request.head(`/api/blog/posts/${slug}`);
     expect([200, 204]).toContain(res.status());
     const url = res.url();
