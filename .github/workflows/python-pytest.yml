@@ -4,20 +4,26 @@ on:
   push:
     branches: [ main ]
     paths:
-      - '**/*.py'
+      - 'app.py'
+      - 'server.py'
+      - 'main.py'
+      - 'backend/**'
+      - 'tests/**/*.py'
       - 'requirements.txt'
       - 'pyproject.toml'
-      - 'backend/**'
-      - 'tests/**'
-      - 'app.py'
   pull_request:
     paths:
-      - '**/*.py'
+      - 'app.py'
+      - 'server.py'
+      - 'main.py'
+      - 'backend/**'
+      - 'tests/**/*.py'
       - 'requirements.txt'
       - 'pyproject.toml'
-      - 'backend/**'
-      - 'tests/**'
-      - 'app.py'
+
+concurrency:
+  group: python-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   pytest:
