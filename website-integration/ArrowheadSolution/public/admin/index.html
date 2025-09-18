@@ -4,9 +4,28 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Content Manager</title>
-  <link href="config.yml" type="text/yaml" rel="cms-config-url">
+  <!-- Force manual init so we control which config is loaded (with cache-busting) -->
+  <script>
+    window.CMS_MANUAL_INIT = true;
+  </script>
 </head>
 <body>
   <script src="https://unpkg.com/decap-cms@3.0.0/dist/decap-cms.js"></script>
+  <script>
+    (function initCMS() {
+      var tries = 0;
+      function start() {
+        if (window.CMS && typeof window.CMS.init === 'function') {
+          // Always fetch a fresh config to avoid stale OAuth endpoints
+          var cfgUrl = 'config.yml?v=' + Date.now();
+          window.CMS.init({ config: cfgUrl });
+        } else if (tries < 50) {
+          tries++;
+          setTimeout(start, 100);
+        }
+      }
+      start();
+    })();
+  </script>
 </body>
 </html>
