@@ -1,0 +1,5 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Lint staged TypeScript files in the website workspace
+npx lint-staged
