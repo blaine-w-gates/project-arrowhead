@@ -5,15 +5,13 @@ async function _shortPause(ms = 200) {
   await new Promise((r) => setTimeout(r, ms));
 }
 
-// Known titles from the seeded markdown files
+// Known titles from the currently published markdown files
 const sampleTitles = [
-  '5 Common Strategic Planning Mistakes to Avoid',
-  'The HSE Framework: A Complete Guide',
-  'Building High-Performance Teams Through Clear Objectives',
+  'Beyond the Buzzwords: The First Question Every Team Must Answer Before Brainstorming',
 ];
 
 // Slug for the detail test
-const detailSlug = 'hse-framework-guide';
+const detailSlug = 'beyond-the-buzzwords';
 
 // XSS post specifics
 const xssTitle = 'XSS Test: Script Sanitization';
@@ -36,17 +34,17 @@ test('Blog list view shows published sample posts', async ({ page }) => {
 test('Blog detail view renders title and markdown content', async ({ page }) => {
   await page.goto('/blog');
 
-  // Click the HSE Framework card link from the list view
+  // Click the new article card link from the list view
   await page.locator(`a[href="/blog/${detailSlug}"]`).first().click();
   await expect(page).toHaveURL(new RegExp(`/blog/${detailSlug}$`));
 
   // Verify title and a few known body strings from the markdown
-  await expect(page.getByRole('heading', { level: 1, name: 'The HSE Framework: A Complete Guide' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Beyond the Buzzwords: The First Question Every Team Must Answer Before Brainstorming' })).toBeVisible();
 
   const article = page.locator('.prose');
-  await expect(article).toContainText('Headlights');
-  await expect(article).toContainText('Steering Wheel');
-  await expect(article).toContainText('Engine');
+  await expect(article).toContainText("The Innovator's Realization");
+  await expect(article).toContainText('Formula 1 Driver');
+  await expect(article).toContainText('3-Forces Competitive Map');
 });
 
 // Security Test
