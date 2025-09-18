@@ -9,4 +9,7 @@ test('rss.xml exists and contains items', async ({ page }) => {
   expect(body).toContain('<rss');
   expect(body).toContain('<channel>');
   expect(body).toMatch(/<item>[\s\S]*<title>[\s\S]*<\/title>[\s\S]*<link>[\s\S]*<\/link>/);
+  // Ensure security fixture post is excluded from SEO endpoints
+  expect(body).not.toContain('/blog/xss-test');
+  expect(body).not.toContain('XSS Test: Script Sanitization');
 });
