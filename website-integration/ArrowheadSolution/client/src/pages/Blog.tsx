@@ -29,8 +29,12 @@ export default function Blog() {
   const filtered = useMemo(() => {
     if (!posts) return [] as BlogPost[];
     const q = query.trim().toLowerCase();
-    if (!q) return posts;
-    return posts.filter((p) =>
+    // Hide security fixture from list while preserving direct route access
+    const base = posts.filter(
+      (p) => p.slug !== "xss-test" && p.title !== "XSS Test: Script Sanitization"
+    );
+    if (!q) return base;
+    return base.filter((p) =>
       [p.title, p.excerpt, p.slug]
         .filter(Boolean)
         .some((s) => (s || "").toLowerCase().includes(q))
@@ -134,7 +138,10 @@ export default function Blog() {
           <div className="bg-white p-6 rounded-xl shadow-lg h-fit">
             <h3 className="text-xl font-bold text-foreground mb-4">Recent Posts</h3>
             <div className="space-y-4">
-              {posts?.slice(0, 3).map((post) => (
+              {(posts || [])
+                .filter((p) => p.slug !== "xss-test")
+                .slice(0, 3)
+                .map((post) => (
                 <div key={post.id} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
                   <Link href={`/blog/${post.slug}`}>
                     <h4 className="font-semibold text-foreground mb-1 hover:text-primary transition-colors">
