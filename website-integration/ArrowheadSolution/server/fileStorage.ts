@@ -14,6 +14,8 @@ const frontmatterSchema = z.object({
   published: z.boolean().optional(),
   publishedAt: z.union([z.string(), z.date()]).optional(),
   date: z.union([z.string(), z.date()]).optional(), // alias commonly used
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
 });
 
 function safeParseDate(input?: string | Date | null): Date | null {
@@ -89,7 +91,8 @@ export class FileBlogStorage {
         .trim();
       const excerpt = (fm.excerpt ?? plain.slice(0, 200).trim()).trim();
 
-      const post: BlogPost = {
+      // BlogPost typed object; we also include optional SEO fields on the payload
+      const post: BlogPost & { seoTitle?: string | null; seoDescription?: string | null } = {
         id,
         title: fm.title,
         slug,
@@ -99,7 +102,9 @@ export class FileBlogStorage {
         published,
         publishedAt,
         createdAt,
-      } as BlogPost;
+        seoTitle: fm.seoTitle ?? null,
+        seoDescription: fm.seoDescription ?? null,
+      } as BlogPost & { seoTitle?: string | null; seoDescription?: string | null };
 
       return post;
     } catch (err) {
