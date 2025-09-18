@@ -70,4 +70,4 @@ This map gives you a powerful understanding of the competitive landscape. Now, i
 
 Have feedback or want help applying this framework to your business?
 
-Email us at [challenge@project-arrowhead.com](mailto:challenge@project-arrowhead.com).
+Email us at [space.between.ideas@gmail.com](mailto:space.between.ideas@gmail.com).
