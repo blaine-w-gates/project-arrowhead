@@ -58,6 +58,18 @@ function htmlCallback(status: "success" | "error", token?: string) {
   <body>
     <script>
       (function () {
+        // If the OAuth flow did not open in a popup (no window.opener),
+        // fall back to setting the token in localStorage and redirecting
+        // back to /admin so the CMS can pick it up.
+        try {
+          var parsed = ${JSON.stringify({})};
+          try { parsed = JSON.parse(${JSON.stringify(payload)}); } catch (e) { parsed = { token: null }; }
+          var tok = parsed && parsed.token ? parsed.token : null;
+          if (tok && (!window.opener || window.opener.closed)) {
+            try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tok })); } catch (e) {}
+            try { window.location.replace('/admin/#/'); return; } catch (e) { /* ignore */ }
+          }
+        } catch (e) {}
         // Send a ready signal first (legacy Decap handshake), then repeatedly
         // post the final message for a few seconds to avoid race conditions.
         function sendFinal() {

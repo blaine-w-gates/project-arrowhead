@@ -4,71 +4,57 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Decap CMS Admin</title>
-  <meta name="robots" content="noindex" />
-  <link href="config.yml" type="text/yaml" rel="cms-config-url">
+  <meta name="robots" content="noindex,nofollow,noarchive" />
   <script>
-    // Advanced OAuth fallback: parse token and persist before reload
-    (function () {
-      function extractToken(msg) {
-        try {
-          var m = msg.match(/authorization:github:success:(\{.*\})$/);
-          if (!m || !m[1]) return null;
-          var data = JSON.parse(m[1]);
-          return (data && typeof data.token === 'string' && data.token) ? data.token : null;
-        } catch (e) { return null; }
-      }
-
-      window.addEventListener('message', function (event) {
-        if (!event || typeof event.data !== 'string') return;
-        if (event.data.indexOf('authorization:github:success') !== 0) return;
-        try { console.log('[CMS OAuth Fallback] Success message received. Attempting to persist token.'); } catch (_) {}
-
-        var token = extractToken(event.data);
-        if (token) {
-          try {
-            // Decap CMS expects this exact format
-            var user = { 
-              token: token, 
-              backendName: 'github',
-              login: 'user',
-              name: 'GitHub User'
-            };
-            localStorage.setItem('netlify-cms-user', JSON.stringify(user));
-            
-            // Also try the newer Decap format
-            localStorage.setItem('decap-cms-user', JSON.stringify(user));
-            
-            try { 
-              console.log('[CMS OAuth Fallback] Token saved to localStorage:', {
-                'netlify-cms-user': localStorage.getItem('netlify-cms-user'),
-                'decap-cms-user': localStorage.getItem('decap-cms-user')
-              }); 
-            } catch (_) {}
-          } catch (e) {
-            try { console.error('[CMS OAuth Fallback] Failed saving token:', e); } catch (_) {}
-          }
-        } else {
-          try { console.warn('[CMS OAuth Fallback] Could not parse token from success message.'); } catch (_) {}
-        }
-
-        // Reload ONCE to let Decap bootstrap with the stored credentials.
-        // Use a session guard to avoid multiple reloads while the popup keeps posting messages.
-        try {
-          if (!sessionStorage.getItem('cms_oauth_reloaded')) {
-            sessionStorage.setItem('cms_oauth_reloaded', '1');
-            window.location.reload();
-          } else {
-            // Already reloaded once in this tab; ignore further success messages.
-          }
-        } catch (_) {
-          try { window.location.href = '/admin/'; } catch (_) {}
-        }
-      }, false);
-    })();
+    window.CMS_MANUAL_INIT = true;
   </script>
 </head>
 <body>
-  <h1 style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">Decap CMS Admin</h1>
+  <h1 style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Decap CMS Admin</h1>
   <script src="https://unpkg.com/decap-cms@3.0.0/dist/decap-cms.js"></script>
+  <script>
+    (function initCMS() {
+      var tries = 0;
+      function start() {
+        if (window.CMS && typeof window.CMS.init === 'function') {
+          var cfg = {
+            backend: {
+              name: 'github',
+              repo: 'blaine-w-gates/project-arrowhead',
+              branch: 'main',
+              base_url: '/',
+              auth_endpoint: 'api/oauth/auth'
+            },
+            media_folder: 'website-integration/ArrowheadSolution/public/images/uploads',
+            public_folder: '/images/uploads',
+            collections: [
+              {
+                name: 'blog',
+                label: 'Blog',
+                folder: 'website-integration/ArrowheadSolution/content/blog',
+                create: true,
+                slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
+                fields: [
+                  { label: 'Title', name: 'title', widget: 'string' },
+                  { label: 'Publish Date', name: 'publishedAt', widget: 'datetime' },
+                  { label: 'Excerpt', name: 'excerpt', widget: 'text' },
+                  { label: 'SEO Title', name: 'seoTitle', widget: 'string', required: false, hint: 'Optional: Overrides HTML <title>. Keep ~55-60 chars.' },
+                  { label: 'SEO Description', name: 'seoDescription', widget: 'text', required: false, hint: 'Optional: Meta description (~150-160 chars).' },
+                  { label: 'Featured Image', name: 'imageUrl', widget: 'image', required: false },
+                  { label: 'Published', name: 'published', widget: 'boolean', default: true },
+                  { label: 'Body', name: 'body', widget: 'markdown' }
+                ]
+              }
+            ]
+          };
+          window.CMS.init({ config: cfg, load_config_file: false });
+        } else if (tries < 50) {
+          tries++;
+          setTimeout(start, 100);
+        }
+      }
+      start();
+    })();
+  </script>
 </body>
 </html>
