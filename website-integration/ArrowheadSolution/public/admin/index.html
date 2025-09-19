@@ -47,8 +47,11 @@
   <script>
     (function initCMS() {
       var tries = 0;
+      var initialized = false;
       function start() {
+        if (initialized) return;
         if (window.CMS && typeof window.CMS.init === 'function') {
+          initialized = true;
           window.CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
         } else if (tries < 50) {
           tries++;
