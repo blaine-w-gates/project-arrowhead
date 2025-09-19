@@ -8,6 +8,37 @@
   <!-- Force manual init so we control which config is loaded (with cache-busting) -->
   <script>
     window.CMS_MANUAL_INIT = true;
+    // Provide config up-front so Decap does not fetch/merge YAML
+    window.CMS_CONFIG = {
+      backend: {
+        name: 'github',
+        repo: 'blaine-w-gates/project-arrowhead',
+        branch: 'main',
+        base_url: '/',
+        auth_endpoint: 'api/oauth/auth'
+      },
+      media_folder: 'website-integration/ArrowheadSolution/public/images/uploads',
+      public_folder: '/images/uploads',
+      collections: [
+        {
+          name: 'blog',
+          label: 'Blog',
+          folder: 'website-integration/ArrowheadSolution/content/blog',
+          create: true,
+          slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
+          fields: [
+            { label: 'Title', name: 'title', widget: 'string' },
+            { label: 'Publish Date', name: 'publishedAt', widget: 'datetime' },
+            { label: 'Excerpt', name: 'excerpt', widget: 'text' },
+            { label: 'SEO Title', name: 'seoTitle', widget: 'string', required: false, hint: 'Optional: Overrides HTML <title>. Keep ~55-60 chars.' },
+            { label: 'SEO Description', name: 'seoDescription', widget: 'text', required: false, hint: 'Optional: Meta description (~150-160 chars).' },
+            { label: 'Featured Image', name: 'imageUrl', widget: 'image', required: false },
+            { label: 'Published', name: 'published', widget: 'boolean', default: true },
+            { label: 'Body', name: 'body', widget: 'markdown' }
+          ]
+        }
+      ]
+    };
   </script>
 </head>
 <body>
@@ -16,40 +47,12 @@
   <script>
     (function initCMS() {
       var tries = 0;
+      var initialized = false;
       function start() {
+        if (initialized) return;
         if (window.CMS && typeof window.CMS.init === 'function') {
-          // Inline config to avoid fetching any stale YAML; ensures GitHub OAuth endpoint is used
-          var cfg = {
-            backend: {
-              name: 'github',
-              repo: 'blaine-w-gates/project-arrowhead',
-              branch: 'main',
-              base_url: '/',
-              auth_endpoint: 'api/oauth/auth'
-            },
-            media_folder: 'website-integration/ArrowheadSolution/public/images/uploads',
-            public_folder: '/images/uploads',
-            collections: [
-              {
-                name: 'blog',
-                label: 'Blog',
-                folder: 'website-integration/ArrowheadSolution/content/blog',
-                create: true,
-                slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
-                fields: [
-                  { label: 'Title', name: 'title', widget: 'string' },
-                  { label: 'Publish Date', name: 'publishedAt', widget: 'datetime' },
-                  { label: 'Excerpt', name: 'excerpt', widget: 'text' },
-                  { label: 'SEO Title', name: 'seoTitle', widget: 'string', required: false, hint: 'Optional: Overrides HTML <title>. Keep ~55-60 chars.' },
-                  { label: 'SEO Description', name: 'seoDescription', widget: 'text', required: false, hint: 'Optional: Meta description (~150-160 chars).' },
-                  { label: 'Featured Image', name: 'imageUrl', widget: 'image', required: false },
-                  { label: 'Published', name: 'published', widget: 'boolean', default: true },
-                  { label: 'Body', name: 'body', widget: 'markdown' }
-                ]
-              }
-            ]
-          };
-          window.CMS.init({ config: cfg, load_config_file: false });
+          initialized = true;
+          window.CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
         } else if (tries < 50) {
           tries++;
           setTimeout(start, 100);
