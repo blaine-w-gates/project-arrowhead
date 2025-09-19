@@ -3,13 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Content Manager</title>
+  <title>Decap CMS Admin</title>
+  <meta name="robots" content="noindex,nofollow,noarchive" />
   <!-- Force manual init so we control which config is loaded (with cache-busting) -->
   <script>
     window.CMS_MANUAL_INIT = true;
   </script>
 </head>
 <body>
+  <h1 style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Decap CMS Admin</h1>
   <script src="https://unpkg.com/decap-cms@3.0.0/dist/decap-cms.js"></script>
   <script>
     (function initCMS() {
@@ -47,7 +49,7 @@
               }
             ]
           };
-          window.CMS.init({ config: cfg });
+          window.CMS.init({ config: cfg, load_config_file: false });
         } else if (tries < 50) {
           tries++;
           setTimeout(start, 100);
