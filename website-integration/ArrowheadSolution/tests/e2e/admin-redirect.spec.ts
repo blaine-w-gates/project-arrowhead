@@ -6,5 +6,5 @@ import { test, expect } from '@playwright/test';
 test('Admin base path redirects to index.html', async ({ page }) => {
   await page.goto('/admin');
   await expect(page).toHaveURL(/\/admin\/index\.html(\/#?\/)?/);
-  await expect(page.locator('h1')).toHaveText(/Decap CMS Admin/i);
+  await expect(page.getByRole('heading', { name: /Decap CMS Admin/i })).toBeVisible();
 });
