@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 test('Admin UI loads at /admin/index.html', async ({ page }) => {
   await page.goto('/admin/index.html');
   await expect(page).toHaveTitle(/Decap CMS Admin/i);
-  await expect(page.locator('h1')).toHaveText(/Decap CMS Admin/i);
+  await expect(page.getByRole('heading', { name: /Decap CMS Admin/i })).toBeVisible();
 });
 
 // Verifies that the Decap CMS config YAML is served and contains expected keys
