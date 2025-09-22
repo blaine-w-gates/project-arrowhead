@@ -1,0 +1,25 @@
+backend:
+  name: github
+  repo: blaine-w-gates/project-arrowhead
+  branch: main
+  base_url: "/"
+  auth_endpoint: "api/oauth/auth"
+
+media_folder: "website-integration/ArrowheadSolution/public/images/uploads"
+public_folder: "/images/uploads"
+
+collections:
+  - name: "blog"
+    label: "Blog"
+    folder: "website-integration/ArrowheadSolution/content/blog"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "Publish Date", name: "publishedAt", widget: "datetime"}
+      - {label: "Excerpt", name: "excerpt", widget: "text"}
+      - {label: "SEO Title", name: "seoTitle", widget: "string", required: false, hint: "Optional: Overrides HTML <title>. Keep ~55-60 chars."}
+      - {label: "SEO Description", name: "seoDescription", widget: "text", required: false, hint: "Optional: Meta description (~150-160 chars)."}
+      - {label: "Featured Image", name: "imageUrl", widget: "image", required: false}
+      - {label: "Published", name: "published", widget: "boolean", default: true}
+      - {label: "Body", name: "body", widget: "markdown"}
