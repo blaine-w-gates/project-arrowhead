@@ -67,7 +67,7 @@
           // Fallback: if token exists already, broadcast it so CMS can pick it up
           setTimeout(function () {
             try {
-              var keys = ['decap-cms:user', 'netlify-cms-user', 'decap-cms-auth'];
+              var keys = ['decap-cms.user', 'netlify-cms.user', 'decap-cms:user', 'netlify-cms-user', 'decap-cms-auth'];
               var tok = null, raw = null, obj = null;
               for (var i = 0; i < keys.length; i++) {
                 try {
@@ -114,6 +114,9 @@
             try { p = JSON.parse(s); } catch (e) { p = {}; }
             var tok = p && p.token ? p.token : null;
             if (tok) {
+              // Write to both dot and legacy keys for maximum compatibility
+              try { localStorage.setItem('netlify-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
+              try { localStorage.setItem('decap-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
               try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tok })); } catch (e) {}
               try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch (e) {}
               try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch (e) {}
