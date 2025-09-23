@@ -65,8 +65,13 @@ function htmlCallback(status: "success" | "error", token?: string) {
           var parsed = ${JSON.stringify({})};
           try { parsed = JSON.parse(${JSON.stringify(payload)}); } catch (e) { parsed = { token: null }; }
           var tok = parsed && parsed.token ? parsed.token : null;
-          if (tok && (!window.opener || window.opener.closed)) {
+          // Always persist token using multiple known keys so Decap/Netlify CMS can pick it up
+          if (tok) {
             try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tok })); } catch (e) {}
+            try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch (e) {}
+            try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch (e) {}
+          }
+          if (tok && (!window.opener || window.opener.closed)) {
             try { window.location.replace('/admin/#/'); return; } catch (e) { /* ignore */ }
           }
         } catch (e) {}
