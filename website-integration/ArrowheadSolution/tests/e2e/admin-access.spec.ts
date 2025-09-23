@@ -55,7 +55,7 @@ test('PROD Access: allows /admin with valid service token', async ({ page: _page
     const body = await resp.text();
     expect(body).toMatch(/Decap CMS/i);
 
-    const yml = await ctx.get('/admin/config.yml', { maxRedirects: 0 });
+    const yml = await ctx.get('/admin-config/config.yml', { maxRedirects: 0 });
     expect(yml.status(), 'config.yml should be 200 with valid token').toBe(200);
     const ymlBody = await yml.text();
     expect(ymlBody).toContain('backend:');

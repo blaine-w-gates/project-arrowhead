@@ -15,7 +15,7 @@ async function main() {
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const dist = path.join(root, 'dist', 'public');
   const adminIndex = path.join(dist, 'admin', 'index.html');
-  const adminConfig = path.join(dist, 'admin', 'config.yml');
+  const adminConfig = path.join(dist, 'admin-config', 'config.yml');
 
   const okIndex = await exists(adminIndex);
   const okConfig = await exists(adminConfig);
@@ -46,7 +46,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log('[check-build-admin] OK: admin/index.html and admin/config.yml present and valid');
+  console.log('[check-build-admin] OK: admin/index.html and admin-config/config.yml present and valid');
 }
 
 main().catch((e) => {

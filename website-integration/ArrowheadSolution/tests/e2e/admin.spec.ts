@@ -10,7 +10,7 @@ test('Admin UI loads at /admin/index.html', async ({ page }) => {
 
 // Verifies that the Decap CMS config YAML is served and contains expected keys
 test('Admin config.yml is accessible and contains expected sections', async ({ page }) => {
-  const resp = await page.request.get('/admin/config.yml');
+  const resp = await page.request.get('/admin-config/config.yml');
   expect(resp.ok()).toBeTruthy();
   const body = await resp.text();
   expect(body).toContain('backend:');

@@ -18,8 +18,8 @@ async function copyFileSafe(src, dest) {
 
 async function main() {
   const root = path.resolve(__dirname, '..');
-  const src = path.join(root, 'public', 'admin', 'config.yml');
-  const dest = path.join(root, 'client', 'public', 'admin', 'config.yml');
+  const src = path.join(root, 'public', 'admin-config', 'config.yml');
+  const dest = path.join(root, 'client', 'public', 'admin-config', 'config.yml');
 
   try {
     await fs.access(src);

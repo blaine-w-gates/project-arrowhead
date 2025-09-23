@@ -8,6 +8,8 @@
   <!-- Force manual init so we control which config is loaded (with cache-busting) -->
   <script>
     window.CMS_MANUAL_INIT = true;
+    // Diagnostics to verify no YAML fetch and single init
+    window.__ADMIN_DIAG__ = { initCount: 0, yamlFetched: false, decapVersion: 'decap-cms@3.0.0', collections: [] };
     // Provide config up-front so Decap does not fetch/merge YAML
     window.CMS_CONFIG = {
       backend: {
@@ -52,7 +54,20 @@
         if (initialized) return;
         if (window.CMS && typeof window.CMS.init === 'function') {
           initialized = true;
+          // Bump init counter for diagnostics
+          try { window.__ADMIN_DIAG__.initCount = (window.__ADMIN_DIAG__.initCount || 0) + 1; } catch (e) {}
           window.CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
+          // After init, record whether YAML was fetched and which collections are active
+          setTimeout(function () {
+            try {
+              var entries = performance.getEntriesByType('resource') || [];
+              window.__ADMIN_DIAG__.yamlFetched = entries.some(function (e) { return (e.name || '').includes('/admin/config.yml'); });
+              if (window.CMS && window.CMS.getConfig) {
+                var cfg = window.CMS.getConfig().toJS();
+                window.__ADMIN_DIAG__.collections = (cfg && cfg.collections) ? cfg.collections.map(function (c) { return c.name; }) : [];
+              }
+            } catch (e) {}
+          }, 0);
         } else if (tries < 50) {
           tries++;
           setTimeout(start, 100);
