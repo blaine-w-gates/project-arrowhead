@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node scripts/sync-admin-config.mjs && NODE_ENV=development tsx server/index.ts",
     "dev:client": "vite",
-    "prebuild": "node scripts/sync-admin-config.mjs && node scripts/generate-seo.mjs",
+    "prebuild": "node scripts/sync-cloudflare-config.mjs && node scripts/sync-admin-config.mjs && node scripts/generate-seo.mjs",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "postbuild": "node scripts/check-build-admin.mjs",
     "start": "NODE_ENV=production node dist/index.js",
