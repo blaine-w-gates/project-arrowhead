@@ -1,5 +1,6 @@
-/admin /admin/index.html 200
-/admin/* /admin/index.html 200
-/admin-lite /admin-lite/index.html 200
-/admin-lite/* /admin-lite/index.html 200
+# Specific redirects for SPA entry points
+/admin       /admin/index.html       200
+/admin-lite  /admin-lite/index.html  200
+
+# General SPA catch-all for the main application
 /* /index.html 200
