@@ -2,5 +2,5 @@
 /admin       /admin/index.html       200
 /admin-lite  /admin-lite/index.html  200
 
-# General SPA catch-all for the main application
-/* /index.html 200
+# General SPA catch-all for the main application (404 = only if file doesn't exist)
+/* /index.html 404
