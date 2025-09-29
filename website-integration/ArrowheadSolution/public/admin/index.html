@@ -105,11 +105,17 @@
                         try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch (e) {}
                         try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch (e) {}
                         try { location.hash = '#/'; } catch (e) {}
-                        // Reload once so CMS rehydrates with token, regardless of prior token state
-                        if (!window.__ADMIN_AUTH_RELOADED__) {
-                          try { window.__ADMIN_AUTH_RELOADED__ = true; } catch (e) {}
-                          try { location.reload(); } catch (e) {}
-                        }
+                        // Reload once so CMS rehydrates with token. Persist guard across reloads.
+                        try {
+                          var __PERSIST_KEY = '__ADMIN_AUTH_RELOADED_PERSIST__';
+                          var __done = 'no';
+                          try { __done = localStorage.getItem(__PERSIST_KEY) || 'no'; } catch (e) { __done = 'no'; }
+                          if (!window.__ADMIN_AUTH_RELOADED__ && __done !== 'yes') {
+                            try { window.__ADMIN_AUTH_RELOADED__ = true; } catch (e) {}
+                            try { localStorage.setItem(__PERSIST_KEY, 'yes'); } catch (e) {}
+                            try { location.reload(); } catch (e) {}
+                          }
+                        } catch (e) {}
                       }
                     }
                   } catch (e) {}
