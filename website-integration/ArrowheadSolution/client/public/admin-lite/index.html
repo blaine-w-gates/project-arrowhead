@@ -76,6 +76,16 @@
                 try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch(e){}
                 try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch(e){}
                 window.__ADMIN_LITE__.tokenPersisted = true; log('token persisted');
+                // Guarded reload: Decap CMS needs a page refresh to read token from localStorage
+                var guard = '__ADMIN_AUTH_RELOADED_PERSIST__';
+                try {
+                  if (!localStorage.getItem(guard)){
+                    localStorage.setItem(guard, Date.now().toString());
+                    log('reloading once');
+                    setTimeout(function(){ location.reload(); }, 150);
+                    return;
+                  }
+                } catch(e){}
                 try { location.hash = '#/collections/blog'; } catch(e){}
               } else {
                 log('no token in message or storage');
