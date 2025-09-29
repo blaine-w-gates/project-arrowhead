@@ -64,12 +64,68 @@
               }
             } catch (e) {}
           }, 0);
+          // Fallback: if token exists already, broadcast it so CMS can pick it up
+          setTimeout(function () {
+            try {
+              var keys = ['decap-cms.user', 'netlify-cms.user', 'decap-cms:user', 'netlify-cms-user', 'decap-cms-auth'];
+              var tok = null, raw = null, obj = null;
+              for (var i = 0; i < keys.length; i++) {
+                try {
+                  raw = localStorage.getItem(keys[i]);
+                  if (!raw) continue;
+                  obj = JSON.parse(raw);
+                  if (obj && typeof obj.token === 'string') { tok = obj.token; break; }
+                } catch (e) {}
+              }
+              if (tok) {
+                var payload = JSON.stringify({ token: tok });
+                try { window.postMessage('authorizing:github', '*'); } catch (e) {}
+                try { window.postMessage('authorization:github:success:' + payload, '*'); } catch (e) {}
+                try { window.__ADMIN_DIAG__.autoAuth = { attempted: true, hadToken: true }; } catch (e) {}
+              } else {
+                try { window.__ADMIN_DIAG__.autoAuth = { attempted: true, hadToken: false }; } catch (e) {}
+              }
+            } catch (e) {}
+          }, 400);
+
+          // Nudge router to base path in case UI is stuck on the login route
+          setTimeout(function () {
+            try { if (!location.hash || location.hash === '#/login') location.hash = '#/'; } catch (e) {}
+          }, 600);
         } else if (tries < 50) {
           tries++;
           setTimeout(start, 100);
         }
       }
       start();
+    })();
+  </script>
+  <script>
+    // Accept token messages regardless of source; persist and reload so CMS rehydrates
+    (function attachAuthMessageListener(){
+      if (window.__ADMIN_AUTH_LISTENER__) return; // prevent duplicate listeners
+      window.__ADMIN_AUTH_LISTENER__ = true;
+      window.addEventListener('message', function (ev) {
+        try {
+          var d = ev && ev.data;
+          if (typeof d === 'string' && d.indexOf('authorization:github:success:') === 0) {
+            var s = d.replace('authorization:github:success:', '');
+            var p = {};
+            try { p = JSON.parse(s); } catch (e) { p = {}; }
+            var tok = p && p.token ? p.token : null;
+            if (tok) {
+              // Write to both dot and legacy keys for maximum compatibility
+              try { localStorage.setItem('netlify-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
+              try { localStorage.setItem('decap-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
+              try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tok })); } catch (e) {}
+              try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch (e) {}
+              try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch (e) {}
+              try { location.hash = '#/'; } catch (e) {}
+              try { location.reload(); } catch (e) {}
+            }
+          }
+        } catch (e) {}
+      });
     })();
   </script>
 </body>

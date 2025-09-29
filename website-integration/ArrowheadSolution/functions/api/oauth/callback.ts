@@ -67,6 +67,10 @@ function htmlCallback(status: "success" | "error", token?: string) {
           var tok = parsed && parsed.token ? parsed.token : null;
           // Always persist token using multiple known keys so Decap/Netlify CMS can pick it up
           if (tok) {
+            // Dot-style keys
+            try { localStorage.setItem('netlify-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
+            try { localStorage.setItem('decap-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
+            // Legacy keys
             try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tok })); } catch (e) {}
             try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch (e) {}
             try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch (e) {}
@@ -84,8 +88,10 @@ function htmlCallback(status: "success" | "error", token?: string) {
         // Fire immediately and schedule a few retries
         sendFinal();
         setTimeout(sendFinal, 150);
-        var attempts = 0; var maxAttempts = 10; // ~3s total with 300ms interval
+        var attempts = 0; var maxAttempts = 12; // ~3.6s total with 300ms interval
         var iv = setInterval(function(){ attempts++; sendFinal(); if (attempts >= maxAttempts) clearInterval(iv); }, 300);
+        // In addition to postMessage, proactively refresh the opener so it reads token from localStorage
+        setTimeout(function(){ try { if (window.opener && !window.opener.closed) window.opener.location.replace('/admin/#/'); } catch (e) {} }, 500);
         // Close after retries to allow delivery
         setTimeout(function(){ try { window.close(); } catch (e) {} }, 4000);
       })();
