@@ -82,6 +82,8 @@ function htmlCallback(status: "success" | "error", token?: string) {
         // Send a ready signal first (legacy Decap handshake), then repeatedly
         // post the final message for a few seconds to avoid race conditions.
         function sendFinal() {
+          // Decap listeners in the wild expect either the simple form or the payload form.
+          try { window.opener && window.opener.postMessage('authorization:github:${status}', '*'); } catch (e) {}
           try { window.opener && window.opener.postMessage('authorization:github:${status}:${payload}', '*'); } catch (e) {}
         }
         try { window.opener && window.opener.postMessage('authorizing:github', '*'); } catch (e) {}

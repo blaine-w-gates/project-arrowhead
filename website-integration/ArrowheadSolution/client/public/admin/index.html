@@ -69,6 +69,8 @@
             try {
               var keys = ['decap-cms.user', 'netlify-cms.user', 'decap-cms:user', 'netlify-cms-user', 'decap-cms-auth'];
               var tok = null, raw = null, obj = null;
+              // Ensure Decap's login listener is mounted
+              try { if (!location.hash || location.hash !== '#/login') location.hash = '#/login'; } catch (e) {}
               for (var i = 0; i < keys.length; i++) {
                 try {
                   raw = localStorage.getItem(keys[i]);
@@ -80,11 +82,15 @@
               if (tok) {
                 var payload = JSON.stringify({ token: tok });
                 try { window.postMessage('authorizing:github', '*'); } catch (e) {}
+                // Send both forms for maximum compatibility
+                try { window.postMessage('authorization:github:success', '*'); } catch (e) {}
                 try { window.postMessage('authorization:github:success:' + payload, '*'); } catch (e) {}
                 try { window.__ADMIN_DIAG__.autoAuth = { attempted: true, hadToken: true }; } catch (e) {}
               } else {
                 try { window.__ADMIN_DIAG__.autoAuth = { attempted: true, hadToken: false }; } catch (e) {}
               }
+              // Route into collections post-broadcast
+              setTimeout(function(){ try { location.hash = '#/collections/blog'; } catch (e) {} }, 500);
             } catch (e) {}
           }, 400);
 
@@ -132,7 +138,7 @@
               try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch (e) {}
               try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch (e) {}
               try { location.hash = '#/'; } catch (e) {}
-              if (!hadToken && !window.__ADMIN_AUTH_RELOADED__) {
+              if (!window.__ADMIN_AUTH_RELOADED__) {
                 try { window.__ADMIN_AUTH_RELOADED__ = true; } catch (e) {}
                 try { location.reload(); } catch (e) {}
               }
