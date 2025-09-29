@@ -79,13 +79,19 @@
                 // Guarded reload: Decap CMS needs a page refresh to read token from localStorage
                 var guard = '__ADMIN_AUTH_RELOADED_PERSIST__';
                 try {
-                  if (!localStorage.getItem(guard)){
-                    localStorage.setItem(guard, Date.now().toString());
+                  var guardVal = localStorage.getItem(guard);
+                  var now = Date.now();
+                  // Guard expires after 30 seconds to allow retry if reload failed
+                  var guardAge = guardVal ? now - parseInt(guardVal || '0', 10) : 999999;
+                  if (!guardVal || guardAge > 30000){
+                    localStorage.setItem(guard, now.toString());
                     log('reloading once');
                     setTimeout(function(){ location.reload(); }, 150);
                     return;
+                  } else {
+                    log('guard active, age: ' + Math.floor(guardAge/1000) + 's');
                   }
-                } catch(e){}
+                } catch(e){ log('guard error: ' + e.message); }
                 try { location.hash = '#/collections/blog'; } catch(e){}
               } else {
                 log('no token in message or storage');
