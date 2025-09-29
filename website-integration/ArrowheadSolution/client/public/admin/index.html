@@ -114,6 +114,17 @@
             try { p = JSON.parse(s); } catch (e) { p = {}; }
             var tok = p && p.token ? p.token : null;
             if (tok) {
+              // Determine if a token already existed before this event
+              var hadToken = false; try {
+                var __keys = ['decap-cms.user','netlify-cms.user','decap-cms:user','netlify-cms-user','decap-cms-auth'];
+                for (var __i=0; __i<__keys.length; __i++) {
+                  try {
+                    var __raw = localStorage.getItem(__keys[__i]);
+                    if (!__raw) continue; var __obj = JSON.parse(__raw);
+                    if (__obj && typeof __obj.token === 'string' && __obj.token) { hadToken = true; break; }
+                  } catch (e) {}
+                }
+              } catch (e) {}
               // Write to both dot and legacy keys for maximum compatibility
               try { localStorage.setItem('netlify-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
               try { localStorage.setItem('decap-cms.user', JSON.stringify({ token: tok })); } catch (e) {}
@@ -121,7 +132,10 @@
               try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch (e) {}
               try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch (e) {}
               try { location.hash = '#/'; } catch (e) {}
-              try { location.reload(); } catch (e) {}
+              if (!hadToken && !window.__ADMIN_AUTH_RELOADED__) {
+                try { window.__ADMIN_AUTH_RELOADED__ = true; } catch (e) {}
+                try { location.reload(); } catch (e) {}
+              }
             }
           }
         } catch (e) {}
