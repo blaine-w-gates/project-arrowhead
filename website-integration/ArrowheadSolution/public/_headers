@@ -11,3 +11,9 @@
   Cache-Control: no-store
   X-Frame-Options: SAMEORIGIN
   Content-Security-Policy: default-src 'self' https://unpkg.com; base-uri 'self'; frame-ancestors 'self'; object-src 'none'; form-action 'self' https://github.com; connect-src 'self' https://api.github.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; frame-src 'self' https://github.com; upgrade-insecure-requests; block-all-mixed-content
+
+/admin-lite/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: default-src 'self' https://unpkg.com; base-uri 'self'; frame-ancestors 'self'; object-src 'none'; form-action 'self' https://github.com; connect-src 'self' https://api.github.com; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' https://unpkg.com; frame-src 'self' https://github.com; upgrade-insecure-requests; block-all-mixed-content
