@@ -81,11 +81,29 @@
                 window.addEventListener('message', function (ev) {
                   try {
                     var d = ev && ev.data;
-                    if (typeof d === 'string' && d.indexOf('authorization:github:success:') === 0) {
-                      var s = d.replace('authorization:github:success:', '');
-                      var p = {};
-                      try { p = JSON.parse(s); } catch (e) { p = {}; }
-                      var tok = p && p.token ? p.token : null;
+                    if (typeof d === 'string' && (d === 'authorization:github:success' || d.indexOf('authorization:github:success:') === 0)) {
+                      var tok = null;
+                      if (d === 'authorization:github:success') {
+                        try {
+                          var __keys = ['decap-cms.user','netlify-cms.user','decap-cms:user','netlify-cms-user','decap-cms-auth'];
+                          for (var __i=0; __i<__keys.length; __i++) {
+                            try { var __raw = localStorage.getItem(__keys[__i]); if (!__raw) continue; var __obj = JSON.parse(__raw); if (__obj && typeof __obj.token === 'string' && __obj.token) { tok = __obj.token; break; } } catch (e) {}
+                          }
+                        } catch (e) {}
+                      } else {
+                        var s = d.replace('authorization:github:success:', '');
+                        var p = {};
+                        try { p = JSON.parse(s); } catch (e) { p = {}; }
+                        tok = p && p.token ? p.token : null;
+                        if (!tok) {
+                          try {
+                            var __keys2 = ['decap-cms.user','netlify-cms.user','decap-cms:user','netlify-cms-user','decap-cms-auth'];
+                            for (var __j=0; __j<__keys2.length; __j++) {
+                              try { var __raw2 = localStorage.getItem(__keys2[__j]); if (!__raw2) continue; var __obj2 = JSON.parse(__raw2); if (__obj2 && typeof __obj2.token === 'string' && __obj2.token) { tok = __obj2.token; break; } } catch (e) {}
+                            }
+                          } catch (e) {}
+                        }
+                      }
                       if (tok) {
                         // Determine if a token already existed before this event
                         var hadToken = false; try {
