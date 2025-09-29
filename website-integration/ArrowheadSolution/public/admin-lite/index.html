@@ -47,6 +47,18 @@
       function init(){
         if (window.CMS && typeof CMS.init === 'function'){
           log('CMS.init start');
+          // Clear any stale reload guard older than 2 minutes on init
+          try {
+            var guard = '__ADMIN_AUTH_RELOADED_PERSIST__';
+            var guardVal = localStorage.getItem(guard);
+            if (guardVal) {
+              var age = Date.now() - parseInt(guardVal || '0', 10);
+              if (age > 120000) { // 2 minutes
+                localStorage.removeItem(guard);
+                log('cleared stale guard');
+              }
+            }
+          } catch(e){}
           CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
           log('CMS.init done');
         } else {
