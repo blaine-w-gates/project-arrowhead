@@ -1,1 +1,3 @@
-# No custom redirects needed - SPA handles all routes
+# Redirects for admin panel entry points
+/admin       /admin/index.html       200
+/admin-lite  /admin-lite/index.html  200
