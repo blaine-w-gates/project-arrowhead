@@ -4,8 +4,9 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Load environment variables from .env file in the server directory (ESM-safe)
+// Load environment variables from .env.local first (if present), then .env (ESM-safe)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '.env.local') });
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 let pool: pg.Pool | undefined;
@@ -31,10 +32,16 @@ export function getDb() {
     effectiveConnectionString = u.toString();
   }
 
+  // Decide SSL usage: disable for local dev, enable for remote
+  const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(new URL(effectiveConnectionString).hostname);
+  const sslDisabled = process.env.DB_SSL_DISABLE === '1' || (process.env.NODE_ENV === 'development' && isLocalHost);
+
   const poolConfig: pg.PoolConfig = {
     connectionString: effectiveConnectionString,
-    // Enforce TLS and correct SNI for certificate validation against original hostname
-    ssl: { rejectUnauthorized: true, servername },
+    ...(sslDisabled
+      ? {}
+      : { ssl: { rejectUnauthorized: true, servername } }
+    ),
   };
 
   pool = new pg.Pool(poolConfig);

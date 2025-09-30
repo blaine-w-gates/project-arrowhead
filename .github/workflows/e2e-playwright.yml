@@ -49,6 +49,8 @@ jobs:
         env:
           # Ensure Playwright starts the webServer defined in config
           PLAYWRIGHT_NO_WEBSERVER: ''
+          # Explicitly skip admin tests in CI until test DB is wired
+          E2E_SKIP_ADMIN: '1'
 
       - name: Upload Playwright report
         if: always()
@@ -104,6 +106,7 @@ jobs:
         working-directory: website-integration/ArrowheadSolution
         env:
           PLAYWRIGHT_NO_WEBSERVER: ''
+          E2E_SKIP_ADMIN: '1'
 
       - name: Upload Playwright report (${{ matrix.browser }})
         if: always()
