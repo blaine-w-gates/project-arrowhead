@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arrowhead_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d arrowhead_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..60}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              break
+            fi
+            # Fallback TCP probe in case pg_isready path is different
+            (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1 && break
+            sleep 2
+          done
+
+      - name: Apply database schema (drizzle push)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arrowhead_ci
+        run: |
+          npx drizzle-kit push --config=drizzle.config.cjs
+
+      - name: Run Vitest (integration + unit)
+        env:
+          CI: true
+          DB_SSL_DISABLE: '1'
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arrowhead_ci
+        run: |
+          npx vitest run --coverage

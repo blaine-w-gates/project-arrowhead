@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 // Verifies that the AdminJS login page is reachable
 // Note: Full admin functionality requires authentication (tested separately)
-// Skip this test in CI where DATABASE_URL is not set (admin requires database)
+// Skip this test in CI when explicit E2E_SKIP_ADMIN flag is set
 test('Admin login page loads at /admin', async ({ page }) => {
-  test.skip(!process.env.DATABASE_URL, 'Skipping admin test - requires DATABASE_URL');
+  test.skip(!!process.env.E2E_SKIP_ADMIN, 'Skipping admin tests in CI');
   await page.goto('/admin');
   
   // AdminJS should redirect to /admin/login or show login form

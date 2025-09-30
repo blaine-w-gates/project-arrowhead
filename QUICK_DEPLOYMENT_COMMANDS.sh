@@ -15,9 +15,9 @@ echo ""
 # Step 2: Set environment variables
 echo "Step 2: Set environment variables (copy these one by one)"
 echo ""
-echo 'export DATABASE_URL="postgresql://postgres:1PFNMaTXSvCNrLmI@db.jzjkaxildffxhudeocvp.supabase.co:6543/postgres"'
+echo 'export DATABASE_URL="postgresql://postgres:<YOUR_PASSWORD>@db.<YOUR_PROJECT_REF>.supabase.co:6543/postgres"'
 echo 'export ADMIN_EMAIL="space.between.ideas@gmail.com"'
-echo 'export ADMIN_PASSWORD="ProjectArrowhead2025!"'
+echo 'export ADMIN_PASSWORD="<SET_A_STRONG_TEMP_PASSWORD>"'
 echo 'export ADMIN_ROLE="super_admin"'
 echo ""
 
@@ -37,8 +37,8 @@ echo "2. Navigate to: Pages > project-arrowhead > Settings > Environment Variabl
 echo ""
 echo "3. Add these variables (mark as Encrypted):"
 echo ""
-echo "   ADMIN_SESSION_SECRET=YufEzs2L8VNKgnYFMYkjBBm7VRCrc/FlvTr2UbZvnu0y0c2zdyvanStb4HQ9quFe"
-echo "   ADMIN_COOKIE_SECRET=Iwgu2QvJp0iuMxSdlQshMEWPGIRR35qazCGf/qMeZgSjrEN1xyawaCMjUiGgA9wZ"
+echo "   ADMIN_SESSION_SECRET=<PASTE_FROM_VAULT>"
+echo "   ADMIN_COOKIE_SECRET=<PASTE_FROM_VAULT>"
 echo ""
 echo "4. Wait for Cloudflare to redeploy (5-10 minutes)"
 echo ""
@@ -46,7 +46,7 @@ echo "5. Visit: https://project-arrowhead.pages.dev/admin"
 echo ""
 echo "6. Login with:"
 echo "   Email: space.between.ideas@gmail.com"
-echo "   Password: ProjectArrowhead2025!"
+echo "   Password: <your password>"
 echo ""
 echo "================================================"
 echo "Done! Admin panel should be live!"

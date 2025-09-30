@@ -25,8 +25,8 @@
 
 ### 3. Production Secrets Generated ✅
 ```bash
-ADMIN_SESSION_SECRET=YufEzs2L8VNKgnYFMYkjBBm7VRCrc/FlvTr2UbZvnu0y0c2zdyvanStb4HQ9quFe
-ADMIN_COOKIE_SECRET=Iwgu2QvJp0iuMxSdlQshMEWPGIRR35qazCGf/qMeZgSjrEN1xyawaCMjUiGgA9wZ
+ADMIN_SESSION_SECRET=<GENERATE_AND_STORE_IN_VAULT>
+ADMIN_COOKIE_SECRET=<GENERATE_AND_STORE_IN_VAULT>
 ```
 
 **⚠️ IMPORTANT:** Save these secrets securely! You'll need them for Cloudflare Pages configuration.
@@ -44,9 +44,9 @@ Run these commands in your terminal (one at a time):
 cd /Users/jamesgates/Documents/ProjectArrowhead/website-integration/ArrowheadSolution
 
 # Set environment variables
-export DATABASE_URL="postgresql://postgres:1PFNMaTXSvCNrLmI@db.jzjkaxildffxhudeocvp.supabase.co:6543/postgres"
+export DATABASE_URL="postgresql://postgres:<YOUR_PASSWORD>@db.<YOUR_PROJECT_REF>.supabase.co:6543/postgres"
 export ADMIN_EMAIL="space.between.ideas@gmail.com"
-export ADMIN_PASSWORD="ProjectArrowhead2025!"
+export ADMIN_PASSWORD="<SET_A_STRONG_TEMP_PASSWORD>"
 export ADMIN_ROLE="super_admin"
 
 # Create admin user
@@ -69,11 +69,11 @@ Role: super_admin
 
 ```bash
 # Database (already exists - verify it's correct)
-DATABASE_URL=postgresql://postgres:1PFNMaTXSvCNrLmI@db.jzjkaxildffxhudeocvp.supabase.co:6543/postgres
+DATABASE_URL=postgresql://postgres:<YOUR_PASSWORD>@db.<YOUR_PROJECT_REF>.supabase.co:6543/postgres
 
 # Admin Session Security (NEW - use generated secrets above)
-ADMIN_SESSION_SECRET=YufEzs2L8VNKgnYFMYkjBBm7VRCrc/FlvTr2UbZvnu0y0c2zdyvanStb4HQ9quFe
-ADMIN_COOKIE_SECRET=Iwgu2QvJp0iuMxSdlQshMEWPGIRR35qazCGf/qMeZgSjrEN1xyawaCMjUiGgA9wZ
+ADMIN_SESSION_SECRET=<PASTE_FROM_VAULT>
+ADMIN_COOKIE_SECRET=<PASTE_FROM_VAULT>
 
 # Application Settings (if not already set)
 NODE_ENV=production
@@ -152,7 +152,7 @@ Once deployment completes:
 ### Issue: "Cannot connect to database"
 **Solution:** Verify `DATABASE_URL` in Cloudflare matches:
 ```
-postgresql://postgres:1PFNMaTXSvCNrLmI@db.jzjkaxildffxhudeocvp.supabase.co:6543/postgres
+postgresql://postgres:<YOUR_PASSWORD>@db.<YOUR_PROJECT_REF>.supabase.co:6543/postgres
 ```
 
 ### Issue: "Admin panel shows 404"
@@ -203,13 +203,13 @@ supabase db diff --linked
 ### Credentials (Store Securely!)
 ```
 Admin Email: space.between.ideas@gmail.com
-Admin Password: ProjectArrowhead2025!
+Admin Password: <SET_A_STRONG_TEMP_PASSWORD>
 Admin Role: super_admin
 
-Session Secret: YufEzs2L8VNKgnYFMYkjBBm7VRCrc/FlvTr2UbZvnu0y0c2zdyvanStb4HQ9quFe
-Cookie Secret: Iwgu2QvJp0iuMxSdlQshMEWPGIRR35qazCGf/qMeZgSjrEN1xyawaCMjUiGgA9wZ
+Session Secret: <STORED_IN_VAULT>
+Cookie Secret: <STORED_IN_VAULT>
 
-Database: postgresql://postgres:1PFNMaTXSvCNrLmI@db.jzjkaxildffxhudeocvp.supabase.co:6543/postgres
+Database: postgresql://postgres:<YOUR_PASSWORD>@db.<YOUR_PROJECT_REF>.supabase.co:6543/postgres
 ```
 
 ### Security Recommendations

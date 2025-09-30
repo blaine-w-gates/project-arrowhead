@@ -38,7 +38,10 @@
     "cf:access:upsert-policy": "node scripts/cf-access-upsert-policy.mjs",
     "validate:blog": "node scripts/validate-blog.mjs",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:ci": "eslint . --ext .ts,.tsx --max-warnings=0"
+    "lint:ci": "eslint . --ext .ts,.tsx --max-warnings=0",
+    "db:up": "docker compose -f docker-compose.dev.yml up -d",
+    "db:down": "docker compose -f docker-compose.dev.yml down -v",
+    "dev:local": "DB_SSL_DISABLE=1 DATABASE_URL=postgresql://postgres:postgres@localhost:54322/arrowhead_dev npm run dev"
   },
   "dependencies": {
     "@adminjs/express": "^6.1.1",
@@ -117,6 +120,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@adminjs/bundler": "^3.0.0",
     "@playwright/test": "^1.46.0",
     "@replit/vite-plugin-cartographer": "^0.2.7",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
@@ -136,6 +140,7 @@
     "@types/pg": "^8.11.6",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
+    "@types/supertest": "^6.0.3",
     "@types/ws": "^8.5.13",
     "@vitejs/plugin-react": "^4.3.2",
     "@vitest/coverage-v8": "^3.2.4",
@@ -146,13 +151,18 @@
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.4.54",
     "postcss": "^8.4.47",
+    "supertest": "^7.1.4",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
     "vite": "^7.1.1",
+    "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^3.2.4"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
+  },
+  "engines": {
+    "node": ">=20 <21"
   }
 }
