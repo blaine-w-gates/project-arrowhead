@@ -3,7 +3,7 @@ import { registerRoutes } from './routes';
 import { setupVite, serveStatic, log } from './vite';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { setupAdminPanel } from './admin/index';
-import { createServer, type Server } from 'http';
+import type { Server } from 'http';
 
 export async function createApp(options?: { withVite?: boolean }): Promise<{ app: Express; server: Server }> {
   const app = express();
@@ -14,10 +14,10 @@ export async function createApp(options?: { withVite?: boolean }): Promise<{ app
     const path = req.path;
     let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
 
-    const originalResJson = res.json.bind(res) as (body?: any) => Response;
-    (res as Response & { json: (body?: any) => Response }).json = function (bodyJson?: any): Response {
-      capturedJsonResponse = bodyJson as Record<string, unknown> | undefined;
-      return originalResJson(bodyJson);
+    const originalResJson = res.json.bind(res) as <T = unknown>(body?: T) => Response;
+    (res as Response & { json: <T = unknown>(body?: T) => Response }).json = function <T = unknown>(bodyJson?: T): Response {
+      capturedJsonResponse = (bodyJson as unknown) as Record<string, unknown> | undefined;
+      return originalResJson<T>(bodyJson);
     };
 
     res.on('finish', () => {
@@ -25,7 +25,7 @@ export async function createApp(options?: { withVite?: boolean }): Promise<{ app
       if (path.startsWith('/api')) {
         let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
         if (capturedJsonResponse) {
-          try { logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`; } catch {}
+          try { logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`; } catch (_err) { /* noop */ }
         }
         if (logLine.length > 80) logLine = logLine.slice(0, 79) + '…';
         log(logLine);
@@ -61,7 +61,7 @@ export async function createApp(options?: { withVite?: boolean }): Promise<{ app
 
   // Error handler
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
-    const status = (err as { status?: number; statusCode?: number })?.status || (err as { status?: number; statusCode?: number })?.statusCode || 500;
+    const status = (err as Partial<{ status: number; statusCode: number }>)?.status || (err as Partial<{ status: number; statusCode: number }>)?.statusCode || 500;
     const message = err instanceof Error ? err.message : 'Internal Server Error';
     res.status(status).json({ message });
     // Re-throw so vitest can catch if desired
@@ -69,7 +69,7 @@ export async function createApp(options?: { withVite?: boolean }): Promise<{ app
       // no rethrow to avoid noisy test output
     } else {
       // eslint-disable-next-line no-throw-literal
-      throw err as any;
+      throw err as Error;
     }
   });
 

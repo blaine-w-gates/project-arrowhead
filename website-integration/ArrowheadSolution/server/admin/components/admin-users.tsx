@@ -18,7 +18,11 @@ const AdminUsersPage: React.FC = () => {
 
   useEffect(() => {
     api.getPage({ pageName: 'Admin Users' })
-      .then((res) => setRows(((res.data as any)?.rows || []) as AdminUser[]))
+      .then((res) => {
+        const rows = (res.data as { rows?: unknown } | undefined)?.rows
+        const normalized: AdminUser[] = Array.isArray(rows) ? (rows as AdminUser[]) : []
+        setRows(normalized)
+      })
       .catch((err) => console.error('Failed to load admin users', err))
   }, [])
 

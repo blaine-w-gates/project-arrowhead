@@ -164,12 +164,18 @@ export async function setupAdminPanel(app: Express) {
             .update(adminUsers)
             .set({ lastLogin: new Date() })
             .where(eq(adminUsers.id, adminRecord.id));
-        } catch {}
+        } catch (_err) {
+          // best-effort update: swallow errors safely
+          void 0;
+        }
 
         // Audit: login event (best-effort)
         try {
           await createAuditLog(adminRecord.id, 'login', 'admin', String(adminRecord.id));
-        } catch {}
+        } catch (_err) {
+          // best-effort audit: swallow errors safely
+          void 0;
+        }
 
         // Return a safe user object for AdminJS session
         const { passwordHash, ...safe } = adminRecord as any;
