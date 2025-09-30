@@ -2,8 +2,10 @@ import { test, expect } from '@playwright/test';
 
 // Verify that navigating to /admin loads AdminJS (may redirect to login)
 // AdminJS handles routing internally via Express
+// Skip this test in CI where DATABASE_URL is not set (admin requires database)
 
 test('Admin base path loads AdminJS', async ({ page }) => {
+  test.skip(!process.env.DATABASE_URL, 'Skipping admin test - requires DATABASE_URL');
   await page.goto('/admin');
   
   // AdminJS may redirect to /admin/login if not authenticated
