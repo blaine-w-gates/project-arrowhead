@@ -1,0 +1,19 @@
+backend:
+  name: github
+  repo: blaine-w-gates/project-arrowhead
+  branch: main
+  base_url: /api/oauth-lite
+  auth_endpoint: auth
+
+media_folder: website-integration/ArrowheadSolution/public/images/uploads
+public_folder: /images/uploads
+
+collections:
+  - name: blog
+    label: Blog
+    folder: website-integration/ArrowheadSolution/content/blog
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "Title", name: "title", widget: "string"}
+      - {label: "Body", name: "body", widget: "markdown"}
