@@ -1,9 +1,21 @@
 node_modules
 
+.venv
+
+# Supabase CLI temp/cache (avoid committing transient files)
+website-integration/ArrowheadSolution/supabase/.temp/
+
+# Local dev env (do not commit)
+website-integration/ArrowheadSolution/server/.env.local
+
+# Generated AdminJS bundles, coverage, and build output
+website-integration/ArrowheadSolution/.adminjs/
+website-integration/ArrowheadSolution/coverage/
 website-integration/ArrowheadSolution/dist/
 
 # Prevent committing stray git worktrees folder
 .worktrees/
+<<<<<<< HEAD
 
 .venv
 
@@ -17,3 +29,5 @@ website-integration/ArrowheadSolution/server/.env.local
 website-integration/ArrowheadSolution/.adminjs/
 website-integration/ArrowheadSolution/coverage/
 website-integration/ArrowheadSolution/dist/
+=======
+>>>>>>> 5e43e1b (chore: ignore .worktrees to prevent reintroduction)
