@@ -5,35 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Decap CMS Admin (Lite)</title>
   <meta name="robots" content="noindex,nofollow,noarchive" />
+  <link href="config.yml" type="text/yaml" rel="cms-config-url">
   <script>
-    // Minimal, isolated sandbox with diagnostics
+    // Diagnostics only - CMS will auto-load config.yml
     window.__ADMIN_LITE__ = { logs: [], gotMessage: false, tokenPersisted: false };
-
-    // Inline config with oauth-lite endpoints
-    window.CMS_CONFIG = {
-      backend: {
-        name: 'github',
-        repo: 'blaine-w-gates/project-arrowhead',
-        branch: 'main',
-        base_url: '/api/oauth-lite',
-        auth_endpoint: 'auth'
-      },
-      media_folder: 'website-integration/ArrowheadSolution/public/images/uploads',
-      public_folder: '/images/uploads',
-      collections: [
-        {
-          name: 'blog',
-          label: 'Blog',
-          folder: 'website-integration/ArrowheadSolution/content/blog',
-          create: true,
-          slug: '{{year}}-{{month}}-{{day}}-{{slug}}',
-          fields: [
-            { label: 'Title', name: 'title', widget: 'string' },
-            { label: 'Body', name: 'body', widget: 'markdown' }
-          ]
-        }
-      ]
-    };
   </script>
 </head>
 <body>
@@ -43,46 +18,21 @@
   <script>
     (function(){
       function log(msg){ try { window.__ADMIN_LITE__.logs.push(msg); document.getElementById('status').textContent = msg; } catch(e){} }
-      function init(){
-        if (window.CMS && typeof CMS.init === 'function'){
-          log('CMS.init start');
-          // Clear any stale reload guard older than 2 minutes on init
-          try {
-            var guard = '__ADMIN_AUTH_RELOADED_PERSIST__';
-            var guardVal = localStorage.getItem(guard);
-            if (guardVal) {
-              var age = Date.now() - parseInt(guardVal || '0', 10);
-              if (age > 120000) { // 2 minutes
-                localStorage.removeItem(guard);
-                log('cleared stale guard');
-              }
-            }
-          } catch(e){}
-          
-          // Check if user is already authenticated
-          var existingUser = null;
-          try {
-            var keys = ['decap-cms.user', 'netlify-cms.user', 'decap-cms:user'];
-            for (var i = 0; i < keys.length; i++) {
-              var raw = localStorage.getItem(keys[i]);
-              if (raw) {
-                var parsed = JSON.parse(raw);
-                if (parsed && parsed.token) {
-                  existingUser = parsed;
-                  log('found existing token');
-                  break;
-                }
-              }
-            }
-          } catch(e){ log('token check error: ' + e.message); }
-          
-          CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
-          log('CMS.init done');
-        } else {
-          setTimeout(init, 60);
+      
+      // Clear any stale reload guard older than 2 minutes
+      try {
+        var guard = '__ADMIN_AUTH_RELOADED_PERSIST__';
+        var guardVal = localStorage.getItem(guard);
+        if (guardVal) {
+          var age = Date.now() - parseInt(guardVal || '0', 10);
+          if (age > 120000) { // 2 minutes
+            localStorage.removeItem(guard);
+            log('cleared stale guard');
+          }
         }
-      }
-      // Listen for both Decap success formats; persist token but do not reload.
+      } catch(e){}
+      
+      // Listen for OAuth callback messages
       if (!window.__LITE_MSG__){
         window.__LITE_MSG__ = true;
         window.addEventListener('message', function(ev){
@@ -121,7 +71,6 @@
                     log('guard active, age: ' + Math.floor(guardAge/1000) + 's');
                   }
                 } catch(e){ log('guard error: ' + e.message); }
-                try { location.hash = '#/collections/blog'; } catch(e){}
               } else {
                 log('no token in message or storage');
               }
@@ -129,7 +78,8 @@
           } catch(e){}
         });
       }
-      init();
+      
+      log('CMS auto-init enabled');
     })();
   </script>
 </body>
