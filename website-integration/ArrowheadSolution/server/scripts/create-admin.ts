@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 #!/usr/bin/env tsx
 /**
  * Create Admin User Script
@@ -9,6 +8,8 @@
  * Or with custom credentials:
  *   ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=secure123 npm run create-admin
  */
+
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 
 import { db } from '../db';
 import { adminUsers } from '@shared/schema';
