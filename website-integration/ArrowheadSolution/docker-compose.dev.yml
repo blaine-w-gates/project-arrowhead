@@ -1,0 +1,23 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15
+    container_name: arrowhead_dev_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: arrowhead_dev
+    ports:
+      - "54322:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d arrowhead_dev"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata_dev:

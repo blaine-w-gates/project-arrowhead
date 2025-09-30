@@ -15,6 +15,9 @@ const PgSession = connectPgSimple(session);
  * Configure Passport.js authentication strategies
  */
 export function configureAuth(app: Express) {
+  // Behind IDE/browser preview proxy we are on HTTP. Ensure cookies work.
+  app.set('trust proxy', 1);
+
   // Session middleware configuration
   const sessionStore = new PgSession({
     conString: process.env.DATABASE_URL,
@@ -22,6 +25,7 @@ export function configureAuth(app: Express) {
     createTableIfMissing: true,
   });
 
+  const secureCookies = process.env.NODE_ENV === 'production' && process.env.FORCE_INSECURE_COOKIES !== '1';
   app.use(
     session({
       store: sessionStore,
@@ -29,7 +33,7 @@ export function configureAuth(app: Express) {
       resave: false,
       saveUninitialized: false,
       cookie: {
-        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        secure: secureCookies,
         httpOnly: true,
         maxAge: 30 * 60 * 1000, // 30 minutes
         sameSite: 'lax',

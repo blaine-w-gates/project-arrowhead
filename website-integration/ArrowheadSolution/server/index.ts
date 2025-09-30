@@ -1,12 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
+import fs from "fs";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { setupAdminPanel } from "./admin/index";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -59,6 +59,10 @@ app.use((req, res, next) => {
   // Setup AdminJS before routes
   await setupAdminPanel(app);
 
+  // IMPORTANT: Apply body parsers AFTER AdminJS router to be compatible with @adminjs/express
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
+
   const server = await registerRoutes(app);
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
@@ -72,7 +76,11 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  const isDev = (process.env.NODE_ENV ?? 'development') !== 'production';
+  const distPath = path.resolve(import.meta.dirname, "public");
+  const hasBuild = fs.existsSync(distPath);
+  log(`env=${process.env.NODE_ENV || 'undefined'} isDev=${isDev} hasBuild=${hasBuild}`);
+  if (isDev || !hasBuild) {
     await setupVite(app, server);
   } else {
     serveStatic(app);
