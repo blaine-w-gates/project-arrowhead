@@ -49,3 +49,6 @@ export async function closeDb() {
     dbInstance = undefined;
   }
 }
+
+// Convenience export for common use
+export const db = getDb();
