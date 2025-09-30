@@ -6,8 +6,7 @@
   <title>Decap CMS Admin (Lite)</title>
   <meta name="robots" content="noindex,nofollow,noarchive" />
   <script>
-    // Minimal, isolated sandbox: no custom reloads; just init + diagnostics.
-    window.CMS_MANUAL_INIT = true;
+    // Minimal, isolated sandbox with diagnostics
     window.__ADMIN_LITE__ = { logs: [], gotMessage: false, tokenPersisted: false };
 
     // Inline config with oauth-lite endpoints
@@ -59,6 +58,24 @@
               }
             }
           } catch(e){}
+          
+          // Check if user is already authenticated
+          var existingUser = null;
+          try {
+            var keys = ['decap-cms.user', 'netlify-cms.user', 'decap-cms:user'];
+            for (var i = 0; i < keys.length; i++) {
+              var raw = localStorage.getItem(keys[i]);
+              if (raw) {
+                var parsed = JSON.parse(raw);
+                if (parsed && parsed.token) {
+                  existingUser = parsed;
+                  log('found existing token');
+                  break;
+                }
+              }
+            }
+          } catch(e){ log('token check error: ' + e.message); }
+          
           CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
           log('CMS.init done');
         } else {
