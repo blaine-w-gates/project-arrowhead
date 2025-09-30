@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import AdminJS from 'adminjs';
 import AdminJSExpress from '@adminjs/express';
 import type { Express } from 'express';

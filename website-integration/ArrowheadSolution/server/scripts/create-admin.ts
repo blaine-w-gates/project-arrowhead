@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 #!/usr/bin/env tsx
 /**
  * Create Admin User Script

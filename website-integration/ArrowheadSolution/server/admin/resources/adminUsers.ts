@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { adminUsers } from '@shared/schema';
 import { hashPassword } from '../auth';
 

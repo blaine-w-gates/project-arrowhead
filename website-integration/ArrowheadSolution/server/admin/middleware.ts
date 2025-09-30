@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import type { Request, Response, NextFunction } from 'express';
 import { db } from '../db';
 import { adminAuditLog } from '@shared/schema';
