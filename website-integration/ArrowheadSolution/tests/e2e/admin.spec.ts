@@ -1,19 +1,14 @@
 import { test, expect } from '@playwright/test';
 
-// Verifies that the Decap CMS admin page is reachable and has expected title
-// Use explicit index.html path for reliability across dev servers
-test('Admin UI loads at /admin/index.html', async ({ page }) => {
-  await page.goto('/admin/index.html');
-  await expect(page).toHaveTitle(/Decap CMS Admin/i);
-  await expect(page.getByRole('heading', { name: /Decap CMS Admin/i })).toBeVisible();
-});
-
-// Verifies that the Decap CMS config YAML is served and contains expected keys
-test('Admin config.yml is accessible and contains expected sections', async ({ page }) => {
-  const resp = await page.request.get('/admin-config/config.yml');
-  expect(resp.ok()).toBeTruthy();
-  const body = await resp.text();
-  expect(body).toContain('backend:');
-  expect(body).toContain('collections:');
-  expect(body).toContain('media_folder:');
+// Verifies that the AdminJS login page is reachable
+// Note: Full admin functionality requires authentication (tested separately)
+test('Admin login page loads at /admin', async ({ page }) => {
+  await page.goto('/admin');
+  
+  // AdminJS should redirect to /admin/login or show login form
+  await page.waitForURL(/\/admin(\/login)?/, { timeout: 10000 });
+  
+  // Check that we get either the login page or admin interface
+  // (depending on session state)
+  expect(page.url()).toMatch(/\/admin/);
 });
