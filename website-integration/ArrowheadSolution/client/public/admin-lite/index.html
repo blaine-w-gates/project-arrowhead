@@ -54,23 +54,8 @@
                 try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tok })); } catch(e){}
                 try { localStorage.setItem('decap-cms:user', JSON.stringify({ token: tok })); } catch(e){}
                 try { localStorage.setItem('decap-cms-auth', JSON.stringify({ token: tok, provider: 'github' })); } catch(e){}
-                window.__ADMIN_LITE__.tokenPersisted = true; log('token persisted');
-                // Guarded reload: Decap CMS needs a page refresh to read token from localStorage
-                var guard = '__ADMIN_AUTH_RELOADED_PERSIST__';
-                try {
-                  var guardVal = localStorage.getItem(guard);
-                  var now = Date.now();
-                  // Guard expires after 30 seconds to allow retry if reload failed
-                  var guardAge = guardVal ? now - parseInt(guardVal || '0', 10) : 999999;
-                  if (!guardVal || guardAge > 30000){
-                    localStorage.setItem(guard, now.toString());
-                    log('reloading once');
-                    setTimeout(function(){ location.reload(); }, 150);
-                    return;
-                  } else {
-                    log('guard active, age: ' + Math.floor(guardAge/1000) + 's');
-                  }
-                } catch(e){ log('guard error: ' + e.message); }
+                window.__ADMIN_LITE__.tokenPersisted = true; 
+                log('token saved - close popup and refresh');
               } else {
                 log('no token in message or storage');
               }
