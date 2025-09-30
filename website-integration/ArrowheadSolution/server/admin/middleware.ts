@@ -65,7 +65,7 @@ export function auditMiddleware(resource: string) {
     const originalSend = res.send;
 
     // Override send to capture response
-    res.send = function (body: any) {
+    res.send = function (this: Response, body: any) {
       // Get resource ID from params or body
       const resourceId = req.params.id || req.body?.id;
 
@@ -127,11 +127,15 @@ export function rateLimitLogin(req: Request, res: Response, next: NextFunction) 
  */
 export function cleanupRateLimits() {
   const now = Date.now();
-  for (const [ip, attempts] of loginAttempts.entries()) {
+  const ipsToDelete: string[] = [];
+  
+  loginAttempts.forEach((attempts, ip) => {
     if (now > attempts.resetAt) {
-      loginAttempts.delete(ip);
+      ipsToDelete.push(ip);
     }
-  }
+  });
+  
+  ipsToDelete.forEach(ip => loginAttempts.delete(ip));
 }
 
 // Clean up every 5 minutes
