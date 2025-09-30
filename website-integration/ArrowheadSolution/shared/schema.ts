@@ -104,6 +104,42 @@ export const tasks = pgTable("tasks", {
   };
 });
 
+// Admin Users Table
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("admin"), // 'super_admin', 'admin', 'support', 'read_only'
+  isActive: boolean("is_active").default(true),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    idxEmail: index("idx_admin_users_email").on(table.email),
+    idxRole: index("idx_admin_users_role").on(table.role),
+  };
+});
+
+// Admin Audit Log Table
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").references(() => adminUsers.id).notNull(),
+  action: text("action").notNull(), // 'create', 'update', 'delete', 'login', 'logout'
+  resource: text("resource").notNull(), // 'users', 'teams', 'subscriptions', etc.
+  resourceId: text("resource_id"), // ID of the affected resource
+  changes: text("changes"), // JSON string of what changed
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    idxAdminId: index("idx_admin_audit_log_admin_id").on(table.adminId),
+    idxCreatedAt: index("idx_admin_audit_log_created_at").on(table.createdAt),
+    idxResource: index("idx_admin_audit_log_resource").on(table.resource),
+  };
+});
+
 // Journey Session Schemas
 export const insertJourneySessionSchema = createInsertSchema(journeySessions).omit({
   id: true,
@@ -136,6 +172,33 @@ export type UpdateJourneySession = z.infer<typeof updateJourneySessionSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type UpdateTask = z.infer<typeof updateTaskSchema>;
+
+// Admin Users Schemas
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLogin: true,
+});
+
+export const updateAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+}).partial();
+
+// Admin Audit Log Schema
+export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Admin Types
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+export type UpdateAdminUser = z.infer<typeof updateAdminUserSchema>;
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertAdminAuditLog = z.infer<typeof insertAdminAuditLogSchema>;
+export type AdminRole = 'super_admin' | 'admin' | 'support' | 'read_only';
 
 // Journey Module Types
 export type JourneyModule = 'brainstorm' | 'choose' | 'objectives';

@@ -49,3 +49,11 @@ export async function closeDb() {
     dbInstance = undefined;
   }
 }
+
+// Lazy-initialized db instance (only initialized when accessed)
+export const db = new Proxy({} as ReturnType<typeof drizzle>, {
+  get(_target, prop) {
+    const instance = getDb();
+    return instance[prop as keyof typeof instance];
+  }
+});
