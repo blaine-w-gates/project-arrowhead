@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import { setupAdminPanel } from "./admin/index";
 
 const app = express();
 app.use(express.json());
@@ -55,12 +56,10 @@ app.use((req, res, next) => {
 })();
 
 (async () => {
-  const server = await registerRoutes(app);
+  // Setup AdminJS before routes
+  await setupAdminPanel(app);
 
-  // Ensure Decap CMS admin loads at /admin and /admin/ by redirecting to the index file
-  app.get(["/admin", "/admin/"], (_req, res) => {
-    res.redirect(302, "/admin/index.html");
-  });
+  const server = await registerRoutes(app);
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const status = (err as { status?: number; statusCode?: number })?.status || (err as { status?: number; statusCode?: number })?.statusCode || 500;

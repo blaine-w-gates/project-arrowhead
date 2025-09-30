@@ -1,10 +1,20 @@
 import { test, expect } from '@playwright/test';
 
-// Verify that navigating to /admin redirects to /admin/index.html (with possible Decap hash)
-// This works via Express redirect in server/index.ts
+// Verify that navigating to /admin loads AdminJS (may redirect to login)
+// AdminJS handles routing internally via Express
+// Skip this test in CI where DATABASE_URL is not set (admin requires database)
 
-test('Admin base path redirects to index.html', async ({ page }) => {
+test('Admin base path loads AdminJS', async ({ page }) => {
+  test.skip(!process.env.DATABASE_URL, 'Skipping admin test - requires DATABASE_URL');
   await page.goto('/admin');
-  await expect(page).toHaveURL(/\/admin\/index\.html(\/#?\/)?/);
-  await expect(page.getByRole('heading', { name: /Decap CMS Admin/i })).toBeVisible();
+  
+  // AdminJS may redirect to /admin/login if not authenticated
+  await page.waitForLoadState('networkidle');
+  
+  // Should be on an admin route (either /admin or /admin/login)
+  await expect(page).toHaveURL(/\/admin/);
+  
+  // Page should not be a 404 or error
+  const is404 = await page.locator('text=/404|not found/i').count();
+  expect(is404).toBe(0);
 });
