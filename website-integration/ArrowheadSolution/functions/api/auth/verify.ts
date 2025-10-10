@@ -152,7 +152,7 @@ export const onRequestPost = async ({ request, env }: { request: Request; env: R
       try {
         const upUrl = `${supabaseUrl}/rest/v1/auth_otp?id=eq.${candidate.id}`;
         await fetch(upUrl, { method: 'PATCH', headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ attempts: (candidate.attempts ?? 0) + 1 }) });
-      } catch {}
+      } catch (_e) { /* noop */ }
       const evUrl = `${supabaseUrl}/rest/v1/auth_events`;
       const ev = [{ user_id: null, type: "failed_attempt", metadata: JSON.stringify({ email, reason: "mismatch" }), created_at: new Date().toISOString() }];
       await fetch(evUrl, { method: "POST", headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}`, "Content-Type": "application/json", Prefer: "return=minimal" }, body: JSON.stringify(ev) });

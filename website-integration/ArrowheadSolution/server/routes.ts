@@ -155,8 +155,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!ok) {
         // increment attempts best-effort
         try {
-          await db.execute(/* sql */`UPDATE auth_otp SET attempts = attempts + 1 WHERE id = ${candidate.id}`);
-        } catch {}
+          await db.update(authOtp)
+            .set({ attempts: (candidate.attempts ?? 0) + 1 })
+            .where(eq(authOtp.id, candidate.id as number));
+        } catch (e) { void e; }
         await db.insert(authEvents).values({ userId: null, type: "failed_attempt", metadata: JSON.stringify({ email, reason: "mismatch" }), createdAt: now });
         return res.status(401).json({ success: false, error: "Invalid or expired code" });
       }
