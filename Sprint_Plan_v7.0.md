@@ -1,5 +1,7 @@
 # Sprint Plan v7.0: Operation: Admin Foundation
 
+> Note: Superseded by v8.0 — see `Sprint_Plan_v8.0.md`. Archived for historical reference.
+
 **Version:** 7.0  
 **Date:** September 30, 2025  
 **Epic:** Operation: Admin Foundation — Build the core backend management system for users, teams, and billing to establish the foundation for the Pro Version.
