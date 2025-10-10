@@ -13,6 +13,8 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import LeadMagnet from "./pages/LeadMagnet";
 import SignUp from "./pages/SignUp";
+import SignIn from "./pages/SignIn";
+import Verify from "./pages/Verify";
 import FreeTool from "./pages/FreeTool";
 import TaskListPage from "./pages/TaskListPage";
 import { JourneyDashboard, JourneyStepPage } from "./pages/journey";
@@ -29,6 +31,8 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/lead-magnet" component={LeadMagnet} />
       <Route path="/signup" component={SignUp} />
+      <Route path="/signin" component={SignIn} />
+      <Route path="/verify" component={Verify} />
       <Route path="/free-tool" component={FreeTool} />
       <Route path="/tasks" component={TaskListPage} />
       <Route path="/journey" component={JourneyDashboard} />
