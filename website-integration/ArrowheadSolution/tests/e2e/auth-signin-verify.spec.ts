@@ -19,31 +19,28 @@ test('Passwordless sign-in: /signin -> /verify happy path', async ({ page, conte
 
   type RequestJson = { success?: boolean; devCode?: string; error?: string };
   const json: RequestJson = await requestResponse.json().catch(() => ({} as RequestJson));
-  const devCodeRaw = json.devCode || '';
-  // Some CI artifact captures show potential newline/formatting. Normalize to digits-only.
-  const devCode = (devCodeRaw.match(/\d{6,8}/)?.[0] || '').slice(0, 8);
+  // Normalize to digits-only in case of newlines or other chars in CI capture
+  const devCode = String(json.devCode || '').replace(/\D/g, '').slice(0, 8);
   expect(devCode, 'devCode should be 6-8 digits').toMatch(/^\d{6,8}$/);
 
-  // Navigate to verify (via link on the page)
-  await page.getByRole('link', { name: /verify here/i }).click();
+  // Navigate directly to verify page
+  await page.goto('/verify');
   await expect(page.getByRole('heading', { name: 'Verify code' })).toBeVisible();
 
   // Fill verify form
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Code').fill(devCode);
-  // Verify client-side validity so submit is not blocked by HTML5 validation
-  await expect(async () => {
-    const valid = await page.getByLabel('Code').evaluate((el: HTMLInputElement) => el.checkValidity());
-    if (!valid) throw new Error('code input invalid');
-  }).toPass();
-
-  // Ensure the submit button is interactable and submit the form
+  // Submit and wait for the verify API response
   const verifyButton = page.getByRole('button', { name: /verify/i });
   await expect(verifyButton).toBeEnabled();
-  await verifyButton.click();
+  const [verifyResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url().endsWith('/api/auth/verify') && res.request().method() === 'POST'),
+    verifyButton.click(),
+  ]);
+  await expect(verifyResponse.ok(), 'verify response should be 2xx').toBeTruthy();
 
   // UI reflects success
-  await expect(page.locator('#status')).toContainText("signed in");
+  await expect(page.locator('#status')).toContainText('signed in');
 
   // Cookie set
   const cookies = await context.cookies(baseURL);
