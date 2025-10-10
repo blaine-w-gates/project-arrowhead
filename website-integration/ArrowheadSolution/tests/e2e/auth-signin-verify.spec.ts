@@ -30,11 +30,18 @@ test('Passwordless sign-in: /signin -> /verify happy path', async ({ page, conte
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Code').fill(String(devCode));
 
-  const [verifyResponse] = await Promise.all([
-    page.waitForResponse((res) => res.url().endsWith('/api/auth/verify') && res.request().method() === 'POST'),
-    page.getByRole('button', { name: /verify/i }).click(),
-  ]);
-  await expect(verifyResponse.ok()).toBeTruthy();
+  // Ensure the submit button is interactable
+  await expect(page.getByRole('button', { name: /verify/i })).toBeEnabled();
+
+  // Wait for both the request and the response to ensure we don't miss a fast response
+  const waitVerifyRequest = page.waitForRequest((req) => req.url().endsWith('/api/auth/verify') && req.method() === 'POST');
+  const waitVerifyResponse = page.waitForResponse((res) => res.url().endsWith('/api/auth/verify'));
+  await page.getByRole('button', { name: /verify/i }).click();
+  const verifyRequest = await waitVerifyRequest;
+  const verifyResponse = await waitVerifyResponse;
+
+  expect(verifyRequest, 'verify POST request should be sent').toBeTruthy();
+  await expect(verifyResponse.ok(), 'verify response should be 2xx').toBeTruthy();
 
   // UI reflects success
   await expect(page.locator('#status')).toContainText("signed in");
