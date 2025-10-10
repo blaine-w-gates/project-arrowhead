@@ -10,6 +10,11 @@ import {
   updateTaskSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { getDb } from "./db";
+import { authOtp, authEvents, users } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
+import crypto from "crypto";
+import { signJwt } from "./auth/jwt";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Blog routes
@@ -19,6 +24,170 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(posts);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch blog posts" });
+    }
+  });
+
+  // --- Auth vNext: Passwordless OTP endpoints ---
+  const rateMap = new Map<string, { count: number; resetAt: number }>();
+  const RATE_LIMIT = 5; // requests per window
+  const RATE_WINDOW_MS = 60_000; // 1 minute
+
+  function rateKey(ip: string, email?: string) {
+    return `${ip}|${(email || "").toLowerCase()}`;
+  }
+  function allowRate(key: string) {
+    const now = Date.now();
+    const v = rateMap.get(key);
+    if (!v || v.resetAt <= now) {
+      rateMap.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+      return true;
+    }
+    if (v.count >= RATE_LIMIT) return false;
+    v.count += 1;
+    return true;
+  }
+  function originAllowed(req: import("express").Request): boolean {
+    const origin = (req.get("origin") || "").replace(/\/$/, "");
+    if (!origin) return true; // tolerate missing Origin in dev/tools
+    const host = `${req.protocol}://${req.get("host")}`.replace(/\/$/, "");
+    return origin === host;
+  }
+  function sha256Hex(s: string): string {
+    return crypto.createHash("sha256").update(s, "utf8").digest("hex");
+  }
+
+  app.post("/api/auth/request", async (req, res) => {
+    try {
+      if (req.get("content-type")?.toLowerCase().indexOf("application/json") === -1) {
+        return res.status(415).json({ success: false, error: "Content-Type must be application/json" });
+      }
+      if (!originAllowed(req)) {
+        return res.status(403).json({ success: false, error: "Origin not allowed" });
+      }
+
+      const emailRaw = typeof req.body?.email === "string" ? String(req.body.email) : "";
+      const email = emailRaw.trim().toLowerCase();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email)) {
+        return res.status(400).json({ success: false, error: "Invalid email" });
+      }
+
+      const ip = (req.headers["x-forwarded-for"] as string || "").split(",")[0].trim() || req.socket.remoteAddress || "";
+      const key = rateKey(String(ip), email);
+      if (!allowRate(key)) {
+        return res.status(429).json({ success: false, error: "Too many requests" });
+      }
+
+      // Generate a 6-digit OTP and store hashed
+      const code = (Math.floor(100000 + Math.random() * 900000)).toString();
+      const codeHash = sha256Hex(code);
+      const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+      const db = getDb();
+      await db.insert(authOtp).values({
+        email,
+        codeHash,
+        purpose: "login",
+        attempts: 0,
+        maxAttempts: 5,
+        expiresAt: expires,
+        createdAt: new Date(),
+        ip: String(ip),
+        userAgent: req.get("user-agent") || "",
+      });
+
+      await db.insert(authEvents).values({
+        userId: null,
+        type: "otp_issued",
+        metadata: JSON.stringify({ email, ip }),
+        createdAt: new Date(),
+      });
+
+      // TODO: integrate email provider; for now, log code in dev
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[auth][dev] OTP for ${email}: ${code}`);
+      }
+
+      return res.status(200).json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "Unexpected error" });
+    }
+  });
+
+  app.post("/api/auth/verify", async (req, res) => {
+    try {
+      if (req.get("content-type")?.toLowerCase().indexOf("application/json") === -1) {
+        return res.status(415).json({ success: false, error: "Content-Type must be application/json" });
+      }
+      if (!originAllowed(req)) {
+        return res.status(403).json({ success: false, error: "Origin not allowed" });
+      }
+
+      const emailRaw = typeof req.body?.email === "string" ? String(req.body.email) : "";
+      const codeRaw = typeof req.body?.code === "string" ? String(req.body.code) : "";
+      const email = emailRaw.trim().toLowerCase();
+      const code = codeRaw.trim();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email) || !/^\d{6,8}$/.test(code)) {
+        return res.status(400).json({ success: false, error: "Invalid email or code" });
+      }
+
+      const ip = (req.headers["x-forwarded-for"] as string || "").split(",")[0].trim() || req.socket.remoteAddress || "";
+      const key = rateKey(String(ip), email);
+      if (!allowRate(key)) {
+        return res.status(429).json({ success: false, error: "Too many requests" });
+      }
+
+      const db = getDb();
+      const now = new Date();
+      const rows = await db
+        .select()
+        .from(authOtp)
+        .where(eq(authOtp.email, email))
+        .orderBy(desc(authOtp.createdAt))
+        .limit(5);
+
+      const candidate = rows.find(r => (r.expiresAt ? r.expiresAt.getTime() : 0) >= now.getTime() && (r.attempts ?? 0) < (r.maxAttempts ?? 5));
+      if (!candidate) {
+        await db.insert(authEvents).values({ userId: null, type: "failed_attempt", metadata: JSON.stringify({ email, reason: "no_valid_otp" }), createdAt: now });
+        return res.status(401).json({ success: false, error: "Invalid or expired code" });
+      }
+
+      const ok = candidate.codeHash && candidate.codeHash === sha256Hex(code);
+      if (!ok) {
+        // increment attempts best-effort
+        try {
+          await db.execute(/* sql */`UPDATE auth_otp SET attempts = attempts + 1 WHERE id = ${candidate.id}`);
+        } catch {}
+        await db.insert(authEvents).values({ userId: null, type: "failed_attempt", metadata: JSON.stringify({ email, reason: "mismatch" }), createdAt: now });
+        return res.status(401).json({ success: false, error: "Invalid or expired code" });
+      }
+
+      // Resolve or create user
+      let user = await db.select().from(users).where(eq(users.email, email)).then(r => r[0]);
+      if (!user) {
+        user = await db.insert(users).values({ email, password: crypto.randomBytes(16).toString('hex'), tier: 'free' }).returning().then(r => r[0]);
+      }
+
+      const secret = process.env.AUTH_JWT_SECRET || '';
+      if (!secret) {
+        return res.status(500).json({ success: false, error: "Server not configured" });
+      }
+      const jti = crypto.randomBytes(16).toString('hex');
+      const token = signJwt({ sub: String(user.id), jti }, secret, 7 * 24 * 60 * 60);
+
+      // Set HttpOnly cookie
+      res.cookie('sb_session', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
+      await db.insert(authEvents).values({ userId: user.id, type: "login", metadata: JSON.stringify({ jti, ip }), createdAt: now });
+
+      return res.status(200).json({ success: true, user: { id: user.id, email: user.email } });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "Unexpected error" });
     }
   });
 
