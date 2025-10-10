@@ -30,16 +30,14 @@ test('Passwordless sign-in: /signin -> /verify happy path', async ({ page, conte
   // Fill verify form
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Code').fill(devCode);
-  // Verify client-side validity so submit is not blocked by HTML5 validation
-  await expect(async () => {
-    const valid = await page.getByLabel('Code').evaluate((el: HTMLInputElement) => el.checkValidity());
-    if (!valid) throw new Error('code input invalid');
-  }).toPass();
-
-  // Ensure the submit button is interactable and submit the form
+  // Submit and wait for the verify API response
   const verifyButton = page.getByRole('button', { name: /verify/i });
   await expect(verifyButton).toBeEnabled();
-  await verifyButton.click();
+  const [verifyResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url().endsWith('/api/auth/verify') && res.request().method() === 'POST'),
+    verifyButton.click(),
+  ]);
+  await expect(verifyResponse.ok(), 'verify response should be 2xx').toBeTruthy();
 
   // UI reflects success
   await expect(page.locator('#status')).toContainText('signed in');
