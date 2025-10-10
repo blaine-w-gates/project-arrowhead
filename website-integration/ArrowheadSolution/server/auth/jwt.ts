@@ -17,7 +17,6 @@ export function signJwt(payload: Record<string, unknown>, secret: string, expire
   const sigPart = base64url(sig);
   return `${data}.${sigPart}`;
 }
-
 export function verifyJwt(token: string, secret: string): { valid: boolean; payload?: Record<string, unknown>; reason?: string } {
   try {
     const [headerPart, payloadPart, sigPart] = token.split('.');
