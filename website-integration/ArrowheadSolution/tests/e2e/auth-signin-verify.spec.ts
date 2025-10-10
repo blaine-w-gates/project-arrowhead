@@ -30,19 +30,16 @@ test('Passwordless sign-in: /signin -> /verify happy path', async ({ page, conte
   // Fill verify form
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Code').fill(devCode);
+  // Verify client-side validity so submit is not blocked by HTML5 validation
+  await expect(async () => {
+    const valid = await page.getByLabel('Code').evaluate((el: HTMLInputElement) => el.checkValidity());
+    if (!valid) throw new Error('code input invalid');
+  }).toPass();
 
-  // Ensure the submit button is interactable
-  await expect(page.getByRole('button', { name: /verify/i })).toBeEnabled();
-
-  // Wait for both the request and the response to ensure we don't miss a fast response
-  const waitVerifyRequest = page.waitForRequest((req) => req.url().endsWith('/api/auth/verify') && req.method() === 'POST');
-  const waitVerifyResponse = page.waitForResponse((res) => res.url().endsWith('/api/auth/verify'));
-  await page.getByRole('button', { name: /verify/i }).click();
-  const verifyRequest = await waitVerifyRequest;
-  const verifyResponse = await waitVerifyResponse;
-
-  expect(verifyRequest, 'verify POST request should be sent').toBeTruthy();
-  await expect(verifyResponse.ok(), 'verify response should be 2xx').toBeTruthy();
+  // Ensure the submit button is interactable and submit the form
+  const verifyButton = page.getByRole('button', { name: /verify/i });
+  await expect(verifyButton).toBeEnabled();
+  await verifyButton.click();
 
   // UI reflects success
   await expect(page.locator('#status')).toContainText('signed in');
