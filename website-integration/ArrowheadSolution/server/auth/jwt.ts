@@ -17,6 +17,10 @@ export function signJwt(payload: Record<string, unknown>, secret: string, expire
   const sigPart = base64url(sig);
   return `${data}.${sigPart}`;
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4128869 (chore(lint): fix ESLint errors (no-empty catches, no-explicit-any in JWT); use Drizzle update in verify path)
 export function verifyJwt(token: string, secret: string): { valid: boolean; payload?: Record<string, unknown>; reason?: string } {
   try {
     const [headerPart, payloadPart, sigPart] = token.split('.');
