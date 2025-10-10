@@ -25,6 +25,23 @@ website-integration/ArrowheadSolution/supabase/.temp/
 # Local dev env (do not commit)
 website-integration/ArrowheadSolution/server/.env.local
 
+# Generated AdminJS bundles, coverage, and build output
+website-integration/ArrowheadSolution/.adminjs/
+website-integration/ArrowheadSolution/coverage/
+website-integration/ArrowheadSolution/dist/
+
+# Prevent committing stray git worktrees folder
+.worktrees/
+<<<<<<< HEAD
+
+.venv
+
+# Supabase CLI temp/cache (avoid committing transient files)
+website-integration/ArrowheadSolution/supabase/.temp/
+
+# Local dev env (do not commit)
+website-integration/ArrowheadSolution/server/.env.local
+
 # Generated AdminJS bundles and test coverage
 website-integration/ArrowheadSolution/.adminjs/
 website-integration/ArrowheadSolution/coverage/

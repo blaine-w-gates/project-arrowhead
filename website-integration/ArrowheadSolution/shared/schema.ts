@@ -231,3 +231,53 @@ export interface ObjectivesStepData {
   step6?: string; // Accountability
   step7?: string; // Review
 }
+
+// Auth tables (passwordless + MFA) — vNext
+// Note: store metadata/backup codes as JSON strings in TEXT columns to avoid jsonb/array dependencies.
+export const authOtp = pgTable("auth_otp", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  email: text("email").notNull(),
+  codeHash: text("code_hash"), // hashed OTP code
+  token: text("token"),        // magic-link token (single-use)
+  purpose: text("purpose"),    // 'login' | 'verify_email' | 'reset'
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(5),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  ip: text("ip"),
+  userAgent: text("user_agent"),
+}, (table) => {
+  return {
+    idxEmail: index("idx_auth_otp_email").on(table.email),
+    idxExpiresAt: index("idx_auth_otp_expires_at").on(table.expiresAt),
+  };
+});
+
+export const authTotp = pgTable("auth_totp", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  secretEnc: text("secret_enc").notNull(), // encrypted TOTP secret
+  backupCodesHash: text("backup_codes_hash").notNull().default("[]"), // JSON string of hashed backup codes
+  confirmedAt: timestamp("confirmed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    idxUserId: index("idx_auth_totp_user_id").on(table.userId),
+  };
+});
+
+export const authEvents = pgTable("auth_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  type: text("type").notNull(), // 'otp_issued' | 'otp_verified' | 'login' | 'logout' | 'mfa_enrolled' | 'mfa_verified' | 'rate_limited' | 'failed_attempt'
+  metadata: text("metadata"),   // JSON string { ip, ua, method, reason }
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    idxUserId: index("idx_auth_events_user_id").on(table.userId),
+    idxCreatedAt: index("idx_auth_events_created_at").on(table.createdAt),
+    idxType: index("idx_auth_events_type").on(table.type),
+  };
+});
