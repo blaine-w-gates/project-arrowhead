@@ -46,7 +46,8 @@ export default defineConfig({
     ? undefined
     : {
         // Ensure the Node dev server proxies to the Python backend on 5050 during tests
-        command: 'DATABASE_URL= PY_BACKEND_PORT=5050 npm run dev',
+        // Expose E2E_EXPOSE_OTP=1 so /api/auth/request returns { devCode } for the test environment
+        command: 'E2E_EXPOSE_OTP=1 DATABASE_URL= PY_BACKEND_PORT=5050 npm run dev',
         url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
