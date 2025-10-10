@@ -54,7 +54,7 @@ export default function Verify() {
             type="text"
             name="code"
             required
-            pattern="\\d{6,8}"
+            pattern="[0-9]{6,8}"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             className="mt-1 w-full border rounded px-3 py-2"
