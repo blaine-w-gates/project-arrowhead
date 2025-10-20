@@ -245,6 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const jti = crypto.randomBytes(16).toString('hex');
       const token = signJwt({ sub: String(user.id), jti }, secret, 7 * 24 * 60 * 60);
+
       const isHttps2 = (req.headers['x-forwarded-proto'] === 'https') || req.secure === true;
       res.cookie('sb_session', token, {
         httpOnly: true,

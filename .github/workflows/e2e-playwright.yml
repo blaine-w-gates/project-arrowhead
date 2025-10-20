@@ -9,6 +9,7 @@ on:
       - 'website-integration/ArrowheadSolution/playwright.config.ts'
       - '.github/workflows/e2e-playwright.yml'
   pull_request:
+  workflow_dispatch:
   schedule:
     - cron: '0 2 * * *' # nightly at 02:00 UTC
 
@@ -122,6 +123,58 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-results-${{ matrix.browser }}
+          path: website-integration/ArrowheadSolution/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e-webkit-pr:
+    if: github.event_name == 'pull_request'
+    name: Run Playwright E2E (webkit, PR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: 'website-integration/ArrowheadSolution/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: website-integration/ArrowheadSolution
+
+      - name: Install Playwright Browsers
+        run: npm run test:install
+        working-directory: website-integration/ArrowheadSolution
+
+      - name: Run E2E tests (webkit)
+        run: npx playwright test --project=webkit
+        working-directory: website-integration/ArrowheadSolution
+        env:
+          PLAYWRIGHT_NO_WEBSERVER: ''
+          E2E_SKIP_ADMIN: '1'
+
+      - name: Upload Playwright report (webkit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-webkit
+          path: website-integration/ArrowheadSolution/playwright-report
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload E2E test results (webkit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results-webkit
           path: website-integration/ArrowheadSolution/test-results
           if-no-files-found: ignore
           retention-days: 7
