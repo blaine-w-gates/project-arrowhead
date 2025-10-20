@@ -205,9 +205,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = signJwt({ sub: String(user.id), jti }, secret, 7 * 24 * 60 * 60);
 
       // Set HttpOnly cookie
+      // Important: Avoid Secure on HTTP so Safari/WebKit stores the cookie in CI/dev
+      const isHttps = (req.headers['x-forwarded-proto'] === 'https') || req.secure === true;
       res.cookie('sb_session', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isHttps,
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
@@ -243,10 +245,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const jti = crypto.randomBytes(16).toString('hex');
       const token = signJwt({ sub: String(user.id), jti }, secret, 7 * 24 * 60 * 60);
-
+      const isHttps2 = (req.headers['x-forwarded-proto'] === 'https') || req.secure === true;
       res.cookie('sb_session', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: isHttps2,
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
