@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Box, H2, Table, TableRow, TableCell, TableHead, TableBody, Text, Badge, Icon } from '@adminjs/design-system'
+import { Box, H2, Table, TableRow, TableCell, TableHead, TableBody, Text, Badge } from '@adminjs/design-system'
 import { ApiClient } from 'adminjs'
 
 const api = new ApiClient()
