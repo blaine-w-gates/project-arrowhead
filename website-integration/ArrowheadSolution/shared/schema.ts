@@ -10,6 +10,28 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const userSubscriptions = pgTable("user_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripePriceId: text("stripe_price_id"),
+  status: text("status").notNull().default("none"), // none, active, canceled, past_due, trialing
+  planName: text("plan_name"), // "Pro Monthly", "Team Annual", etc.
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    idxUserId: index("idx_user_subscriptions_user_id").on(table.userId),
+    idxStripeCustomerId: index("idx_user_subscriptions_stripe_customer_id").on(table.stripeCustomerId),
+    idxStripeSubscriptionId: index("idx_user_subscriptions_stripe_subscription_id").on(table.stripeSubscriptionId),
+    idxStatus: index("idx_user_subscriptions_status").on(table.status),
+  };
+});
+
 export const blogPosts = pgTable("blog_posts", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -54,12 +76,27 @@ export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).
   email: true,
 });
 
+export const insertUserSubscriptionSchema = createInsertSchema(userSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateUserSubscriptionSchema = createInsertSchema(userSubscriptions).partial().omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertEmailSubscriber = z.infer<typeof insertEmailSubscriberSchema>;
 export type EmailSubscriber = typeof emailSubscribers.$inferSelect;
+export type InsertUserSubscription = z.infer<typeof insertUserSubscriptionSchema>;
+export type UpdateUserSubscription = z.infer<typeof updateUserSubscriptionSchema>;
+export type UserSubscription = typeof userSubscriptions.$inferSelect;
 
 // Journey System Tables
 export const journeySessions = pgTable("journey_sessions", {
