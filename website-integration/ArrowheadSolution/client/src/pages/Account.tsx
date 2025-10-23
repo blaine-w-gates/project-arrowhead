@@ -6,6 +6,9 @@ type UserData = {
   email: string;
   subscription: {
     status: string;
+    planName?: string;
+    currentPeriodEnd?: string;
+    cancelAtPeriodEnd?: boolean;
   };
 };
 
@@ -72,9 +75,29 @@ export default function Account() {
     }
   }
 
-  function handleManageBilling() {
-    // TODO: Call /api/billing/portal and redirect to Stripe portal
-    alert("Billing management coming soon!");
+  async function handleManageBilling() {
+    try {
+      const res = await fetch("/api/billing/portal", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        setError("Failed to access billing portal");
+        return;
+      }
+
+      const json = (await res.json()) as { success?: boolean; portalUrl?: string; message?: string };
+      if (json.success && json.portalUrl) {
+        // Redirect to Stripe portal (stub for now)
+        window.location.href = json.portalUrl;
+      } else {
+        // Show stub message
+        alert(json.message || "Billing portal not available");
+      }
+    } catch (err) {
+      setError("Unexpected error accessing billing portal");
+    }
   }
 
   if (loading) {
@@ -111,8 +134,35 @@ export default function Account() {
 
         <section className="border rounded p-4">
           <h2 className="text-lg font-medium mb-2">Subscription</h2>
-          <p className="text-sm text-gray-600 mb-1">Status</p>
-          <p className="font-medium capitalize">{user.subscription.status}</p>
+          <div className="space-y-2">
+            <div>
+              <p className="text-sm text-gray-600">Status</p>
+              <p className="font-medium capitalize">{user.subscription.status}</p>
+            </div>
+            
+            {user.subscription.planName && (
+              <div>
+                <p className="text-sm text-gray-600">Plan</p>
+                <p className="font-medium">{user.subscription.planName}</p>
+              </div>
+            )}
+            
+            {user.subscription.currentPeriodEnd && (
+              <div>
+                <p className="text-sm text-gray-600">Renews</p>
+                <p className="font-medium">
+                  {new Date(user.subscription.currentPeriodEnd).toLocaleDateString()}
+                </p>
+              </div>
+            )}
+            
+            {user.subscription.cancelAtPeriodEnd && (
+              <div className="text-yellow-600 text-sm font-medium">
+                ⚠️ Subscription will cancel at period end
+              </div>
+            )}
+          </div>
+          
           <button
             onClick={handleManageBilling}
             className="mt-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
