@@ -4,13 +4,11 @@ on:
   push:
     branches: [ main ]
     paths:
-      - ".github/workflows/seed-blog.yml"
-      - ".github/workflows/seed-preflight.yml"
+      - ".github/workflows/**"
       - "website-integration/ArrowheadSolution/**"
   pull_request:
     paths:
-      - ".github/workflows/seed-blog.yml"
-      - ".github/workflows/seed-preflight.yml"
+      - ".github/workflows/**"
       - "website-integration/ArrowheadSolution/**"
 
 jobs:
