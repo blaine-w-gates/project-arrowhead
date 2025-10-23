@@ -6,33 +6,27 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { setupAdminPanel } from "./admin/index";
+import { logger, logResponse } from "./utils/logger";
 
 const app = express();
 
+// Winston logging middleware for API requests
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  const requestPath = req.path;
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+    
+    if (requestPath.startsWith("/api")) {
+      // Use Winston for structured logging
+      logResponse(req, res.statusCode, duration);
+      
+      // Fallback to vite logger for development console visibility
+      if (process.env.NODE_ENV === 'development') {
+        const logLine = `${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`;
+        log(logLine);
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
     }
   });
 
@@ -67,12 +61,30 @@ app.use((req, res, next) => {
 
   const server = await registerRoutes(app);
 
-  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  // Global error handler with Winston logging
+  app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
     const status = (err as { status?: number; statusCode?: number })?.status || (err as { status?: number; statusCode?: number })?.statusCode || 500;
     const message = err instanceof Error ? err.message : "Internal Server Error";
 
+    // Log error with context
+    logger.error('Express error handler', {
+      error: err instanceof Error ? {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      } : err,
+      method: req.method,
+      url: req.url,
+      statusCode: status,
+      ip: req.ip
+    });
+
     res.status(status).json({ message });
-    throw err;
+    
+    // Only throw in development to see full stack
+    if (process.env.NODE_ENV === 'development') {
+      throw err;
+    }
   });
 
   // importantly only setup vite in development and after
