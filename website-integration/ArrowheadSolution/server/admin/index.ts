@@ -5,7 +5,7 @@ import AdminJSExpress from '@adminjs/express';
 import express, { type Express } from 'express';
 import { verifyPassword } from './auth';
 import { db } from '../db';
-import { adminUsers, adminAuditLog, users, blogPosts, journeySessions, tasks } from '@shared/schema';
+import { adminUsers, adminAuditLog, users, blogPosts, journeySessions, tasks, userSubscriptions } from '@shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { createAuditLog } from './middleware';
 import path from 'path';
@@ -26,6 +26,7 @@ export async function setupAdminPanel(app: Express) {
   const componentLoader = new ComponentLoader();
   const DashboardComponent = componentLoader.add('Dashboard', path.resolve(__dirname, 'components', 'dashboard.tsx'));
   const AdminUsersComponent = componentLoader.add('AdminUsersPage', path.resolve(__dirname, 'components', 'admin-users.tsx'));
+  const SubscriptionsComponent = componentLoader.add('SubscriptionsPage', path.resolve(__dirname, 'components', 'subscriptions.tsx'));
 
   const port = parseInt(process.env.PORT || '5000', 10);
   // Align assetsCDN with what AdminJS login template expects (/admin/frontend/*)
@@ -53,11 +54,12 @@ export async function setupAdminPanel(app: Express) {
           const r = await db.select({ c: sql<number>`count(*)::int` }).from(table);
           return r?.[0]?.c ?? 0;
         };
-        const [usersCount, postsCount, sessionsCount, tasksCount] = await Promise.all([
+        const [usersCount, postsCount, sessionsCount, tasksCount, subscriptionsCount] = await Promise.all([
           q(users),
           q(blogPosts),
           q(journeySessions),
           q(tasks),
+          q(userSubscriptions),
         ]);
         const recentAudit = await db
           .select()
@@ -70,6 +72,7 @@ export async function setupAdminPanel(app: Express) {
             blogPosts: postsCount,
             sessions: sessionsCount,
             tasks: tasksCount,
+            subscriptions: subscriptionsCount,
           },
           recentAudit,
         };
@@ -91,6 +94,33 @@ export async function setupAdminPanel(app: Express) {
             .from(adminUsers)
             .orderBy(desc(adminUsers.createdAt))
             .limit(50);
+          return { rows };
+        },
+      },
+      'Subscriptions': {
+        component: SubscriptionsComponent,
+        handler: async () => {
+          // Join user_subscriptions with users to get email
+          const rows = await db
+            .select({
+              id: userSubscriptions.id,
+              userId: userSubscriptions.userId,
+              userEmail: users.email,
+              stripeCustomerId: userSubscriptions.stripeCustomerId,
+              stripeSubscriptionId: userSubscriptions.stripeSubscriptionId,
+              stripePriceId: userSubscriptions.stripePriceId,
+              status: userSubscriptions.status,
+              planName: userSubscriptions.planName,
+              currentPeriodStart: userSubscriptions.currentPeriodStart,
+              currentPeriodEnd: userSubscriptions.currentPeriodEnd,
+              cancelAtPeriodEnd: userSubscriptions.cancelAtPeriodEnd,
+              createdAt: userSubscriptions.createdAt,
+              updatedAt: userSubscriptions.updatedAt,
+            })
+            .from(userSubscriptions)
+            .leftJoin(users, eq(userSubscriptions.userId, users.id))
+            .orderBy(desc(userSubscriptions.createdAt))
+            .limit(100);
           return { rows };
         },
       },
