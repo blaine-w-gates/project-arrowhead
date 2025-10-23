@@ -97,6 +97,7 @@ test('POST /api/billing/checkout returns 400 when priceId is invalid type', asyn
 });
 
 test('POST /api/billing/checkout returns Stripe Checkout URL when authenticated with valid priceId', async ({ page, request }) => {
+  test.skip(!!process.env.E2E_SKIP_BILLING, 'Skipping billing tests in CI (Stripe secrets not configured)');
   const email = `e2e+${Date.now()}@example.com`;
   await authenticateUser(page, email);
 
