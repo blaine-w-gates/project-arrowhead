@@ -14,7 +14,7 @@ import { getDb } from "./db";
 import { authOtp, authEvents, users } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import crypto from "crypto";
-import { signJwt } from "./auth/jwt";
+import { signJwt, verifyJwt } from "./auth/jwt";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Blog routes
@@ -258,6 +258,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       memEvents.push({ id: memEventId++, userId: user.id, type: "login", metadata: JSON.stringify({ jti, ip }), createdAt: now });
       return res.status(200).json({ success: true, user: { id: user.id, email: user.email } });
       }
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "Unexpected error" });
+    }
+  });
+
+  // GET /api/me - Return authenticated user from sb_session JWT
+  app.get("/api/me", async (req, res) => {
+    try {
+      const token = req.cookies?.sb_session;
+      if (!token) {
+        return res.status(401).json({ success: false, error: "Not authenticated" });
+      }
+
+      const secret = process.env.AUTH_JWT_SECRET || '';
+      if (!secret) {
+        return res.status(500).json({ success: false, error: "Server not configured" });
+      }
+
+      const result = verifyJwt(token, secret);
+      if (!result.valid || !result.payload) {
+        return res.status(401).json({ success: false, error: "Invalid or expired session" });
+      }
+
+      const userId = result.payload.sub;
+      if (typeof userId !== 'string') {
+        return res.status(401).json({ success: false, error: "Invalid session payload" });
+      }
+
+      if (useDb) {
+        const db = await getDb();
+        const user = await db.select().from(users).where(eq(users.id, parseInt(userId, 10))).then(r => r[0]);
+        if (!user) {
+          return res.status(404).json({ success: false, error: "User not found" });
+        }
+        return res.status(200).json({ 
+          success: true, 
+          user: { 
+            id: user.id, 
+            email: user.email,
+            subscription: { status: 'none' } // TODO: join user_subscriptions table
+          } 
+        });
+      } else {
+        // In-memory fallback
+        const user = Array.from(memUsers.values()).find(u => u.id === parseInt(userId, 10));
+        if (!user) {
+          return res.status(404).json({ success: false, error: "User not found" });
+        }
+        return res.status(200).json({ 
+          success: true, 
+          user: { 
+            id: user.id, 
+            email: user.email,
+            subscription: { status: 'none' }
+          } 
+        });
+      }
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "Unexpected error" });
+    }
+  });
+
+  // POST /api/auth/logout - Clear sb_session cookie
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      const isHttps = (req.headers['x-forwarded-proto'] === 'https') || req.secure === true;
+      res.clearCookie('sb_session', {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: 'lax',
+        path: '/',
+      });
+      return res.status(200).json({ success: true });
     } catch (err) {
       return res.status(500).json({ success: false, error: "Unexpected error" });
     }
