@@ -15,6 +15,7 @@ import LeadMagnet from "./pages/LeadMagnet";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";
 import Verify from "./pages/Verify";
+import Account from "./pages/Account";
 import FreeTool from "./pages/FreeTool";
 import TaskListPage from "./pages/TaskListPage";
 import { JourneyDashboard, JourneyStepPage } from "./pages/journey";
@@ -33,6 +34,7 @@ function Router() {
       <Route path="/signup" component={SignUp} />
       <Route path="/signin" component={SignIn} />
       <Route path="/verify" component={Verify} />
+      <Route path="/account" component={Account} />
       <Route path="/free-tool" component={FreeTool} />
       <Route path="/tasks" component={TaskListPage} />
       <Route path="/journey" component={JourneyDashboard} />
