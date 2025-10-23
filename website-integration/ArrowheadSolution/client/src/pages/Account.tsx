@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 
 type UserData = {
   id: number;
@@ -10,7 +10,7 @@ type UserData = {
 };
 
 export default function Account() {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [loading, setLoading] = useState<boolean>(true);
   const [user, setUser] = useState<UserData | null>(null);
   const [error, setError] = useState<string>("");
@@ -26,7 +26,7 @@ export default function Account() {
 
         if (res.status === 401) {
           // Not authenticated, redirect to sign in
-          navigate("/signin", { replace: true });
+          navigate("/signin");
           return;
         }
 
@@ -61,7 +61,7 @@ export default function Account() {
       });
 
       if (res.ok) {
-        navigate("/signin", { replace: true });
+        navigate("/signin");
       } else {
         setError("Logout failed");
         setLogoutStatus("idle");
