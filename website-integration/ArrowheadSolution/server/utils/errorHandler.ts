@@ -55,11 +55,19 @@ export function sendErrorResponse(
     captureError(error, context);
   }
 
-  res.status(errorResponse.statusCode).json({
-    message: errorResponse.message,
-    ...(errorResponse.code && { code: errorResponse.code }),
-    ...(errorResponse.details && process.env.NODE_ENV !== 'production' && { details: errorResponse.details })
-  });
+  const responseBody: any = {
+    message: errorResponse.message
+  };
+  
+  if (errorResponse.code) {
+    responseBody.code = errorResponse.code;
+  }
+  
+  if (errorResponse.details && process.env.NODE_ENV !== 'production') {
+    responseBody.details = errorResponse.details;
+  }
+  
+  res.status(errorResponse.statusCode).json(responseBody);
 }
 
 /**

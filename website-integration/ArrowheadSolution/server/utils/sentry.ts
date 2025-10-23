@@ -48,7 +48,7 @@ export function initializeSentry(app: Express) {
     // Integrations for Sentry v8
     integrations: [
       httpIntegration(),
-      expressIntegration({ app }),
+      expressIntegration(),
       requestDataIntegration(),
       ...(process.env.SENTRY_ENABLE_PROFILING === '1' ? [nodeProfilingIntegration()] : [])
     ],

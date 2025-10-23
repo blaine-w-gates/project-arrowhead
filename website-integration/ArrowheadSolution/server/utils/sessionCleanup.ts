@@ -4,7 +4,7 @@
  */
 
 import { logger } from './logger';
-import type { Storage } from '../storage';
+import type { IStorage } from '../storage';
 
 /**
  * Configuration for session cleanup
@@ -42,7 +42,7 @@ export interface CleanupResult {
  * Cleanup stale and old journey sessions
  */
 export async function cleanupSessions(
-  storage: Storage,
+  storage: IStorage,
   config: Partial<CleanupConfig> = {}
 ): Promise<CleanupResult> {
   const startTime = Date.now();
@@ -98,7 +98,7 @@ export async function cleanupSessions(
  * Returns a cleanup function to stop the scheduler
  */
 export function scheduleCleanup(
-  storage: Storage,
+  storage: IStorage,
   config: Partial<CleanupConfig> = {},
   intervalHours: number = 24
 ): () => void {
@@ -133,7 +133,7 @@ export function scheduleCleanup(
  * This is a maintenance operation for data consistency
  */
 export async function cleanupOrphanedTasks(
-  storage: Storage,
+  storage: IStorage,
   dryRun: boolean = false
 ): Promise<number> {
   logger.info('Starting orphaned task cleanup', { dryRun });
@@ -148,7 +148,7 @@ export async function cleanupOrphanedTasks(
  * Get cleanup statistics without performing cleanup
  */
 export async function getCleanupStats(
-  storage: Storage,
+  storage: IStorage,
   config: Partial<CleanupConfig> = {}
 ): Promise<{
   staleSessions: number;
