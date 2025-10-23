@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
 import fs from "fs";
 import path from "path";
 import { registerRoutes } from "./routes";
@@ -60,6 +61,7 @@ app.use((req, res, next) => {
   await setupAdminPanel(app);
 
   // IMPORTANT: Apply body parsers AFTER AdminJS router to be compatible with @adminjs/express
+  app.use(cookieParser());
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
 
