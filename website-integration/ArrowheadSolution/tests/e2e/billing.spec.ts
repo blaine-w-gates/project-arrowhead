@@ -96,7 +96,7 @@ test('POST /api/billing/checkout returns 400 when priceId is invalid type', asyn
   expect(body.error).toContain('priceId');
 });
 
-test('POST /api/billing/checkout returns stub response when authenticated with valid priceId', async ({ page, request }) => {
+test('POST /api/billing/checkout returns Stripe Checkout URL when authenticated with valid priceId', async ({ page, request }) => {
   const email = `e2e+${Date.now()}@example.com`;
   await authenticateUser(page, email);
 
@@ -114,9 +114,8 @@ test('POST /api/billing/checkout returns stub response when authenticated with v
   expect(response.status()).toBe(200);
   const body = await response.json();
   expect(body.success).toBe(true);
-  expect(body.checkoutUrl).toBeTruthy();
-  expect(body.checkoutUrl).toContain('stripe.com');
-  expect(body.message).toContain('not yet implemented');
+  expect(body.url).toBeTruthy();
+  expect(body.url).toContain('stripe.com');
 });
 
 // ============================================================================
