@@ -1,24 +1,220 @@
 # Project Arrowhead Documentation Index
 
-This index clarifies which documents are active, baseline, or archived to avoid confusion and ensure everyone reads the correct sources.
+**Last Updated:** October 23, 2025  
+**Purpose:** This is the **primary navigation document** for all Project Arrowhead documentation. It uses a 3-tier system: Active (current work), Living Baselines (single source of truth), and Historical Archives (frozen in time).
 
-## Active Documents (current focus)
-- Sprint Plan v8.0: `Sprint_Plan_v8.0.md`
-- Auth Strategy vNext: `docs/Auth_Strategy_vNext.md`
+---
 
-## Living Baselines (single source of truth)
-- SLAD v5.2 Final (as-built architecture): `SLAD_v5.2_Final.md`
-- PRD v4.2 Draft (Paid MVP additions): `PRD_v4.2_Draft.md`
-- OMDL v11.2 Draft (protocols and operations): `OMDL_v11.2_Draft.md`
+## 📍 Getting Started
 
-These must be kept up to date as the system evolves.
+**New to the project?** Start here:
+1. Read this entire index to understand the documentation structure
+2. Review the Living Baselines section (architecture, requirements, protocols)
+3. Check Active Documents for current sprint work
+4. Reference Runbooks & Operational Docs as needed
 
-## Historical Archives (frozen)
-- Sprint Plan v7.0: `Sprint_Plan_v7.0.md` (Superseded by v8.0)
-- System Logic Architecture v3.0: `System_Logic_Architecture_v3.0.md`
-- Older sprint plans and docs located at repository root.
+---
 
-## Documentation cadence
-- At sprint start: run a Documentation Sync (read active + baselines).
-- During sprint: PRs include doc updates (ADRs and baselines as needed).
-- End of sprint: quick doc review to ensure baselines match the as-built system.
+## 🚀 Active Documents (Current Focus)
+
+These define what we are working on **right now**:
+
+- **Sprint Plan v8.0** (`/Sprint_Plan_v8.0.md`)
+  - Current sprint: Operation Passwordless Auth
+  - Status: Active implementation
+  
+- **Auth Strategy vNext** (`Auth_Strategy_vNext.md`)
+  - Passwordless email auth + optional MFA
+  - Sprint 8 implementation blueprint
+
+---
+
+## 🏛️ Living Baselines (Single Source of Truth)
+
+These documents describe the **current state** of the project and must be kept up-to-date as we build:
+
+### Core Architecture & Requirements
+
+- **SLAD v5.2 Final** (`/SLAD_v5.2_Final.md`)
+  - System Logic & Architecture Document
+  - As-built technical baseline
+  - Tech stack, data model, API endpoints, security
+  
+- **PRD v4.2 Draft** (`/PRD_v4.2_Draft.md`)
+  - Product Requirements Document
+  - Paid MVP scope (individual plans)
+  - **Note:** Will become PRD v5.0 after team-model update
+  
+- **OMDL v11.2 Draft** (`/OMDL_v11.2_Draft.md`)
+  - Operational Manual & Decision Log
+  - Ratified protocols, workflows, decision history
+  - **Note:** Will become Final after approval
+
+### Testing & Operations
+
+- **Testing Strategy** (`/TESTING_STRATEGY.md`)
+  - Comprehensive testing approach
+  - E2E, integration, unit test strategy
+  
+- **Production Environment Setup** (`/PRODUCTION_ENV_SETUP.md`)
+  - Environment variables and secrets
+  - Deployment configuration
+
+### Architecture Decision Records (ADRs)
+
+Located in `adr/` subdirectory:
+
+- **ADR-001** - Billing Provider: Stripe Checkout + Portal
+- **ADR-002** - Tenant Model: Individual-Only MVP
+- **ADR-003** - Subscriptions Data Model & Entitlements
+- **ADR-004** - Auth Endpoint Naming & Cookie Contract
+- **ADR-005** - Stripe Webhook Security & Idempotency
+- **ADR-006** - Environments & Secrets Management
+
+**Note:** ADR-002 will be superseded when team-based model is implemented.
+
+---
+
+## 📚 Runbooks & Operational Docs
+
+### Core Runbooks
+
+- **Data Health Runbook** (`data-health-runbook.md`)
+  - Database health monitoring procedures
+  
+- **Cloudflare Access Runbook** (`/website-integration/ArrowheadSolution/docs/cloudflare-access-runbook.md`)
+  - Admin panel access control via Cloudflare
+
+### API Documentation
+
+- **Lead Magnet API** (`/website-integration/ArrowheadSolution/docs/lead-magnet-api.md`)
+  - Lead capture endpoint specification
+
+### Content Management
+
+- **Content Management Guide** (`/website-integration/ArrowheadSolution/CONTENT_MANAGEMENT.md`)
+  - Blog post workflow and structure
+  
+- **Integration Guide** (`/website-integration/INTEGRATION_GUIDE.md`)
+  - Website integration practices
+
+### Component-Specific Docs
+
+- **AdminJS Setup** (`/website-integration/ArrowheadSolution/server/admin/README.md`)
+  - Admin panel implementation details
+
+---
+
+## 🗄️ Historical Archives (Frozen in Time)
+
+All superseded documents have been moved to `/docs/archive/` with "SUPERSEDED" banners. These are preserved for historical reference only.
+
+### Archive Structure
+
+```
+docs/archive/
+├── sprint-plans/     # Sprint Plans v2.1 through v7.0
+├── slad/             # SLAD v5.0, v5.1 (Draft/Final), System Logic v3.0
+├── prd/              # PRD v3.0, v4.0, v4.1
+├── omdl/             # OMDL v8.3, v10.0, v11.0, v11.1
+├── process-docs/     # Calibration docs, Phoenix Protocol, Prompting Guide
+└── operations/       # OS v1.0, deployment checklists, issue notes
+```
+
+### Key Archived Documents
+
+**Sprint Plans:** v2.1, v3.0, v4.0, v4.1, v6.0, v7.0 → **Current: v8.0**
+
+**Architecture:** SLAD v5.0-v5.1, System Logic v3.0 → **Current: SLAD v5.2**
+
+**Requirements:** PRD v3.0-v4.1 → **Current: PRD v4.2 (soon v5.0)**
+
+**Operations:** OMDL v8.3-v11.1 → **Current: OMDL v11.2**
+
+**Process Documents:**
+- Phoenix Protocol Charter v7.3 (now in OMDL Appendix C)
+- Cascade Calibration v4.0 (now in OMDL)
+- Cascade Prompting Guide v1.0 (now in OMDL Appendix B)
+- Project Arrowhead OS v1.0 (protocols migrated to OMDL)
+
+---
+
+## 📋 Documentation Maintenance Cadence
+
+### Sprint Start
+1. **Documentation Sync:** Read this index, then Active Documents and relevant Living Baselines
+2. Verify current versions are correct
+3. Identify any baseline updates needed based on sprint scope
+
+### During Sprint
+1. **PR Requirements:** All PRs must include documentation updates when applicable:
+   - New ADRs for significant architectural decisions
+   - Updates to Living Baselines (SLAD, PRD, OMDL) to reflect changes
+   - New/updated runbooks for operational changes
+2. **Citation:** Always link to specific docs in PR descriptions
+
+### End of Sprint
+1. **Baseline Review:** Verify Living Baselines match the as-built system
+2. **Archive Old Versions:** Move superseded documents to `/docs/archive/`
+3. **Update This Index:** Reflect new document versions and archive additions
+
+### Version Transitions
+
+When creating a new version of a core document (e.g., PRD v4.2 → v5.0):
+
+1. Move old version to appropriate `/docs/archive/` subdirectory
+2. Add "SUPERSEDED" banner to old version
+3. Update this index with new current version
+4. Update root README.md if applicable
+5. Commit all changes in a single PR
+
+---
+
+## 🔍 Finding Documentation
+
+### By Topic
+
+- **Architecture:** SLAD v5.2, ADRs
+- **Requirements:** PRD v4.2, OMDL v11.2
+- **Current Work:** Sprint_Plan_v8.0, Auth_Strategy_vNext
+- **Testing:** TESTING_STRATEGY.md
+- **Operations:** PRODUCTION_ENV_SETUP.md, runbooks
+- **Decisions:** OMDL Decision Log (Section 5.0), ADRs
+- **Historical Context:** `/docs/archive/` subdirectories
+
+### By Document Type
+
+- **Active Work:** Root level + this directory
+- **Baselines:** Root level + this directory + ADRs
+- **Runbooks:** This directory + `website-integration/ArrowheadSolution/docs/`
+- **Archives:** `/docs/archive/` subdirectories
+- **Content:** `website-integration/ArrowheadSolution/content/blog/`
+
+---
+
+## ⚠️ Important Notes
+
+1. **This Index is the Source of Truth:** If there's confusion about which document is current, this index is authoritative.
+
+2. **No Orphan Documents:** Every significant markdown file in the project should be referenced in this index or archived.
+
+3. **Living Baselines Must Stay Current:** SLAD, PRD, and OMDL are not "final" documents—they evolve with the codebase.
+
+4. **Archive, Don't Delete:** Old documents show how we got here. Always archive superseded versions.
+
+5. **Team Model Transition Coming:** PRD v4.2 and ADR-002 will be superseded when the team-based model is defined (see architect notes).
+
+---
+
+## 📞 Questions?
+
+- **Which document should I read?** → Start with Living Baselines
+- **Where's the old Sprint Plan v6?** → `/docs/archive/sprint-plans/`
+- **Is document X still relevant?** → Check if it's in Living Baselines or Active sections
+- **Where do I add new docs?** → Follow the documentation cadence above
+
+---
+
+**Document History:**
+- v1.0 (PR #103): Initial index created
+- v2.0 (October 23, 2025): Comprehensive reorganization with archive structure

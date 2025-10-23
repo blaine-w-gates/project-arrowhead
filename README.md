@@ -1,17 +1,37 @@
 # Project Arrowhead
 
-> Start Here: Read the unified Operating System (OS): [docs/Project_Arrowhead_OS_v1.md](docs/Project_Arrowhead_OS_v1.md)
+**A web application for habit formation and task management using brainstorming and prioritization techniques.**
 
-## Core Documents (current)
+---
 
-- OS v1.0 (Primary Onboarding): [docs/Project_Arrowhead_OS_v1.md](docs/Project_Arrowhead_OS_v1.md)
-- Phoenix Protocol Charter v7.3 Final: [Phoenix_Protocol_Charter_v7.3_Final.md](Phoenix_Protocol_Charter_v7.3_Final.md)
-- Sprint Plan v4.1: [Sprint_Plan_v4.1.md](Sprint_Plan_v4.1.md)
-- SLAD v5.2 Final: [SLAD_v5.2_Final.md](SLAD_v5.2_Final.md)
-- OMDL v11.2 Draft: [OMDL_v11.2_Draft.md](OMDL_v11.2_Draft.md)
-- PRD v4.1 Draft: [PRD_v4.1_Draft.md](PRD_v4.1_Draft.md)
+## 📚 Documentation
 
-A web application for habit formation and task management using brainstorming and prioritization techniques.
+> **Start Here:** [Documentation Index (docs/README.md)](docs/README.md)
+
+The Documentation Index is your **primary navigation** for all project documentation. It organizes docs into three tiers:
+- **Active Documents:** Current sprint work
+- **Living Baselines:** Single source of truth (architecture, requirements, protocols)
+- **Historical Archives:** Superseded versions preserved for reference
+
+### Quick Links to Key Documents
+
+**Current Work:**
+- [Sprint Plan v8.0](Sprint_Plan_v8.0.md) - Operation: Passwordless Auth
+- [Auth Strategy vNext](docs/Auth_Strategy_vNext.md) - Implementation blueprint
+
+**Architecture & Requirements:**
+- [SLAD v5.2 Final](SLAD_v5.2_Final.md) - System Logic & Architecture
+- [PRD v4.2 Draft](PRD_v4.2_Draft.md) - Product Requirements (Paid MVP)
+- [OMDL v11.2 Draft](OMDL_v11.2_Draft.md) - Operational Manual & Decision Log
+
+**Testing & Operations:**
+- [Testing Strategy](TESTING_STRATEGY.md)
+- [Production Environment Setup](PRODUCTION_ENV_SETUP.md)
+
+**Historical Reference:**
+- [Archived Documents](docs/archive/) - All superseded versions
+
+---
 
 ## CI Blog Seeding (Supabase)
 
