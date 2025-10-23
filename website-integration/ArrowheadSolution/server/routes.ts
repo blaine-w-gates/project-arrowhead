@@ -11,7 +11,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { getDb } from "./db";
-import { authOtp, authEvents, users } from "@shared/schema";
+import { authOtp, authEvents, users, userSubscriptions } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import crypto from "crypto";
 import { signJwt, verifyJwt } from "./auth/jwt";
@@ -292,12 +292,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!user) {
           return res.status(404).json({ success: false, error: "User not found" });
         }
+        
+        // Join with user_subscriptions table
+        const subscription = await db.select().from(userSubscriptions).where(eq(userSubscriptions.userId, user.id)).then(r => r[0]);
+        
         return res.status(200).json({ 
           success: true, 
           user: { 
             id: user.id, 
             email: user.email,
-            subscription: { status: 'none' } // TODO: join user_subscriptions table
+            subscription: subscription ? {
+              status: subscription.status,
+              planName: subscription.planName,
+              currentPeriodEnd: subscription.currentPeriodEnd,
+              cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+            } : { status: 'none' }
           } 
         });
       } else {
@@ -331,6 +340,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
         path: '/',
       });
       return res.status(200).json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "Unexpected error" });
+    }
+  });
+
+  // --- Billing Endpoints (Stubs) ---
+  
+  // POST /api/billing/checkout - Create Stripe Checkout session (stub)
+  app.post("/api/billing/checkout", async (req, res) => {
+    try {
+      const token = req.cookies?.sb_session;
+      if (!token) {
+        return res.status(401).json({ success: false, error: "Not authenticated" });
+      }
+
+      const secret = process.env.AUTH_JWT_SECRET || '';
+      if (!secret) {
+        return res.status(500).json({ success: false, error: "Server not configured" });
+      }
+
+      const result = verifyJwt(token, secret);
+      if (!result.valid || !result.payload) {
+        return res.status(401).json({ success: false, error: "Invalid or expired session" });
+      }
+
+      // Validate request body
+      const { priceId } = req.body;
+      if (!priceId || typeof priceId !== 'string') {
+        return res.status(400).json({ success: false, error: "priceId is required" });
+      }
+
+      // TODO: Create actual Stripe Checkout session
+      // For now, return a stub response
+      return res.status(200).json({
+        success: true,
+        checkoutUrl: "https://stripe.com/checkout/stub",
+        message: "Stripe integration not yet implemented"
+      });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "Unexpected error" });
+    }
+  });
+
+  // GET /api/billing/portal - Redirect to Stripe Customer Portal (stub)
+  app.get("/api/billing/portal", async (req, res) => {
+    try {
+      const token = req.cookies?.sb_session;
+      if (!token) {
+        return res.status(401).json({ success: false, error: "Not authenticated" });
+      }
+
+      const secret = process.env.AUTH_JWT_SECRET || '';
+      if (!secret) {
+        return res.status(500).json({ success: false, error: "Server not configured" });
+      }
+
+      const result = verifyJwt(token, secret);
+      if (!result.valid || !result.payload) {
+        return res.status(401).json({ success: false, error: "Invalid or expired session" });
+      }
+
+      const userId = result.payload.sub;
+      if (typeof userId !== 'string') {
+        return res.status(401).json({ success: false, error: "Invalid session payload" });
+      }
+
+      // TODO: Create actual Stripe Customer Portal session and redirect
+      // For now, return a stub response
+      return res.status(200).json({
+        success: true,
+        portalUrl: "https://stripe.com/portal/stub",
+        message: "Stripe integration not yet implemented"
+      });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: "Unexpected error" });
+    }
+  });
+
+  // POST /api/stripe/webhook - Handle Stripe webhooks (stub)
+  app.post("/api/stripe/webhook", async (req, res) => {
+    try {
+      // TODO: Verify Stripe webhook signature
+      // TODO: Handle webhook events (subscription created, updated, deleted, payment succeeded/failed)
+      
+      // For now, acknowledge receipt
+      return res.status(200).json({ received: true, message: "Webhook handler not yet implemented" });
     } catch (err) {
       return res.status(500).json({ success: false, error: "Unexpected error" });
     }
