@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // Test 1: Account guard - unauthenticated users redirected to /signin
-test('/account redirects to /signin when not authenticated', async ({ page }) => {
+test('/account redirects to /signin when not authenticated', async ({ page, context: _context, baseURL: _baseURL }) => {
   await page.goto('/account');
   
   // Should redirect to signin
@@ -10,7 +10,7 @@ test('/account redirects to /signin when not authenticated', async ({ page }) =>
 });
 
 // Test 2: Happy path - authenticated user sees account page
-test('Authenticated user can view /account page', async ({ page, context, baseURL }) => {
+test('Authenticated user can view /account page', async ({ page, context: _context, baseURL: _baseURL }) => {
   const email = `e2e+${Date.now()}@example.com`;
 
   // Step 1: Sign in via OTP flow
