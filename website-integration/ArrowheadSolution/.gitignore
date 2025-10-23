@@ -7,3 +7,6 @@ vite.config.ts.*
 # Ignore test artifacts
 playwright-report/
 test-results/
+# Environment files with secrets
+.env.local
+.env.*.local
