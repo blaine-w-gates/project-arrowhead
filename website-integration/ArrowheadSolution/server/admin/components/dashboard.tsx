@@ -20,12 +20,13 @@ type DashboardData = {
     blogPosts: number
     sessions: number
     tasks: number
+    subscriptions: number
   }
   recentAudit: AuditLog[]
 }
 
 const Dashboard: React.FC = () => {
-  const [data, setData] = useState<DashboardData>({ counts: { users: 0, blogPosts: 0, sessions: 0, tasks: 0 }, recentAudit: [] })
+  const [data, setData] = useState<DashboardData>({ counts: { users: 0, blogPosts: 0, sessions: 0, tasks: 0, subscriptions: 0 }, recentAudit: [] })
 
   useEffect(() => {
     api.getDashboard().then((res) => {
@@ -43,6 +44,7 @@ const Dashboard: React.FC = () => {
       <Section>
         <Box flex flexDirection="row" flexWrap="wrap" gap="xl">
           <ValueGroup label="Users" value={String(data.counts.users)} />
+          <ValueGroup label="Subscriptions" value={String(data.counts.subscriptions)} />
           <ValueGroup label="Blog Posts" value={String(data.counts.blogPosts)} />
           <ValueGroup label="Sessions" value={String(data.counts.sessions)} />
           <ValueGroup label="Tasks" value={String(data.counts.tasks)} />
