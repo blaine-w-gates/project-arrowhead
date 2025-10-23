@@ -7,8 +7,15 @@ import { setupVite, serveStatic, log } from "./vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { setupAdminPanel } from "./admin/index";
 import { logger, logResponse } from "./utils/logger";
+import { initializeSentry, setupSentryMiddleware, setupSentryErrorHandler } from "./utils/sentry";
 
 const app = express();
+
+// Initialize Sentry for error tracking (must be first)
+initializeSentry(app);
+
+// Sentry request handler (must be before routes)
+setupSentryMiddleware(app);
 
 // Winston logging middleware for API requests
 app.use((req, res, next) => {
@@ -60,6 +67,9 @@ app.use((req, res, next) => {
   app.use(express.urlencoded({ extended: false }));
 
   const server = await registerRoutes(app);
+
+  // Sentry error handler (must be after routes, before custom error handler)
+  setupSentryErrorHandler(app);
 
   // Global error handler with Winston logging
   app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
