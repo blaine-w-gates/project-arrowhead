@@ -32,9 +32,17 @@ test('Authenticated user can view /account page', async ({ page, context: _conte
   await page.getByLabel('Code').fill(devCode);
   const verifyButton = page.getByRole('button', { name: /verify/i });
   await expect(verifyButton).toBeEnabled();
-  await verifyButton.click();
-
-  // Wait for success
+  
+  // Wait for verify response to complete (cookie is set in response)
+  const [verifyResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url().endsWith('/api/auth/verify') && res.request().method() === 'POST'),
+    verifyButton.click(),
+  ]);
+  
+  // Verify the response was successful
+  expect(verifyResponse.status()).toBe(200);
+  
+  // Wait for success message
   await expect(page.locator('#status')).toContainText('signed in');
 
   // Step 3: Navigate to account page
@@ -77,7 +85,14 @@ test('Logout button clears cookie and redirects to /signin', async ({ page, cont
   await page.goto('/verify');
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Code').fill(devCode);
-  await page.getByRole('button', { name: /verify/i }).click();
+  
+  // Wait for verify response to complete (cookie is set in response)
+  const [verifyResponse] = await Promise.all([
+    page.waitForResponse((res) => res.url().endsWith('/api/auth/verify') && res.request().method() === 'POST'),
+    page.getByRole('button', { name: /verify/i }).click(),
+  ]);
+  
+  expect(verifyResponse.status()).toBe(200);
   await expect(page.locator('#status')).toContainText('signed in');
 
   // Step 3: Verify session cookie exists
