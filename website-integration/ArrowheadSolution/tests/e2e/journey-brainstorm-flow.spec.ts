@@ -15,10 +15,11 @@ const BRAINSTORM_STEPS = [
 ];
 
 test.describe('Journey - Brainstorm Module Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Start fresh session - navigate first for WebKit compatibility
-    await page.goto('/journey/brainstorm/step/1');
-    await page.evaluate(() => localStorage.clear());
+  test.beforeEach(async ({ context }) => {
+    // Clear localStorage before any page loads (WebKit compatible)
+    await context.addInitScript(() => {
+      localStorage.clear();
+    });
   });
 
   test('completes full Brainstorm module flow (all 5 steps)', async ({ page }) => {

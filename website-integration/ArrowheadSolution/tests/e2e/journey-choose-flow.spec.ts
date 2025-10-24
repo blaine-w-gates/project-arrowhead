@@ -14,10 +14,11 @@ const CHOOSE_STEPS = [
 ];
 
 test.describe('Journey - Choose Module Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate first for WebKit compatibility
-    await page.goto('/journey/choose/step/1');
-    await page.evaluate(() => localStorage.clear());
+  test.beforeEach(async ({ context }) => {
+    // Clear localStorage before any page loads (WebKit compatible)
+    await context.addInitScript(() => {
+      localStorage.clear();
+    });
   });
 
   test('completes full Choose module flow (all 5 steps)', async ({ page }) => {

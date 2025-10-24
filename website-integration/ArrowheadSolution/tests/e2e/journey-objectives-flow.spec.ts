@@ -17,10 +17,11 @@ const OBJECTIVES_STEPS = [
 ];
 
 test.describe('Journey - Objectives Module Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate first for WebKit compatibility
-    await page.goto('/journey/objectives/step/1');
-    await page.evaluate(() => localStorage.clear());
+  test.beforeEach(async ({ context }) => {
+    // Clear localStorage before any page loads (WebKit compatible)
+    await context.addInitScript(() => {
+      localStorage.clear();
+    });
   });
 
   test('completes full Objectives module flow (all 7 steps)', async ({ page }) => {
