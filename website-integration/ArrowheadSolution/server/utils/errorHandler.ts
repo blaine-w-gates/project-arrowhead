@@ -3,7 +3,7 @@
  * Provides consistent error handling patterns across the application
  */
 
-import { Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { logger } from './logger';
 import { captureError } from './sentry';
@@ -55,7 +55,7 @@ export function sendErrorResponse(
     captureError(error, context);
   }
 
-  const responseBody: any = {
+  const responseBody: Record<string, unknown> = {
     message: errorResponse.message
   };
   
@@ -145,9 +145,9 @@ export function formatError(error: unknown): ErrorResponse {
  * Usage: app.get('/route', asyncHandler(async (req, res) => { ... }))
  */
 export function asyncHandler(
-  fn: (req: any, res: Response, next: any) => Promise<any>
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
 ) {
-  return (req: any, res: Response, next: any) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch((error) => {
       sendErrorResponse(res, error, {
         method: req.method,

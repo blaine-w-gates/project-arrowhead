@@ -15,7 +15,7 @@ const isTest = process.env.NODE_ENV === 'test';
  * Initialize Sentry for error tracking
  * Only enabled in production unless SENTRY_FORCE_ENABLE is set
  */
-export function initializeSentry(app: Express) {
+export function initializeSentry(_app: Express) {
   // Skip Sentry in test environment
   if (isTest) {
     return;
@@ -137,9 +137,10 @@ export function setupSentryErrorHandler(app: Express) {
 
   // Error handler for Sentry v8
   app.use(expressErrorHandler({
-    shouldHandleError(error: any) {
+    shouldHandleError(error: unknown) {
       // Capture all errors with status >= 500
-      const statusCode = error?.statusCode || error?.status || 500;
+      const err = error as { statusCode?: number; status?: number };
+      const statusCode = err?.statusCode || err?.status || 500;
       return statusCode >= 500;
     }
   }));
@@ -148,7 +149,7 @@ export function setupSentryErrorHandler(app: Express) {
 /**
  * Manually capture an error with additional context
  */
-export function captureError(error: Error, context?: Record<string, any>) {
+export function captureError(error: Error, context?: Record<string, unknown>) {
   if (isTest) return;
 
   Sentry.captureException(error, {
@@ -159,7 +160,7 @@ export function captureError(error: Error, context?: Record<string, any>) {
 /**
  * Capture a message (non-error event)
  */
-export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, any>) {
+export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info', context?: Record<string, unknown>) {
   if (isTest) return;
 
   Sentry.captureMessage(message, {
@@ -193,7 +194,7 @@ export function clearUserContext() {
 /**
  * Add breadcrumb for debugging
  */
-export function addBreadcrumb(message: string, category: string, data?: Record<string, any>) {
+export function addBreadcrumb(message: string, category: string, data?: Record<string, unknown>) {
   if (isTest) return;
 
   Sentry.addBreadcrumb({

@@ -16,7 +16,8 @@ const BRAINSTORM_STEPS = [
 
 test.describe('Journey - Brainstorm Module Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Start fresh session
+    // Start fresh session - navigate first for WebKit compatibility
+    await page.goto('/journey/brainstorm/step/1');
     await page.evaluate(() => localStorage.clear());
   });
 

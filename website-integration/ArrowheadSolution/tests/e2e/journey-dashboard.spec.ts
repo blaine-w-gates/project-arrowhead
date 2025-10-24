@@ -148,8 +148,6 @@ test.describe('Journey Dashboard', () => {
 
   test('path cards are clickable containers', async ({ page }) => {
     // Clicking anywhere on the card (not just button) should navigate
-    const directionCard = page.locator('text=Direction').locator('..').locator('..').locator('..');
-    
     // Click on the card title
     await page.getByRole('heading', { name: 'Direction' }).click();
     

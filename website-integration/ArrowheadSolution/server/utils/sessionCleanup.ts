@@ -159,11 +159,12 @@ export async function getCleanupStats(
 
   // Calculate cutoff dates
   const now = new Date();
-  const staleCutoff = new Date(now.getTime() - finalConfig.staleSessionDays * 24 * 60 * 60 * 1000);
-  const archiveCutoff = new Date(now.getTime() - finalConfig.archiveSessionDays * 24 * 60 * 60 * 1000);
+  const _staleCutoff = new Date(now.getTime() - finalConfig.staleSessionDays * 24 * 60 * 60 * 1000);
+  const _archiveCutoff = new Date(now.getTime() - finalConfig.archiveSessionDays * 24 * 60 * 60 * 1000);
 
   // Note: Actual implementation depends on storage layer
   // This is a placeholder showing the intended interface
+  // TODO: Use _staleCutoff and _archiveCutoff when implementing storage queries
 
   return {
     staleSessions: 0,

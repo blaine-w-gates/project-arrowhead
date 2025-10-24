@@ -15,6 +15,8 @@ const CHOOSE_STEPS = [
 
 test.describe('Journey - Choose Module Flow', () => {
   test.beforeEach(async ({ page }) => {
+    // Navigate first for WebKit compatibility
+    await page.goto('/journey/choose/step/1');
     await page.evaluate(() => localStorage.clear());
   });
 
