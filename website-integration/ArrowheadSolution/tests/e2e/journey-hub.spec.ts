@@ -1,0 +1,55 @@
+import { test, expect } from '@playwright/test';
+
+/**
+ * Journey Hub E2E Tests
+ * Tests the main journey dashboard/hub page
+ */
+
+test.describe('Journey Hub', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/journey');
+  });
+
+  test('displays journey hub heading', async ({ page }) => {
+    await expect(page.locator('h1')).toContainText('Strategic Journey');
+  });
+
+  test('shows all three journey paths', async ({ page }) => {
+    // Check for Direction/Brainstorm card
+    await expect(page.getByRole('heading', { name: /Direction|Brainstorm/i })).toBeVisible();
+    
+    // Check for Decision/Choose card
+    await expect(page.getByRole('heading', { name: /Decision|Choose/i })).toBeVisible();
+    
+    // Check for Alignment/Objectives card
+    await expect(page.getByRole('heading', { name: /Alignment|Objectives/i })).toBeVisible();
+  });
+
+  test('journey cards are clickable', async ({ page }) => {
+    // Click on Direction/Brainstorm card
+    await page.getByRole('heading', { name: /Direction|Brainstorm/i }).click();
+    
+    // Should navigate to Brainstorm step 1
+    await page.waitForURL(/\/journey\/brainstorm\/step\/1/, { timeout: 5000 });
+  });
+
+  test('displays path descriptions', async ({ page }) => {
+    // Each path should have some description text
+    const descriptions = page.locator('p');
+    const count = await descriptions.count();
+    
+    // Should have at least 3 description paragraphs (one per path)
+    expect(count).toBeGreaterThanOrEqual(3);
+  });
+
+  test('journey paths have proper visual styling', async ({ page }) => {
+    // Check that cards have some visual styling (not testing specific colors)
+    const directionCard = page.getByRole('heading', { name: /Direction|Brainstorm/i }).locator('..').locator('..');
+    
+    // Card should be visible and have proper size
+    await expect(directionCard).toBeVisible();
+    const box = await directionCard.boundingBox();
+    expect(box?.width).toBeGreaterThan(100); // Card should have reasonable width
+    expect(box?.height).toBeGreaterThan(50); // Card should have reasonable height
+  });
+});
