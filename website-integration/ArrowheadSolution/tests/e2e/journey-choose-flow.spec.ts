@@ -60,7 +60,7 @@ test.describe('Journey - Choose Module Flow', () => {
     await page.waitForLoadState('networkidle');
     
     await expect(page.getByRole('heading', { name: /Step 1.*Scenarios/ })).toBeVisible();
-    await expect(page.getByText(/scenarios are being considered/i)).toBeVisible();
+    await expect(page.getByText(/scenarios are being considered/i).first()).toBeVisible();
     
     await page.fill('textarea', 'Option A: Build in-house. Option B: Buy SaaS solution. Option C: Hybrid approach.');
     expect(await page.inputValue('textarea')).toContain('Build in-house');

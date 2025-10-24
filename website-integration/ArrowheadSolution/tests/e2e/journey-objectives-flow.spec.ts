@@ -63,7 +63,7 @@ test.describe('Journey - Objectives Module Flow', () => {
     await page.waitForLoadState('networkidle');
     
     await expect(page.getByRole('heading', { name: /Step 1.*Objective/ })).toBeVisible();
-    await expect(page.getByText(/which objective would you like/i)).toBeVisible();
+    await expect(page.getByText(/which objective would you like/i).first()).toBeVisible();
     
     await page.fill('textarea', 'Launch MVP by Q2 2026 with 100 beta users and 80% positive feedback score.');
     expect(await page.inputValue('textarea')).toContain('Launch MVP');
