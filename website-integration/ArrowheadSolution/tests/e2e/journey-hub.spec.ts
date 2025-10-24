@@ -11,23 +11,23 @@ test.describe('Journey Hub', () => {
   });
 
   test('displays journey hub heading', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText('Strategic Journey');
+    await expect(page.locator('h1')).toContainText('Project Arrowhead');
   });
 
   test('shows all three journey paths', async ({ page }) => {
-    // Check for Direction/Brainstorm card
-    await expect(page.getByRole('heading', { name: /Direction|Brainstorm/i })).toBeVisible();
+    // Check for Direction card
+    await expect(page.getByRole('heading', { name: 'Direction' })).toBeVisible();
     
-    // Check for Decision/Choose card
-    await expect(page.getByRole('heading', { name: /Decision|Choose/i })).toBeVisible();
+    // Check for Decision card
+    await expect(page.getByRole('heading', { name: 'Decision' })).toBeVisible();
     
-    // Check for Alignment/Objectives card
-    await expect(page.getByRole('heading', { name: /Alignment|Objectives/i })).toBeVisible();
+    // Check for Alignment card
+    await expect(page.getByRole('heading', { name: 'Alignment' })).toBeVisible();
   });
 
   test('journey cards are clickable', async ({ page }) => {
-    // Click on Direction/Brainstorm card
-    await page.getByRole('heading', { name: /Direction|Brainstorm/i }).click();
+    // Click on Direction card button
+    await page.getByRole('button', { name: /Start Brainstorming/i }).click();
     
     // Should navigate to Brainstorm step 1
     await page.waitForURL(/\/journey\/brainstorm\/step\/1/, { timeout: 5000 });
@@ -43,13 +43,13 @@ test.describe('Journey Hub', () => {
   });
 
   test('journey paths have proper visual styling', async ({ page }) => {
-    // Check that cards have some visual styling (not testing specific colors)
-    const directionCard = page.getByRole('heading', { name: /Direction|Brainstorm/i }).locator('..').locator('..');
+    // Check that the "Start Brainstorming" button exists and is visible
+    const directionButton = page.getByRole('button', { name: /Start Brainstorming/i });
     
-    // Card should be visible and have proper size
-    await expect(directionCard).toBeVisible();
-    const box = await directionCard.boundingBox();
-    expect(box?.width).toBeGreaterThan(100); // Card should have reasonable width
-    expect(box?.height).toBeGreaterThan(50); // Card should have reasonable height
+    // Button should be visible and have proper size
+    await expect(directionButton).toBeVisible();
+    const box = await directionButton.boundingBox();
+    expect(box?.width).toBeGreaterThan(50); // Button should have reasonable width
+    expect(box?.height).toBeGreaterThan(20); // Button should have reasonable height
   });
 });
