@@ -63,9 +63,11 @@ These documents describe the **current state** of the project and must be kept u
 
 ### Testing & Operations
 
-- **Testing Strategy** (`TESTING_STRATEGY.md`)
+- **Testing Strategy v1.1** (`TESTING_STRATEGY.md`)
   - Comprehensive testing approach
   - E2E, integration, unit test strategy
+  - **Updated:** Oct 26, 2025 - Added Team MVP testing requirements (Section 11)
+  - **New:** RLS tests, RBAC tests, real-time tests, completion trackers, invitation flow
   
 - **Production Environment Setup v2.0** (`PRODUCTION_ENV_SETUP_v2.0_Draft.md`)
   - Environment variables and secrets for Team MVP
