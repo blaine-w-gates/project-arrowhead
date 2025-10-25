@@ -8,10 +8,13 @@
 ## 📍 Getting Started
 
 **New to the project?** Start here:
-1. Read this entire index to understand the documentation structure
-2. Review the Living Baselines section (architecture, requirements, protocols)
-3. Check Active Documents for current sprint work
-4. Reference Runbooks & Operational Docs as needed
+1. **Read this entire index** to understand the documentation structure
+2. **Review Living Baselines** section (architecture, requirements, protocols)
+3. **Check Active Documents** for current sprint work
+4. **Reference Runbooks & Operational Docs** as needed
+5. **If creating/updating docs:** Read `DOCUMENTATION_SYSTEM_RULES.md` first
+
+**AI Systems:** See `DOCUMENTATION_SYSTEM_RULES.md` for search protocol and file organization rules.
 
 ---
 
@@ -35,29 +38,29 @@ These documents describe the **current state** of the project and must be kept u
 
 ### Core Architecture & Requirements
 
-- **SLAD v5.2 Final** (`/SLAD_v5.2_Final.md`)
+- **SLAD v5.2 Final** (`SLAD_v5.2_Final.md`)
   - System Logic & Architecture Document
   - As-built technical baseline
   - Tech stack, data model, API endpoints, security
   
-- **PRD v5.0 Draft** (`/PRD_v5.0_Draft.md`)
+- **PRD v5.0 Draft** (`PRD_v5.0_Draft.md`)
   - Product Requirements Document
   - Team-Based Paid MVP (Hybrid Team model)
   - **Status:** Draft - Pending PM approval of Q1-Q5
   - **Note:** Supersedes PRD v4.2 (Individual Pro model)
   
-- **OMDL v11.2 Draft** (`/OMDL_v11.2_Draft.md`)
+- **OMDL v11.2 Draft** (`OMDL_v11.2_Draft.md`)
   - Operational Manual & Decision Log
   - Ratified protocols, workflows, decision history
   - **Note:** Will become Final after approval
 
 ### Testing & Operations
 
-- **Testing Strategy** (`/TESTING_STRATEGY.md`)
+- **Testing Strategy** (`TESTING_STRATEGY.md`)
   - Comprehensive testing approach
   - E2E, integration, unit test strategy
   
-- **Production Environment Setup** (`/PRODUCTION_ENV_SETUP.md`)
+- **Production Environment Setup** (`PRODUCTION_ENV_SETUP.md`)
   - Environment variables and secrets
   - Deployment configuration
 
@@ -114,9 +117,9 @@ All superseded documents have been moved to `/docs/archive/` with "SUPERSEDED" b
 
 ```
 docs/archive/
-├── sprint-plans/     # Sprint Plans v2.1 through v7.0
+├── sprint-plans/     # Sprint Plans v2.1 through v8.0
 ├── slad/             # SLAD v5.0, v5.1 (Draft/Final), System Logic v3.0
-├── prd/              # PRD v3.0, v4.0, v4.1
+├── prd/              # PRD v3.0, v4.0, v4.1, v4.2
 ├── omdl/             # OMDL v8.3, v10.0, v11.0, v11.1
 ├── process-docs/     # Calibration docs, Phoenix Protocol, Prompting Guide
 └── operations/       # OS v1.0, deployment checklists, issue notes
