@@ -52,10 +52,10 @@ These documents describe the **current state** of the project and must be kept u
   - **Status:** Draft - Pending PM approval of Q1-Q5
   - **Note:** Supersedes PRD v4.2 (Individual Pro model)
   
-- **OMDL v11.2 Draft** (`OMDL_v11.2_Draft.md`)
+- **OMDL v11.3 Draft** (`OMDL_v11.3_Draft.md`)
   - Operational Manual & Decision Log
   - Ratified protocols, workflows, decision history
-  - **Note:** Will become Final after approval
+  - **Updated:** Oct 25, 2025 - Removed obsolete Section 7.0 (now points to SLAD v6.0)
 
 ### Testing & Operations
 
@@ -63,9 +63,11 @@ These documents describe the **current state** of the project and must be kept u
   - Comprehensive testing approach
   - E2E, integration, unit test strategy
   
-- **Production Environment Setup** (`PRODUCTION_ENV_SETUP.md`)
-  - Environment variables and secrets
-  - Deployment configuration
+- **Production Environment Setup v2.0** (`PRODUCTION_ENV_SETUP_v2.0_Draft.md`)
+  - Environment variables and secrets for Team MVP
+  - Supabase, Stripe tiered billing, SendGrid, WebSocket config
+  - **Status:** Draft - For Sprint v9.0 implementation
+  - **Supersedes:** PRODUCTION_ENV_SETUP.md (Individual-User model, to be archived)
 
 ### Architecture Decision Records (ADRs)
 
@@ -135,7 +137,7 @@ docs/archive/
 
 **Requirements:** PRD v3.0-v4.2 → **Current: PRD v5.0 (Draft)**
 
-**Operations:** OMDL v8.3-v11.1 → **Current: OMDL v11.2**
+**Operations:** OMDL v8.3-v11.2 → **Current: OMDL v11.3**
 
 **Process Documents:**
 - Phoenix Protocol Charter v7.3 (now in OMDL Appendix C)
