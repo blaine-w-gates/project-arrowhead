@@ -1,3 +1,15 @@
+# ⚠️ SUPERSEDED - Product Requirements Document (PRD) v5.0
+
+**⚠️ THIS DOCUMENT HAS BEEN SUPERSEDED ⚠️**
+
+**Superseded By:** PRD v5.2 Final (`/docs/PRD_v5.2_Final.md`)  
+**Superseded Date:** October 26, 2025  
+**Reason:** Incomplete UI/UX specifications. PRD v5.2 adds Completion Trackers, Yes/No Objective Flow, complete UI/UX details, and fixes Touchbase typo.
+
+**This document is preserved for historical reference only.**
+
+---
+
 # Product Requirements Document (PRD) v5.0
 
 **Version:** 5.0 (Draft)  
