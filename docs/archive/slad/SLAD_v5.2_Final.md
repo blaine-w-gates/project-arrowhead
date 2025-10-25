@@ -1,8 +1,20 @@
+# ⚠️ SUPERSEDED - System Logic & Architecture Document (SLAD) v5.2
+
+**⚠️ THIS DOCUMENT HAS BEEN SUPERSEDED ⚠️**
+
+**Superseded By:** SLAD v6.0 Draft (`/docs/SLAD_v6.0_Draft.md`)  
+**Superseded Date:** October 26, 2025  
+**Reason:** Strategic pivot to Team-Based MVP. SLAD v6.0 defines multi-tenant architecture with RLS, real-time collaboration, and 5-role RBAC system.
+
+**This document is preserved for historical reference only.**
+
+---
+
 # System Logic & Architecture Document (SLAD)
 
 - Version: 5.2
 - Date: August 29, 2025
-- Status: Final – Current As‑Built
+- Status: Final – Current As‑Built (Individual-User model)
 
 This document captures the current, code‑grounded architecture for Project Arrowhead. It reflects the migration to PostgreSQL via Drizzle ORM, the dual API strategy (Cloudflare Functions for production; Express for core/local), the automated CI/CD workflows, security hardening, and testing.
 

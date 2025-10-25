@@ -41,10 +41,12 @@ These documents describe the **current state** of the project and must be kept u
 
 ### Core Architecture & Requirements
 
-- **SLAD v5.2 Final** (`SLAD_v5.2_Final.md`)
+- **SLAD v6.0 Draft** (`SLAD_v6.0_Draft.md`)
   - System Logic & Architecture Document
-  - As-built technical baseline
-  - Tech stack, data model, API endpoints, security
+  - Team MVP multi-tenant architecture
+  - **Status:** Draft - Incorporating Architect 11's technical decisions
+  - **New:** RLS security, real-time collaboration, 5-role RBAC
+  - **Note:** Supersedes SLAD v5.2 (Individual-User model)
   
 - **PRD v5.2 Final** (`PRD_v5.2_Final.md`)
   - Product Requirements Document
@@ -135,7 +137,7 @@ docs/archive/
 
 **Sprint Plans:** v2.1, v3.0, v4.0, v4.1, v6.0, v7.0, v8.0 → **Current: v9.0**
 
-**Architecture:** SLAD v5.0-v5.1, System Logic v3.0 → **Current: SLAD v5.2**
+**Architecture:** SLAD v5.0-v5.2, System Logic v3.0 → **Current: SLAD v6.0 (Draft)**
 
 **Requirements:** PRD v3.0-v4.2 → **Current: PRD v5.0 (Draft)**
 
