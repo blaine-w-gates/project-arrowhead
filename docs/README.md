@@ -14,7 +14,10 @@
 4. **Reference Runbooks & Operational Docs** as needed
 5. **If creating/updating docs:** Read `DOCUMENTATION_SYSTEM_RULES.md` first
 
-**AI Systems:** See `DOCUMENTATION_SYSTEM_RULES.md` for search protocol and file organization rules.
+**AI Systems:**
+- **Search Protocol:** `DOCUMENTATION_SYSTEM_RULES.md` (how to find docs)
+- **Complete Audit:** `DOCUMENTATION_SYSTEM_AUDIT_2025-10-25.md` (all 73 files categorized)
+- **Two-Tier System:** Strategic docs in `/docs/`, component docs WITH components
 
 ---
 
@@ -85,27 +88,26 @@ Located in `adr/` subdirectory:
 
 - **Data Health Runbook** (`data-health-runbook.md`)
   - Database health monitoring procedures
-  
-- **Cloudflare Access Runbook** (`/website-integration/ArrowheadSolution/docs/cloudflare-access-runbook.md`)
-  - Admin panel access control via Cloudflare
-
-### API Documentation
-
-- **Lead Magnet API** (`/website-integration/ArrowheadSolution/docs/lead-magnet-api.md`)
-  - Lead capture endpoint specification
-
-### Content Management
-
-- **Content Management Guide** (`/website-integration/ArrowheadSolution/CONTENT_MANAGEMENT.md`)
-  - Blog post workflow and structure
-  
-- **Integration Guide** (`/website-integration/INTEGRATION_GUIDE.md`)
-  - Website integration practices
 
 ### Component-Specific Docs
 
-- **AdminJS Setup** (`/website-integration/ArrowheadSolution/server/admin/README.md`)
-  - Admin panel implementation details
+**Location:** Component docs live WITH their code, not in `/docs/`
+
+**Website Integration:**
+- **Integration Guide** (`/website-integration/INTEGRATION_GUIDE.md`) - Integration practices
+- **ArrowheadSolution README** (`/website-integration/ArrowheadSolution/README.md`) - Component setup
+- **Content Management** (`/website-integration/ArrowheadSolution/CONTENT_MANAGEMENT.md`) - Blog workflow
+
+**Component Runbooks** (`/website-integration/ArrowheadSolution/docs/`):
+- `architecture-diagram.md` - Component architecture
+- `cloudflare-access-runbook.md` - Admin panel access control
+- `lead-magnet-api.md` - Lead capture endpoint
+- `logging-migration-guide.md` - Logging migration procedures
+
+**AdminJS:**
+- **Setup Guide** (`/website-integration/ArrowheadSolution/server/admin/README.md`) - Admin panel setup
+
+**Rationale:** These docs are component-specific operations and setup, not strategic baseline
 
 ---
 
