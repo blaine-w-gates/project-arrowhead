@@ -19,13 +19,13 @@
 
 These define what we are working on **right now**:
 
-- **Sprint Plan v8.0** (`/Sprint_Plan_v8.0.md`)
-  - Current sprint: Operation Passwordless Auth
-  - Status: Active implementation
+- **Sprint Plan v9.0** (`/Sprint_Plan_v9.0.md`)
+  - Current sprint: Operation Team MVP (4 phases, 9 weeks)
+  - Status: Draft - Pending PRD v5.0 approval
   
-- **Auth Strategy vNext** (`Auth_Strategy_vNext.md`)
-  - Passwordless email auth + optional MFA
-  - Sprint 8 implementation blueprint
+- **Architect Onboarding Guide v1.0** (`ARCHITECT_ONBOARDING_v1.0.md`)
+  - Training guide for new AI Architect
+  - Communication protocol and decision boundaries
 
 ---
 
@@ -40,10 +40,11 @@ These documents describe the **current state** of the project and must be kept u
   - As-built technical baseline
   - Tech stack, data model, API endpoints, security
   
-- **PRD v4.2 Draft** (`/PRD_v4.2_Draft.md`)
+- **PRD v5.0 Draft** (`/PRD_v5.0_Draft.md`)
   - Product Requirements Document
-  - Paid MVP scope (individual plans)
-  - **Note:** Will become PRD v5.0 after team-model update
+  - Team-Based Paid MVP (Hybrid Team model)
+  - **Status:** Draft - Pending PM approval of Q1-Q5
+  - **Note:** Supersedes PRD v4.2 (Individual Pro model)
   
 - **OMDL v11.2 Draft** (`/OMDL_v11.2_Draft.md`)
   - Operational Manual & Decision Log
@@ -123,11 +124,11 @@ docs/archive/
 
 ### Key Archived Documents
 
-**Sprint Plans:** v2.1, v3.0, v4.0, v4.1, v6.0, v7.0 → **Current: v8.0**
+**Sprint Plans:** v2.1, v3.0, v4.0, v4.1, v6.0, v7.0, v8.0 → **Current: v9.0**
 
 **Architecture:** SLAD v5.0-v5.1, System Logic v3.0 → **Current: SLAD v5.2**
 
-**Requirements:** PRD v3.0-v4.1 → **Current: PRD v4.2 (soon v5.0)**
+**Requirements:** PRD v3.0-v4.2 → **Current: PRD v5.0 (Draft)**
 
 **Operations:** OMDL v8.3-v11.1 → **Current: OMDL v11.2**
 
