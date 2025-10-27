@@ -98,3 +98,85 @@ export function createErrorResponse(
 ): ApiError {
   return { error, message, details };
 }
+
+// ========================================
+// OBJECTIVES VALIDATION SCHEMAS
+// ========================================
+
+/**
+ * Brainstorm Module JSONB Schema (Steps 1-5)
+ * Per PRD v5.2 Section 3.2 - Brainstorm Module (5I Framework)
+ */
+export const brainstormDataSchema = z.object({
+  step1_imitate: z.string().optional(),
+  step2_ideate: z.string().optional(),
+  step3_ignore: z.string().optional(),
+  step4_integrate: z.string().optional(),
+  step5_interfere: z.string().optional(),
+}).strict();
+
+/**
+ * Choose Module JSONB Schema (Steps 6-10)
+ * Per PRD v5.2 Section 3.2 - Choose Module
+ */
+export const chooseDataSchema = z.object({
+  step1_scenarios: z.string().optional(),
+  step2_compare: z.string().optional(),
+  step3_important: z.string().optional(),
+  step4_evaluate: z.string().optional(),
+  step5_support: z.string().optional(),
+}).strict();
+
+/**
+ * Objectives Module JSONB Schema (Steps 11-17)
+ * Per PRD v5.2 Section 3.2 - Objectives Module
+ */
+export const objectivesDataSchema = z.object({
+  step1_objective: z.string().optional(),
+  step2_delegate: z.string().optional(),
+  step3_resources: z.string().optional(),
+  step4_obstacles: z.string().optional(),
+  step5_milestones: z.string().optional(),
+  step6_accountability: z.string().optional(),
+  step7_review: z.string().optional(),
+}).strict();
+
+/**
+ * Create Objective Request Schema
+ * Supports Yes/No branching logic per PRD v5.2
+ */
+export const createObjectiveSchema = z.object({
+  name: z.string()
+    .min(1, 'Objective name is required')
+    .max(100, 'Objective name must be 100 characters or less')
+    .trim(),
+  start_with_brainstorm: z.boolean().optional().default(true), // Yes/No branching
+  target_completion_date: z.string().datetime().optional(),
+}).strict();
+
+/**
+ * Update Objective Request Schema
+ * Partial updates for journey state and metadata
+ */
+export const updateObjectiveSchema = z.object({
+  name: z.string()
+    .min(1, 'Objective name is required')
+    .max(100, 'Objective name must be 100 characters or less')
+    .trim()
+    .optional(),
+  current_step: z.number().int().min(1).max(17).optional(),
+  journey_status: z.enum(['draft', 'complete']).optional(),
+  brainstorm_data: brainstormDataSchema.nullable().optional(),
+  choose_data: chooseDataSchema.nullable().optional(),
+  objectives_data: objectivesDataSchema.nullable().optional(),
+  target_completion_date: z.string().datetime().nullable().optional(),
+  is_archived: z.boolean().optional(),
+}).strict();
+
+/**
+ * Query Parameters for GET /api/projects/:projectId/objectives
+ */
+export const listObjectivesQuerySchema = z.object({
+  include_archived: z.enum(['true', 'false']).optional().default('false'),
+  journey_status: z.enum(['draft', 'complete', 'all']).optional().default('all'),
+});
