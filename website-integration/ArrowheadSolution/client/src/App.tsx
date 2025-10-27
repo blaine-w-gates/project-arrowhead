@@ -4,9 +4,12 @@ import { HelmetProvider } from "react-helmet-async";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 import GlobalSidebar from "./components/GlobalSidebar";
+import DashboardLayout from "./components/DashboardLayout";
 import Homepage from "./pages/Homepage";
 import Pricing from "./pages/Pricing";
 import Blog from "./pages/Blog";
@@ -21,6 +24,10 @@ import TaskListPage from "./pages/TaskListPage";
 import { JourneyDashboard, JourneyStepPage } from "./pages/journey";
 import NotFound from "./pages/not-found";
 import AdminPanel from "./pages/ops/AdminPanel";
+import ProjectsTab from "./pages/dashboard/ProjectsTab";
+import ObjectivesTab from "./pages/dashboard/ObjectivesTab";
+import ScoreboardTab from "./pages/dashboard/ScoreboardTab";
+import RRGTTab from "./pages/dashboard/RRGTTab";
 
 function Router() {
   return (
@@ -40,6 +47,37 @@ function Router() {
       <Route path="/journey" component={JourneyDashboard} />
       <Route path="/journey/:moduleId/step/:step" component={JourneyStepPage} />
       <Route path="/ops" component={AdminPanel} />
+      
+      {/* Protected Dashboard Routes */}
+      <Route path="/dashboard/projects">
+        <ProtectedRoute>
+          <DashboardLayout>
+            <ProjectsTab />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/objectives">
+        <ProtectedRoute>
+          <DashboardLayout>
+            <ObjectivesTab />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/scoreboard">
+        <ProtectedRoute>
+          <DashboardLayout>
+            <ScoreboardTab />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+      <Route path="/dashboard/rrgt">
+        <ProtectedRoute>
+          <DashboardLayout>
+            <RRGTTab />
+          </DashboardLayout>
+        </ProtectedRoute>
+      </Route>
+      
       <Route component={NotFound} />
     </Switch>
   );
@@ -49,15 +87,17 @@ function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <div className="min-h-screen bg-background">
-            <GlobalSidebar />
-            <Navigation />
-            <Router />
-            <Footer />
-            <Toaster />
-          </div>
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <div className="min-h-screen bg-background">
+              <GlobalSidebar />
+              <Navigation />
+              <Router />
+              <Footer />
+              <Toaster />
+            </div>
+          </TooltipProvider>
+        </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>
   );
