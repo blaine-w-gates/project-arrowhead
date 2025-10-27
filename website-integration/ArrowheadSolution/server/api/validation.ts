@@ -267,3 +267,41 @@ export const updateTouchbaseSchema = z.object({
 export const listTouchbasesQuerySchema = z.object({
   member_id: z.string().uuid().optional(),
 });
+
+// ========================================
+// RRGT & DIAL VALIDATION SCHEMAS
+// ========================================
+
+/**
+ * Create RRGT Item Request Schema
+ * Per PRD v5.2 Section 3.4 - RRGT/Dial
+ */
+export const createRrgtItemSchema = z.object({
+  title: z.string()
+    .min(1, 'Item title is required')
+    .max(200, 'Item title must be 200 characters or less')
+    .trim(),
+  column_index: z.number().int().min(1).max(6), // 1-6 (Red, Red/Yellow, Yellow, Yellow/Green, Green, Top Priority)
+}).strict();
+
+/**
+ * Update RRGT Item Request Schema
+ */
+export const updateRrgtItemSchema = z.object({
+  title: z.string()
+    .min(1, 'Item title is required')
+    .max(200, 'Item title must be 200 characters or less')
+    .trim(),
+}).strict();
+
+/**
+ * Update Dial State Request Schema
+ * Includes privacy flags for incognito tasks
+ */
+export const updateDialSchema = z.object({
+  left_item_id: z.string().uuid().nullable().optional(),
+  right_item_id: z.string().uuid().nullable().optional(),
+  selected_item_id: z.string().uuid().nullable().optional(),
+  is_left_private: z.boolean().optional(),
+  is_right_private: z.boolean().optional(),
+}).strict();
