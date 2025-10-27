@@ -1,67 +1,98 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState<string>("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const { signIn } = useAuth();
+  const [, setLocation] = useLocation();
 
-  async function onSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("loading");
-    setMessage("");
+    setLoading(true);
+    setError("");
+
     try {
-      const res = await fetch("/api/auth/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const json = (await res.json()) as { success?: boolean; error?: string };
-      if (!res.ok || !json.success) {
-        setStatus("error");
-        setMessage(json?.error || "Request failed");
+      const { error: signInError } = await signIn(email, password);
+      
+      if (signInError) {
+        setError(signInError.message || "Failed to sign in");
+        setLoading(false);
         return;
       }
-      setStatus("success");
-      setMessage("Check your email for a verification code.");
-    } catch {
-      setStatus("error");
-      setMessage("Unexpected error");
+
+      // Redirect to dashboard on success
+      setLocation("/dashboard/projects");
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setLoading(false);
     }
   }
 
   return (
-    <main className="container mx-auto max-w-md p-4">
-      <h1 className="text-2xl font-semibold mb-4">Sign in</h1>
-      <p className="mb-4">Enter your email and we'll send you a one-time code.</p>
-      <form onSubmit={onSubmit} className="space-y-3" aria-describedby="status">
-        <label className="block">
-          <span className="block text-sm font-medium">Email</span>
-          <input
-            type="email"
-            name="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full border rounded px-3 py-2"
-            placeholder="you@example.com"
-            aria-label="Email"
-          />
-        </label>
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded disabled:opacity-50"
-          disabled={status === "loading"}
-        >
-          {status === "loading" ? "Sending…" : "Send code"}
-        </button>
-      </form>
-      <div id="status" className="mt-3" aria-live="polite">
-        {message && <p>{message}</p>}
-        <p className="mt-2 text-sm">
-          Already have a code? <Link href="/verify" className="underline">Verify here</Link>.
-        </p>
-      </div>
-    </main>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Sign In</CardTitle>
+          <CardDescription>
+            Sign in to your Team MVP account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+
+            <p className="text-sm text-center text-muted-foreground">
+              Don't have an account?{" "}
+              <Link href="/signup">
+                <a className="text-primary hover:underline">Sign up</a>
+              </Link>
+            </p>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

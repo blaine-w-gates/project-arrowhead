@@ -855,6 +855,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mount Team MVP API routers
+  // These are the new authenticated endpoints for the paid Team MVP product
+  const authRouter = await import('./api/auth');
+  app.use('/api', authRouter.default);
+
   const httpServer = createServer(app);
   return httpServer;
 }
