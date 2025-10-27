@@ -24,7 +24,7 @@ interface DeleteConfirmDialogProps {
   onClose: () => void;
   projectId: number;
   projectName: string;
-  teamId: number;
+  teamId: string;
 }
 
 export function DeleteConfirmDialog({

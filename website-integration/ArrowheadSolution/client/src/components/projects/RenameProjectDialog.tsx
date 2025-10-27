@@ -24,7 +24,7 @@ interface RenameProjectDialogProps {
   onClose: () => void;
   projectId: number;
   currentName: string;
-  teamId: number;
+  teamId: string;
 }
 
 export function RenameProjectDialog({

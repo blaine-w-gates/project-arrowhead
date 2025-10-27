@@ -34,7 +34,7 @@ interface VisionModalProps {
   open: boolean;
   onClose: () => void;
   projectId: number;
-  teamId: number;
+  teamId: string;
   isNew: boolean;
   initialData?: VisionData | null;
 }

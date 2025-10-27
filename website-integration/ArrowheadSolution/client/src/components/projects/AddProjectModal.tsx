@@ -25,7 +25,7 @@ import { VisionModal } from './VisionModal';
 interface AddProjectModalProps {
   open: boolean;
   onClose: () => void;
-  teamId: number;
+  teamId: string;
 }
 
 export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps) {

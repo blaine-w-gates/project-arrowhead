@@ -41,7 +41,7 @@ interface Project {
 
 interface ProjectCardProps {
   project: Project;
-  teamId: number;
+  teamId: string;
 }
 
 export function ProjectCard({ project, teamId }: ProjectCardProps) {
