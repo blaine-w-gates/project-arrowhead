@@ -29,7 +29,7 @@ const router = Router();
 /**
  * Helper: Check if user is assigned to a task
  */
-async function isAssignedToTask(db: any, taskId: string, teamMemberId: string): Promise<boolean> {
+async function isAssignedToTask(db: ReturnType<typeof getDb>, taskId: string, teamMemberId: string): Promise<boolean> {
   const assignments = await db
     .select()
     .from(taskAssignments)
@@ -47,7 +47,7 @@ async function isAssignedToTask(db: any, taskId: string, teamMemberId: string): 
 /**
  * Helper: Check if user has Objective Owner role for this objective
  */
-async function isObjectiveOwner(db: any, objectiveId: string, teamMemberId: string): Promise<boolean> {
+async function isObjectiveOwner(db: ReturnType<typeof getDb>, objectiveId: string, _teamMemberId: string): Promise<boolean> {
   // For now, we check if user is assigned to the objective (via project assignments)
   // In a full implementation, there would be an objective_assignments table
   // This is a simplified check - consider the user an "Objective Owner" if they can access it via RLS
@@ -208,7 +208,7 @@ router.get(
 
       // Fetch all assignments for these tasks
       const taskIds = tasksList.map(t => t.id);
-      let assignmentsMap: Map<string, string[]> = new Map();
+      const assignmentsMap: Map<string, string[]> = new Map();
 
       if (taskIds.length > 0) {
         const allAssignments = await db
