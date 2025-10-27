@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Target } from 'lucide-react';
 import { ObjectivesList } from '@/components/objectives/ObjectivesList';
 import { CompletionTracker } from '@/components/projects/CompletionTracker';
+import { AddObjectiveModal } from '@/components/objectives/AddObjectiveModal';
 
 interface Project {
   id: number;
@@ -29,6 +30,7 @@ interface Project {
 export default function ObjectivesTab() {
   const { profile } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [showAddObjectiveModal, setShowAddObjectiveModal] = useState(false);
 
   // Fetch projects for dropdown
   const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
@@ -132,10 +134,7 @@ export default function ObjectivesTab() {
                 <Target className="h-5 w-5" />
                 Objectives
               </CardTitle>
-              <Button size="sm" onClick={() => {
-                // TODO: Implement add objective flow (17-step journey integration)
-                alert('Add Objective: Full 17-step journey integration coming in next phase');
-              }}>
+              <Button size="sm" onClick={() => setShowAddObjectiveModal(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Objective
               </Button>
@@ -154,6 +153,15 @@ export default function ObjectivesTab() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Add Objective Modal */}
+      {selectedProjectId && (
+        <AddObjectiveModal
+          open={showAddObjectiveModal}
+          onClose={() => setShowAddObjectiveModal(false)}
+          projectId={selectedProjectId}
+        />
       )}
     </div>
   );
