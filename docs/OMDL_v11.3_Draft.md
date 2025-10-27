@@ -1,10 +1,11 @@
 # Operational Manual & Decision Log (OMDL)
 
-- Version: 11.2 (Draft)
-- Date: August 30, 2025
+- Version: 11.3 (Draft)
+- Date: October 25, 2025
 - Status: Draft – Working Copy
+- Supersedes: OMDL v11.2
 
-This draft extends the v11.1 Final OMDL. It consolidates ratified protocols, key decisions, and operational practices and introduces a Project Backlog to track upcoming work. Upon approval, it will supersede prior versions as the single source of truth.
+This draft extends the v11.2 OMDL. It removes obsolete implementation details (Section 7.0) which are now superseded by the Team-Based MVP architecture defined in SLAD v6.0 (pending). Upon approval, it will supersede prior versions as the single source of truth.
 
 ---
 
@@ -106,16 +107,21 @@ To codify the roles, workflows, protocols, and decision history for Project Arro
 
 ---
 
-## 7.0 Implementation Canon (What “Good” Looks Like)
+## 7.0 Implementation Canon
 
-- Architecture: React 18, TypeScript, Vite, Express. (See SLAD v5.x)
-- Persistence (Current): In‑memory storage in `website-integration/ArrowheadSolution/server/storage.ts` (MemStorage). Drizzle ORM is used for schema definition and types; database integration is pending.
-- Data Model: Serial integer primary keys. No UUIDs are currently in use.
-- Journey System: 17 steps (5 Brainstorm, 5 Choose, 7 Objectives); autosave with 2‑second debounce.
-- Navigation: Sequential completion redirects; Global Sidebar with auto‑close.
-- Tasks: Unified AddTaskModal, cross‑tab sync, inline edit/delete.
-- Exports: Unified export strategy; PDF with safe pagination; session‑scoped data retrieval.
-- Testing: Decoupled server; parity (Jest/Puppeteer) and E2E (Playwright) tests.
+**Note:** This section has been removed as of OMDL v11.3 (October 25, 2025).
+
+**Reason:** The implementation details described here (in-memory storage, single-user model) are now obsolete due to the strategic pivot to Team-Based MVP architecture.
+
+**Current Implementation Canon:** Refer to **SLAD v6.0** (pending) for the current architecture baseline. SLAD v5.2 (Individual-User model) has been archived.
+
+**Key Changes:**
+- Multi-tenant architecture (teams, team_members, projects, objectives)
+- PostgreSQL with Row-Level Security (RLS)
+- Real-time collaboration (WebSocket via Supabase Realtime)
+- Granular permissions system (RBAC + overrides)
+
+See `docs/PRD_v5.0_Draft.md` and `docs/Sprint_Plan_v9.0.md` for complete Team MVP specifications.
 
 ---
 
