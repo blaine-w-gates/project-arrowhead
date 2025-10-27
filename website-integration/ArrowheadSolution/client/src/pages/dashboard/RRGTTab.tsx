@@ -271,6 +271,7 @@ export default function RRGTTab() {
       <DialPlaceholder 
         dialState={rrgtData?.dial_state || null}
         items={rrgtData?.items || []}
+        tasks={rrgtData?.tasks || []}
       />
 
       {/* RRGT Grid */}
