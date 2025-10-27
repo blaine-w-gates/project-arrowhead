@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+// TODO: [ARCHITECT] Obsolete tests - Old passwordless OTP auth system replaced by Supabase email/password auth
+// The /account page and old authentication flow (signin -> request OTP -> verify) no longer exist.
+// Team MVP uses Supabase authentication with /signin (email/password) and /dashboard routes.
+// These tests need to be rewritten for the new Supabase auth flow and Team MVP dashboard.
+// Skipping until new E2E tests are written for Phase 3+ Team MVP features.
+
+test.describe.skip('Old Account Page Tests (Obsolete - Passwordless Auth)', () => {
+
 // Test 1: Account guard - unauthenticated users redirected to /signin
 test('/account redirects to /signin when not authenticated', async ({ page, context: _context, baseURL: _baseURL }) => {
   await page.goto('/account');
@@ -118,3 +126,5 @@ test('Logout button clears cookie and redirects to /signin', async ({ page, cont
   await page.goto('/account');
   await expect(page).toHaveURL(/\/signin$/);
 });
+
+}); // end test.describe.skip
