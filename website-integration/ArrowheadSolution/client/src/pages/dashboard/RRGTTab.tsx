@@ -104,6 +104,32 @@ export default function RRGTTab() {
 
   const activeProjects = projects?.filter(p => !p.isArchived) || [];
 
+  // Fetch RRGT data for dial state
+  const isGodView = selectedMemberIds.length > 0;
+  const rrgtEndpoint = isGodView && selectedMemberIds.length === 1
+    ? `/api/rrgt/${selectedMemberIds[0]}`
+    : '/api/rrgt/mine';
+
+  const { data: rrgtData } = useQuery({
+    queryKey: ['rrgt', rrgtEndpoint, selectedProjectId, selectedObjectiveId],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedProjectId) params.append('project_id', selectedProjectId.toString());
+      if (selectedObjectiveId) params.append('objective_id', selectedObjectiveId.toString());
+
+      const url = `${rrgtEndpoint}${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch RRGT data');
+      }
+
+      return response.json();
+    },
+  });
+
   const handleProjectChange = (projectId: string) => {
     setSelectedProjectId(parseInt(projectId));
     setSelectedObjectiveId(null);
@@ -241,8 +267,11 @@ export default function RRGTTab() {
         </CardContent>
       </Card>
 
-      {/* Dial Placeholder */}
-      <DialPlaceholder />
+      {/* Dial */}
+      <DialPlaceholder 
+        dialState={rrgtData?.dial_state || null}
+        items={rrgtData?.items || []}
+      />
 
       {/* RRGT Grid */}
       <Card className="mt-6">
