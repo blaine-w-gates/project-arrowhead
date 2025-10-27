@@ -63,6 +63,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [hasLock, setHasLock] = useState(false);
   const [lockError, setLockError] = useState<string | null>(null);
+  const [lockHeartbeatInterval, setLockHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
+  const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Fetch objective data with resume endpoint
   const { data: objective, isLoading, error } = useQuery<ObjectiveData>({
@@ -100,6 +103,20 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
 
         setHasLock(true);
         setLockError(null);
+        
+        // Start heartbeat to keep lock alive (renew every 4 minutes, locks expire after 5)
+        const heartbeat = setInterval(async () => {
+          try {
+            await fetch(`/api/objectives/${objectiveId}/lock`, {
+              method: 'POST',
+              credentials: 'include',
+            });
+          } catch (err) {
+            console.error('Lock heartbeat failed:', err);
+          }
+        }, 4 * 60 * 1000); // Every 4 minutes
+        
+        setLockHeartbeatInterval(heartbeat);
       } catch (err) {
         setLockError('Failed to acquire lock');
       }
@@ -107,8 +124,12 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
 
     acquireLock();
 
-    // Release lock on unmount
+    // Release lock and clear heartbeat on unmount
     return () => {
+      if (lockHeartbeatInterval) {
+        clearInterval(lockHeartbeatInterval);
+      }
+      
       if (hasLock && objectiveId) {
         fetch(`/api/objectives/${objectiveId}/lock`, {
           method: 'DELETE',
@@ -116,7 +137,7 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
         });
       }
     };
-  }, [open, objectiveId]);
+  }, [open, objectiveId, hasLock, lockHeartbeatInterval]);
 
   // Load objective data into local state
   useEffect(() => {
@@ -180,6 +201,30 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
     },
   });
 
+  // Auto-save effect - save progress every 30 seconds if there are changes
+  useEffect(() => {
+    if (!hasLock || !open) return;
+
+    const interval = setInterval(async () => {
+      if (!updateMutation.isPending && Object.keys(answers).length > 0) {
+        try {
+          await saveProgress();
+          setLastSaved(new Date());
+        } catch (err) {
+          console.error('Auto-save failed:', err);
+        }
+      }
+    }, 30 * 1000); // Every 30 seconds
+
+    setAutoSaveInterval(interval);
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [hasLock, open, answers, updateMutation.isPending]);
+
   const handleAnswerChange = (stepKey: string, value: string) => {
     setAnswers(prev => ({
       ...prev,
@@ -238,10 +283,23 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
   };
 
   const handleClose = async () => {
+    // Clear heartbeat
+    if (lockHeartbeatInterval) {
+      clearInterval(lockHeartbeatInterval);
+      setLockHeartbeatInterval(null);
+    }
+    
+    // Clear auto-save
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval);
+      setAutoSaveInterval(null);
+    }
+    
     // Save current progress before closing
     if (!updateMutation.isPending) {
       await saveProgress();
     }
+    
     onClose();
   };
 
@@ -326,11 +384,18 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
           <div className="space-y-2">
             <Progress value={progress} className="h-2" />
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>
-                {module === 'brainstorm' && 'Brainstorm Phase'}
-                {module === 'choose' && 'Choose Phase'}
-                {module === 'objectives' && 'Objectives Phase'}
-              </span>
+              <div className="flex items-center gap-4">
+                <span>
+                  {module === 'brainstorm' && 'Brainstorm Phase'}
+                  {module === 'choose' && 'Choose Phase'}
+                  {module === 'objectives' && 'Objectives Phase'}
+                </span>
+                {lastSaved && (
+                  <span className="text-green-600">
+                    Auto-saved {new Date(lastSaved).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
               <span>{Math.round(progress)}% Complete</span>
             </div>
           </div>
