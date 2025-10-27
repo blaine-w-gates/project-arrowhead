@@ -12,7 +12,7 @@ if (!process.env.DATABASE_URL) {
 }
 /** @type { import("drizzle-kit").Config } */
 module.exports = {
-  schema: './shared/schema.ts',
+  schema: ['./shared/schema.ts', './shared/schema/index.ts'],
   out: './drizzle/migrations',
   dialect: 'postgresql',
   dbCredentials: {

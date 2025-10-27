@@ -33,6 +33,7 @@ export default defineConfig({
       },
       include: [
         'server/admin/**',
+        'server/auth/**',
         'server/db.ts',
         'shared/schema.ts',
       ],
