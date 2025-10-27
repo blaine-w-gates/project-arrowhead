@@ -180,3 +180,48 @@ export const listObjectivesQuerySchema = z.object({
   include_archived: z.enum(['true', 'false']).optional().default('false'),
   journey_status: z.enum(['draft', 'complete', 'all']).optional().default('all'),
 });
+
+// ========================================
+// TASKS VALIDATION SCHEMAS
+// ========================================
+
+/**
+ * Create Task Request Schema
+ * Per PRD v5.2 Section 3.3 - Scoreboard/Tasks
+ */
+export const createTaskSchema = z.object({
+  title: z.string()
+    .min(1, 'Task title is required')
+    .max(200, 'Task title must be 200 characters or less')
+    .trim(),
+  description: z.string().max(2000, 'Description too long').optional(),
+  priority: z.number().int().min(1).max(3).optional().default(2), // 1=high, 2=medium, 3=low
+  due_date: z.string().datetime().optional(),
+  assigned_team_member_ids: z.array(z.string().uuid()).optional().default([]),
+}).strict();
+
+/**
+ * Update Task Request Schema
+ * Partial updates for task details
+ */
+export const updateTaskSchema = z.object({
+  title: z.string()
+    .min(1, 'Task title is required')
+    .max(200, 'Task title must be 200 characters or less')
+    .trim()
+    .optional(),
+  description: z.string().max(2000, 'Description too long').nullable().optional(),
+  status: z.enum(['todo', 'in_progress', 'complete']).optional(),
+  priority: z.number().int().min(1).max(3).optional(),
+  due_date: z.string().datetime().nullable().optional(),
+}).strict();
+
+/**
+ * Task Assignments Request Schema
+ * For PATCH /api/tasks/:taskId/assignments
+ */
+export const taskAssignmentsSchema = z.object({
+  team_member_ids: z.array(z.string().uuid())
+    .min(0, 'Team member IDs array required')
+    .max(20, 'Too many assignees'),
+}).strict();
