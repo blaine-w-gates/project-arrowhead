@@ -31,6 +31,7 @@ interface DialState {
 interface DialProps {
   dialState: DialState | null;
   items: RrgtItem[];
+  tasks?: Array<{ id: string; isIncognito?: boolean }>;
 }
 
 export function DialPlaceholder({ dialState, items }: DialProps) {
