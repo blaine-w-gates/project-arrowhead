@@ -626,6 +626,234 @@ This comprehensive testing strategy transforms Project Arrowhead's testing infra
 
 ---
 
+## 11. Team MVP Testing Requirements (Sprint v9.0 Addendum)
+
+**Version:** 1.1  
+**Date:** October 26, 2025  
+**Status:** Final  
+**Based On:** PRD v5.2 Final, SLAD v6.0 Draft
+
+This addendum outlines the specific testing requirements for the Team MVP features defined in PRD v5.2 Final and SLAD v6.0 Draft, supplementing the general strategy document.
+
+---
+
+### 11.1 RLS Policy Tests
+
+**Team Isolation:**
+- Verify that a user logged into Team A cannot query or access any data (projects, objectives, tasks, members) belonging to Team B via API calls or direct database inspection (simulated).
+
+**Project Assignment Enforcement:**
+- Verify a user can only see/access Projects they are explicitly assigned to via the `team_member_project_assignments` table.
+- Verify a user cannot see/access Objectives, Tasks, or Touchbases belonging to projects they are not assigned to, even if they belong to the same team.
+
+**Touchbase Privacy:**
+- Verify the `created_by` user can view the Touchbase.
+- Verify the `team_member_id` user (the one the Touchbase is with) can view the Touchbase.
+- Verify Account Owner / Account Manager can view any Touchbase within their team.
+- Verify a regular Team Member cannot view Touchbases they are not a participant in (neither `created_by` nor `team_member_id`).
+
+**Virtual Persona Context:**
+- Verify RLS policies correctly function when the Manager is acting "as" a Virtual Persona (e.g., using session variable `app.current_team_member_id`).
+- Ensure Manager actions on behalf of a Virtual Persona are restricted to the projects that Virtual Persona is assigned to.
+
+---
+
+### 11.2 Permission Function & RBAC Tests
+
+**Role-Based CRUD (API Level):**
+
+For each of the 5 roles, test API endpoints to ensure they can perform allowed actions and are blocked from disallowed actions according to the matrix in PRD v5.2 Section 6.2. Examples:
+
+- Verify Account Owner/Manager/Project Owner can successfully `POST /api/teams/:teamId/projects`.
+- Verify Objective Owner/Team Member receive a 403 Forbidden error for the same request.
+- Verify Team Member can successfully update their own task status via `PUT /api/tasks/:taskId` but not others'.
+- Verify Objective Owner can manage tasks (POST, PUT, DELETE) only for objectives they own/are assigned to.
+
+**Project Assignment Checks (API Level):**
+- Verify API endpoints correctly check project assignment before allowing actions (e.g., an Objective Owner cannot create a Touchbase for an objective in a project they are not assigned to).
+
+---
+
+### 11.3 WebSocket/Real-Time Tests (E2E)
+
+**Lock Acquisition/Release:**
+- Verify User A acquiring a lock successfully blocks User B from acquiring the same lock.
+- Verify User B sees the "[User A] is editing..." banner.
+- Verify releasing the lock (manual or timeout) allows User B to acquire it.
+
+**5-Minute Timeout:**
+- Verify lock is automatically released after 5 minutes of inactivity.
+- Verify unsaved changes are auto-saved upon timeout (per SLAD v6.0).
+- Verify relevant notification is shown to the user whose lock timed out.
+
+**Concurrent Editing Scenario:**
+- Simulate two users attempting edits, verify only one succeeds at a time and updates broadcast correctly.
+
+**Task Status Sync:**
+- Verify changing task status in Tab 4 (RRGT) instantly (<500ms) updates the status displayed in Tab 3 (Scoreboard) for another user viewing the same objective.
+- Verify adding a new task in Tab 3 instantly appears in the assigned user's Tab 4 (RRGT).
+
+---
+
+### 11.4 Touchbase Tests (E2E & API)
+
+**Creation:**
+- Verify only Objective Owner (for assigned objective) or higher roles can create Touchbases via the UI/API.
+- Verify it's 1-on-1 only.
+
+**Privacy:**
+- Verify saved Touchbases are only visible to the creator, the participant, and Account Owner/Manager via API queries and UI checks.
+
+**24-Hour Edit Window:**
+- Verify the `editable` flag is set correctly on creation and flips after 24 hours.
+- Verify API blocks edits after 24 hours.
+
+**Lock-Based Editing:**
+- Verify the real-time locking mechanism works for concurrent Touchbase editing sessions.
+
+**History Log:**
+- Verify completed Touchbases appear correctly in the Tab 3 history log and expand/collapse properly.
+
+---
+
+### 11.5 Completion Tracker Tests (Integration & E2E)
+
+**Automatic Objective Completion (Database Trigger):**
+- Create an objective with multiple tasks.
+- Mark all tasks but one as 'Completed'. Verify `objectives.all_tasks_complete` is `false`.
+- Mark the final task as 'Completed'. Verify the trigger correctly sets `objectives.all_tasks_complete` to `true` and populates `objectives.actual_completion_date`.
+- Change one task back to 'In Progress'. Verify the trigger resets `all_tasks_complete` to `false` and clears `actual_completion_date`.
+
+**Manual Project Completion (UI):**
+- Verify the toggle in Tab 2 correctly updates `projects.completion_status`.
+
+**Date Comparison UI:**
+- Verify the UI correctly displays target vs. actual dates and calculates/shows the difference (e.g., "3 days late").
+
+---
+
+### 11.6 Yes/No Objective Flow Tests (E2E)
+
+**"Yes" Path:**
+- Verify clicking "Yes", entering a name, leads directly to the Objectives module (steps 11-17).
+
+**"No" Path:**
+- Verify clicking "No" proceeds sequentially through Brainstorm (1-5) → Choose (6-10) → Objectives (11-17).
+
+**Name Setting:**
+- Verify the objective name is correctly set (or updated from "Untitled...") during the "Choose" module in the "No" path.
+
+**State Management:**
+- Verify `objectives.current_step` and `objectives.journey_status` are updated correctly throughout the flow.
+
+**Draft Resumption:**
+- Verify saving a draft mid-journey and reopening the objective correctly resumes at `current_step` with previously saved data loaded.
+
+---
+
+### 11.7 Invitation Flow Tests (Integration & E2E)
+
+**Invite Generation (API):**
+- Verify calling the invite endpoint successfully triggers the Supabase `inviteUserByEmail` function and sets the `team_members` record status correctly.
+
+**Email Delivery:**
+- (Requires integration environment) Verify the magic link email is sent and received.
+
+**Signup via Link:**
+- Simulate user clicking magic link, setting password, and successfully authenticating.
+
+**Database Trigger Linking:**
+- Verify the `auth.users` insert trigger correctly finds the matching `team_members` record (by email) and updates `team_members.user_id`, linking the accounts.
+
+**Duplicate/Existing Email:**
+- Test scenarios where the invited email already exists in `auth.users` globally; ensure the user is correctly added/linked to the new team without disrupting their existing access elsewhere.
+
+---
+
+### 11.8 Test Implementation Priority (Sprint v9.0)
+
+#### **Phase 1: Database Foundation (Week 1-2)**
+- [ ] RLS policy tests (team isolation, project assignment)
+- [ ] Database trigger tests (completion tracker, invite linking)
+- [ ] Permission function unit tests
+- [ ] Schema validation tests
+
+#### **Phase 2: API & Backend (Week 3-4)**
+- [ ] API integration tests (all team-based endpoints)
+- [ ] Role-based CRUD tests (5 roles × all actions)
+- [ ] Touchbase API tests (creation, privacy, edit window)
+- [ ] Invitation flow tests (magic link, linking)
+
+#### **Phase 3: Real-Time & UI (Week 5-6)**
+- [ ] WebSocket E2E tests (lock-based editing, task sync)
+- [ ] Completion tracker E2E tests (UI display, date comparison)
+- [ ] Yes/No objective flow E2E tests (branching logic, state management)
+- [ ] Touchbase E2E tests (full flow, history log)
+
+#### **Phase 4: Integration & Regression (Week 7-8)**
+- [ ] Cross-feature integration tests
+- [ ] Performance tests (concurrent users, large datasets)
+- [ ] Regression suite for all Team MVP features
+- [ ] Security tests (RLS bypass attempts, privilege escalation)
+
+---
+
+### 11.9 Testing Tools & Setup
+
+**Additional Dependencies for Team MVP:**
+```bash
+# Supabase testing client
+npm install -D @supabase/supabase-js
+
+# PostgreSQL testing utilities
+npm install -D pg @types/pg
+
+# WebSocket testing
+npm install -D ws @types/ws
+```
+
+**Test Database Setup:**
+```bash
+# Create test database with Supabase schema
+npm run db:test:setup
+
+# Run migrations on test database
+npm run db:migrate:test
+
+# Seed test data (teams, members, projects)
+npm run db:seed:test
+```
+
+**Environment Variables (Test):**
+```bash
+# .env.test
+DATABASE_URL=postgresql://postgres:test@localhost:54322/test_db
+SUPABASE_URL=http://localhost:54321
+SUPABASE_ANON_KEY=test_anon_key
+SUPABASE_SERVICE_ROLE_KEY=test_service_role_key
+```
+
+---
+
+### 11.10 Success Criteria
+
+**Sprint v9.0 Testing Complete When:**
+- ✅ 100% RLS policy coverage (all tables, all roles)
+- ✅ All 5 roles tested against permission matrix
+- ✅ Real-time features verified (lock-based editing, task sync)
+- ✅ Completion trackers working (automatic + manual)
+- ✅ Invitation flow tested end-to-end
+- ✅ Yes/No objective flow fully tested
+- ✅ Touchbase module fully tested (creation, privacy, history)
+- ✅ Zero failing tests in CI
+- ✅ Test execution time < 45 minutes
+
+---
+
+**This addendum provides the specific test targets for the Team MVP. The overall testing strategy (pyramid, tools, CI/CD integration) remains as defined in the main TESTING_STRATEGY.md document.**
+
+---
+
 **Document Owner:** Development Team  
-**Last Updated:** September 30, 2025  
-**Next Review:** October 15, 2025
+**Last Updated:** October 26, 2025  
+**Next Review:** November 15, 2025

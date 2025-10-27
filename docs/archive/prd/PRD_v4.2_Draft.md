@@ -1,9 +1,16 @@
-# Product Requirements Document: Paid MVP (v4.2 Draft)
+# ⚠️ SUPERSEDED - Product Requirements Document: Paid MVP (v4.2 Draft)
+
+**This document has been SUPERSEDED by PRD v5.0 (Team-Based MVP) as of October 25, 2025.**  
+**See: `/docs/PRD_v5.0_Draft.md`**  
+**Archived for historical reference only.**
+
+---
 
 - Version: 4.2 Draft
 - Date: 2025-10-11
-- Status: Draft – For Review and Implementation
+- Status: SUPERSEDED (was: Draft – For Review and Implementation)
 - Supersedes: PRD v4.1 where noted (adds Paid MVP scope)
+- Superseded By: PRD v5.0 (Team-Based MVP pivot)
 
 ---
 

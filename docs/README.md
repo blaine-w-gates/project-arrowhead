@@ -8,10 +8,16 @@
 ## 📍 Getting Started
 
 **New to the project?** Start here:
-1. Read this entire index to understand the documentation structure
-2. Review the Living Baselines section (architecture, requirements, protocols)
-3. Check Active Documents for current sprint work
-4. Reference Runbooks & Operational Docs as needed
+1. **Read this entire index** to understand the documentation structure
+2. **Review Living Baselines** section (architecture, requirements, protocols)
+3. **Check Active Documents** for current sprint work
+4. **Reference Runbooks & Operational Docs** as needed
+5. **If creating/updating docs:** Read `DOCUMENTATION_SYSTEM_RULES.md` first
+
+**AI Systems:**
+- **Search Protocol:** `DOCUMENTATION_SYSTEM_RULES.md` (how to find docs)
+- **Complete Audit:** `DOCUMENTATION_SYSTEM_AUDIT_2025-10-25.md` (all 73 files categorized)
+- **Two-Tier System:** Strategic docs in `/docs/`, component docs WITH components
 
 ---
 
@@ -19,13 +25,13 @@
 
 These define what we are working on **right now**:
 
-- **Sprint Plan v8.0** (`/Sprint_Plan_v8.0.md`)
-  - Current sprint: Operation Passwordless Auth
-  - Status: Active implementation
+- **Sprint Plan v9.0** (`/Sprint_Plan_v9.0.md`)
+  - Current sprint: Operation Team MVP (4 phases, 9 weeks)
+  - Status: Draft - Pending PRD v5.0 approval
   
-- **Auth Strategy vNext** (`Auth_Strategy_vNext.md`)
-  - Passwordless email auth + optional MFA
-  - Sprint 8 implementation blueprint
+- **Architect Onboarding Guide v1.0** (`ARCHITECT_ONBOARDING_v1.0.md`)
+  - Training guide for new AI Architect
+  - Communication protocol and decision boundaries
 
 ---
 
@@ -35,30 +41,40 @@ These documents describe the **current state** of the project and must be kept u
 
 ### Core Architecture & Requirements
 
-- **SLAD v5.2 Final** (`/SLAD_v5.2_Final.md`)
+- **SLAD v6.0 Final** (`SLAD_v6.0_Final.md`)
   - System Logic & Architecture Document
-  - As-built technical baseline
-  - Tech stack, data model, API endpoints, security
+  - Team MVP multi-tenant architecture
+  - **Status:** Final - Approved for Implementation
+  - **Approved By:** Project Manager, Architect 11
+  - **New:** RLS security, real-time collaboration, 5-role RBAC
+  - **Note:** Supersedes SLAD v5.2 (Individual-User model)
   
-- **PRD v4.2 Draft** (`/PRD_v4.2_Draft.md`)
+- **PRD v5.2 Final** (`PRD_v5.2_Final.md`)
   - Product Requirements Document
-  - Paid MVP scope (individual plans)
-  - **Note:** Will become PRD v5.0 after team-model update
+  - Team-Based Paid MVP (Hybrid Team model)
+  - **Status:** Final - Ready for Implementation
+  - **Updated:** Oct 26, 2025 - Complete UI/UX specifications
+  - **New Features:** Completion Trackers, Yes/No Objective Flow, Touchbase Module
+  - **Note:** Supersedes PRD v5.0 (Draft), v4.2 (Individual Pro model)
   
-- **OMDL v11.2 Draft** (`/OMDL_v11.2_Draft.md`)
+- **OMDL v11.3 Draft** (`OMDL_v11.3_Draft.md`)
   - Operational Manual & Decision Log
   - Ratified protocols, workflows, decision history
-  - **Note:** Will become Final after approval
+  - **Updated:** Oct 25, 2025 - Removed obsolete Section 7.0 (now points to SLAD v6.0)
 
 ### Testing & Operations
 
-- **Testing Strategy** (`/TESTING_STRATEGY.md`)
+- **Testing Strategy v1.1** (`TESTING_STRATEGY.md`)
   - Comprehensive testing approach
   - E2E, integration, unit test strategy
+  - **Updated:** Oct 26, 2025 - Added Team MVP testing requirements (Section 11)
+  - **New:** RLS tests, RBAC tests, real-time tests, completion trackers, invitation flow
   
-- **Production Environment Setup** (`/PRODUCTION_ENV_SETUP.md`)
-  - Environment variables and secrets
-  - Deployment configuration
+- **Production Environment Setup v2.0** (`PRODUCTION_ENV_SETUP_v2.0_Draft.md`)
+  - Environment variables and secrets for Team MVP
+  - Supabase, Stripe tiered billing, SendGrid, WebSocket config
+  - **Status:** Draft - For Sprint v9.0 implementation
+  - **Supersedes:** PRODUCTION_ENV_SETUP.md (Individual-User model, to be archived)
 
 ### Architecture Decision Records (ADRs)
 
@@ -81,27 +97,26 @@ Located in `adr/` subdirectory:
 
 - **Data Health Runbook** (`data-health-runbook.md`)
   - Database health monitoring procedures
-  
-- **Cloudflare Access Runbook** (`/website-integration/ArrowheadSolution/docs/cloudflare-access-runbook.md`)
-  - Admin panel access control via Cloudflare
-
-### API Documentation
-
-- **Lead Magnet API** (`/website-integration/ArrowheadSolution/docs/lead-magnet-api.md`)
-  - Lead capture endpoint specification
-
-### Content Management
-
-- **Content Management Guide** (`/website-integration/ArrowheadSolution/CONTENT_MANAGEMENT.md`)
-  - Blog post workflow and structure
-  
-- **Integration Guide** (`/website-integration/INTEGRATION_GUIDE.md`)
-  - Website integration practices
 
 ### Component-Specific Docs
 
-- **AdminJS Setup** (`/website-integration/ArrowheadSolution/server/admin/README.md`)
-  - Admin panel implementation details
+**Location:** Component docs live WITH their code, not in `/docs/`
+
+**Website Integration:**
+- **Integration Guide** (`/website-integration/INTEGRATION_GUIDE.md`) - Integration practices
+- **ArrowheadSolution README** (`/website-integration/ArrowheadSolution/README.md`) - Component setup
+- **Content Management** (`/website-integration/ArrowheadSolution/CONTENT_MANAGEMENT.md`) - Blog workflow
+
+**Component Runbooks** (`/website-integration/ArrowheadSolution/docs/`):
+- `architecture-diagram.md` - Component architecture
+- `cloudflare-access-runbook.md` - Admin panel access control
+- `lead-magnet-api.md` - Lead capture endpoint
+- `logging-migration-guide.md` - Logging migration procedures
+
+**AdminJS:**
+- **Setup Guide** (`/website-integration/ArrowheadSolution/server/admin/README.md`) - Admin panel setup
+
+**Rationale:** These docs are component-specific operations and setup, not strategic baseline
 
 ---
 
@@ -113,9 +128,9 @@ All superseded documents have been moved to `/docs/archive/` with "SUPERSEDED" b
 
 ```
 docs/archive/
-├── sprint-plans/     # Sprint Plans v2.1 through v7.0
+├── sprint-plans/     # Sprint Plans v2.1 through v8.0
 ├── slad/             # SLAD v5.0, v5.1 (Draft/Final), System Logic v3.0
-├── prd/              # PRD v3.0, v4.0, v4.1
+├── prd/              # PRD v3.0, v4.0, v4.1, v4.2
 ├── omdl/             # OMDL v8.3, v10.0, v11.0, v11.1
 ├── process-docs/     # Calibration docs, Phoenix Protocol, Prompting Guide
 └── operations/       # OS v1.0, deployment checklists, issue notes
@@ -123,13 +138,13 @@ docs/archive/
 
 ### Key Archived Documents
 
-**Sprint Plans:** v2.1, v3.0, v4.0, v4.1, v6.0, v7.0 → **Current: v8.0**
+**Sprint Plans:** v2.1, v3.0, v4.0, v4.1, v6.0, v7.0, v8.0 → **Current: v9.0**
 
-**Architecture:** SLAD v5.0-v5.1, System Logic v3.0 → **Current: SLAD v5.2**
+**Architecture:** SLAD v5.0-v5.2, System Logic v3.0 → **Current: SLAD v6.0 (Final)**
 
-**Requirements:** PRD v3.0-v4.1 → **Current: PRD v4.2 (soon v5.0)**
+**Requirements:** PRD v3.0-v4.2 → **Current: PRD v5.0 (Draft)**
 
-**Operations:** OMDL v8.3-v11.1 → **Current: OMDL v11.2**
+**Operations:** OMDL v8.3-v11.2 → **Current: OMDL v11.3**
 
 **Process Documents:**
 - Phoenix Protocol Charter v7.3 (now in OMDL Appendix C)

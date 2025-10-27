@@ -1,9 +1,16 @@
-# Sprint Plan v8.0: Operation: Passwordless Auth
+# ⚠️ SUPERSEDED - Sprint Plan v8.0: Operation: Passwordless Auth
+
+**This sprint has been COMPLETED and SUPERSEDED by Sprint Plan v9.0 (Team MVP) as of October 25, 2025.**  
+**See: `/docs/Sprint_Plan_v9.0.md`**  
+**Archived for historical reference only.**
+
+---
 
 Version: 8.0  
 Date: 2025-10-10  
 Epic: Auth Strategy vNext — Passwordless email sign-in + optional MFA  
-Status: Active (This Sprint)
+Status: SUPERSEDED (was: Active)
+Superseded By: Sprint Plan v9.0 (Team-Based MVP pivot)
 
 ---
 
