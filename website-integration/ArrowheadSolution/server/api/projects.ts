@@ -5,11 +5,11 @@
  * Based on: PRD v5.2 Final Section 3.1, SLAD v6.0 Section 6.0
  */
 
-import express, { Request, Response, Router } from 'express';
+import { Response, Router } from 'express';
 import { requireAuth, setDbContext, AuthenticatedRequest } from '../auth/middleware';
 import { getDb } from '../db';
 import { projects, objectives, tasks } from '../../shared/schema/index';
-import { eq, and, count, sql } from 'drizzle-orm';
+import { eq, and, count } from 'drizzle-orm';
 import {
   createProjectSchema,
   updateProjectSchema,

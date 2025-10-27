@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import {
   requireAuth,
   optionalAuth,
@@ -17,7 +17,6 @@ import {
 } from '../../../../server/auth/middleware';
 import * as supabaseModule from '../../../../server/auth/supabase';
 import * as dbModule from '../../../../server/db';
-import { sql } from 'drizzle-orm';
 
 // Mock dependencies
 vi.mock('../../../../server/auth/supabase');

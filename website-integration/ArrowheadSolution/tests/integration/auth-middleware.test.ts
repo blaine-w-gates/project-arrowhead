@@ -5,7 +5,7 @@
  * Based on: TESTING_STRATEGY.md Section 11.2
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import express, { Express, Request, Response } from 'express';
 import request from 'supertest';
 import { requireAuth, optionalAuth, setDbContext } from '../../server/auth/middleware';
