@@ -6,11 +6,14 @@
  * Supports multi-assignment including Virtual Personas
  */
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Calendar, User } from 'lucide-react';
+import { Calendar, User, Edit } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EditTaskModal } from './EditTaskModal';
 
 interface TaskAssignee {
   teamMemberId: string;
@@ -35,6 +38,9 @@ interface TaskListProps {
 }
 
 export function TaskList({ objectiveId }: TaskListProps) {
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
   const { data: tasks, isLoading, error } = useQuery<Task[]>({
     queryKey: ['tasks', objectiveId],
     queryFn: async () => {
@@ -110,6 +116,16 @@ export function TaskList({ objectiveId }: TaskListProps) {
     }
   };
 
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setSelectedTask(null);
+  };
+
   return (
     <div className="space-y-3">
       {tasks.map((task) => (
@@ -126,9 +142,18 @@ export function TaskList({ objectiveId }: TaskListProps) {
                 </p>
               )}
             </div>
-            <Badge variant={getPriorityColor(task.priority)} className="ml-4">
-              {task.priority}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={getPriorityColor(task.priority)}>
+                {task.priority}
+              </Badge>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleEditTask(task)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
@@ -174,6 +199,16 @@ export function TaskList({ objectiveId }: TaskListProps) {
       <div className="pt-4 text-sm text-muted-foreground text-center">
         {tasks.length} task{tasks.length !== 1 ? 's' : ''} total
       </div>
+
+      {/* Edit Task Modal */}
+      {selectedTask && (
+        <EditTaskModal
+          open={showEditModal}
+          onClose={handleCloseEditModal}
+          task={selectedTask}
+          objectiveId={objectiveId}
+        />
+      )}
     </div>
   );
 }

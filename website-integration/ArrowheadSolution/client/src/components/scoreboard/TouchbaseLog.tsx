@@ -15,14 +15,17 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChevronDown, ChevronUp, Plus, Calendar, User } from 'lucide-react';
 import { NewTouchbaseModal } from './NewTouchbaseModal';
+import { ViewTouchbaseModal } from './ViewTouchbaseModal';
 
 interface Touchbase {
   id: number;
-  date: string;
-  participantName: string;
-  notes: string;
+  objectiveId: number;
+  teamMemberId: string;
+  teamMemberName: string;
+  touchbaseDate: string;
+  responses: Record<string, string>;
   createdAt: string;
-  updatedAt: string;
+  createdBy: string;
 }
 
 interface TouchbaseLogProps {
@@ -33,6 +36,8 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
   const { profile } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showNewTouchbaseModal, setShowNewTouchbaseModal] = useState(false);
+  const [selectedTouchbase, setSelectedTouchbase] = useState<Touchbase | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
 
   const { data: touchbases, isLoading, error } = useQuery<Touchbase[]>({
     queryKey: ['touchbases', objectiveId],
@@ -52,6 +57,17 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
 
   const handleNewTouchbase = () => {
     setShowNewTouchbaseModal(true);
+  };
+
+  const handleViewTouchbase = (touchbase: Touchbase) => {
+    setSelectedTouchbase(touchbase);
+    setShowViewModal(true);
+  };
+
+  const getResponsePreview = (responses: Record<string, string>) => {
+    // Get first non-empty response as preview
+    const firstResponse = Object.values(responses).find(r => r && r.trim());
+    return firstResponse || 'No responses';
   };
 
   return (
@@ -115,13 +131,14 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
               {touchbases.map((touchbase) => (
                 <div
                   key={touchbase.id}
-                  className="border rounded-lg p-4 hover:bg-accent transition-colors"
+                  className="border rounded-lg p-4 hover:bg-accent transition-colors cursor-pointer"
+                  onClick={() => handleViewTouchbase(touchbase)}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">
-                        {new Date(touchbase.date).toLocaleDateString('en-US', {
+                        {new Date(touchbase.touchbaseDate).toLocaleDateString('en-US', {
                           weekday: 'short',
                           year: 'numeric',
                           month: 'short',
@@ -133,11 +150,11 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
 
                   <div className="flex items-center gap-2 mb-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">{touchbase.participantName}</span>
+                    <span className="text-sm font-medium">{touchbase.teamMemberName}</span>
                   </div>
 
                   <p className="text-sm text-muted-foreground line-clamp-3">
-                    {touchbase.notes}
+                    {getResponsePreview(touchbase.responses)}
                   </p>
                 </div>
               ))}
@@ -157,6 +174,18 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
           onClose={() => setShowNewTouchbaseModal(false)}
           objectiveId={objectiveId}
           teamId={profile.teamId}
+        />
+      )}
+
+      {/* View Touchbase Modal */}
+      {selectedTouchbase && (
+        <ViewTouchbaseModal
+          open={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedTouchbase(null);
+          }}
+          touchbase={selectedTouchbase}
         />
       )}
     </Card>
