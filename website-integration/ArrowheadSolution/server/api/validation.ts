@@ -305,3 +305,18 @@ export const updateDialSchema = z.object({
   is_left_private: z.boolean().optional(),
   is_right_private: z.boolean().optional(),
 }).strict();
+
+// ========================================
+// TEAM MEMBERS INVITATION SCHEMA
+// ========================================
+
+/**
+ * Invite Team Member Request Schema
+ * Per PRD v5.2 Section 3.1 - Invitation Flow
+ */
+export const inviteTeamMemberSchema = z.object({
+  email: z.string()
+    .email('Invalid email address')
+    .toLowerCase()
+    .trim(),
+}).strict();
