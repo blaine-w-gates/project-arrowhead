@@ -175,17 +175,44 @@ export async function optionalAuth(
       return;
     }
 
-    // Attempt to authenticate, but don't fail if it doesn't work
-    await requireAuth(req, res, (error?: unknown) => {
-      if (error) {
-        // Authentication failed, but that's OK for optional auth
-        // Clear any partial context and continue
-        req.userContext = undefined;
-      }
+    const jwt = authHeader.substring(7);
+
+    // Verify JWT with Supabase
+    const verification = await verifySupabaseJwt(jwt);
+    if (!verification.valid || !verification.userId) {
+      // Invalid JWT, but that's OK for optional auth - just continue without context
       next();
-    });
+      return;
+    }
+
+    // Create base user context
+    const userContext: UserContext = {
+      userId: verification.userId,
+      email: verification.email,
+    };
+
+    // Look up team membership in database
+    const db = getDb();
+    const membershipRecords = await db
+      .select()
+      .from(teamMembers)
+      .where(eq(teamMembers.userId, verification.userId))
+      .limit(1);
+
+    if (membershipRecords.length > 0) {
+      const membership = membershipRecords[0];
+      userContext.teamMemberId = membership.id;
+      userContext.teamId = membership.teamId;
+      userContext.role = membership.role;
+      userContext.effectiveTeamMemberId = membership.id;
+    }
+
+    // Attach context to request
+    req.userContext = userContext;
+
+    next();
   } catch {
-    // Silently continue without authentication
+    // Silently continue without authentication on any error
     next();
   }
 }

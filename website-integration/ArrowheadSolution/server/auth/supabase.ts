@@ -20,21 +20,24 @@ dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Validate required environment variables
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITEST ? 'http://test-supabase.local' : '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITEST ? 'test-service-role-key' : '';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.VITEST ? 'test-jwt-secret' : '';
 
-if (!SUPABASE_URL) {
-  throw new Error('SUPABASE_URL environment variable is required');
-}
+// Only throw errors in non-test environments
+if (!process.env.VITEST) {
+  if (!SUPABASE_URL) {
+    throw new Error('SUPABASE_URL environment variable is required');
+  }
 
-if (!SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for server-side operations');
-}
+  if (!SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for server-side operations');
+  }
 
-if (!SUPABASE_JWT_SECRET) {
-  console.warn('⚠️  SUPABASE_JWT_SECRET not set - JWT verification will use default (insecure for production)');
+  if (!SUPABASE_JWT_SECRET) {
+    console.warn('⚠️  SUPABASE_JWT_SECRET not set - JWT verification will use default (insecure for production)');
+  }
 }
 
 /**
