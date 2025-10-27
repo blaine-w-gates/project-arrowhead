@@ -18,6 +18,7 @@ import { Plus, Target } from 'lucide-react';
 import { ObjectivesList } from '@/components/objectives/ObjectivesList';
 import { CompletionTracker } from '@/components/projects/CompletionTracker';
 import { AddObjectiveModal } from '@/components/objectives/AddObjectiveModal';
+import { ObjectiveJourneyWizard } from '@/components/objectives/ObjectiveJourneyWizard';
 
 interface Project {
   id: number;
@@ -31,6 +32,7 @@ export default function ObjectivesTab() {
   const { profile } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showAddObjectiveModal, setShowAddObjectiveModal] = useState(false);
+  const [journeyObjectiveId, setJourneyObjectiveId] = useState<number | null>(null);
 
   // Fetch projects for dropdown
   const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
@@ -140,7 +142,10 @@ export default function ObjectivesTab() {
               </Button>
             </CardHeader>
             <CardContent>
-              <ObjectivesList projectId={selectedProject.id} />
+              <ObjectivesList 
+                projectId={selectedProject.id}
+                onObjectiveClick={(objectiveId: number) => setJourneyObjectiveId(objectiveId)}
+              />
             </CardContent>
           </Card>
         </div>
@@ -161,6 +166,16 @@ export default function ObjectivesTab() {
           open={showAddObjectiveModal}
           onClose={() => setShowAddObjectiveModal(false)}
           projectId={selectedProjectId}
+          onObjectiveCreated={(objectiveId: number) => setJourneyObjectiveId(objectiveId)}
+        />
+      )}
+
+      {/* Objective Journey Wizard */}
+      {journeyObjectiveId && (
+        <ObjectiveJourneyWizard
+          open={!!journeyObjectiveId}
+          onClose={() => setJourneyObjectiveId(null)}
+          objectiveId={journeyObjectiveId}
         />
       )}
     </div>
