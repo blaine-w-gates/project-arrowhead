@@ -225,3 +225,45 @@ export const taskAssignmentsSchema = z.object({
     .min(0, 'Team member IDs array required')
     .max(20, 'Too many assignees'),
 }).strict();
+
+// ========================================
+// TOUCHBASES VALIDATION SCHEMAS
+// ========================================
+
+/**
+ * Touchbase Responses JSONB Schema (7 questions)
+ * Per PRD v5.2 Section 3.3 - Touchbase Module
+ */
+export const touchbaseResponsesSchema = z.object({
+  q1_working_on: z.string().optional(),
+  q2_help_needed: z.string().optional(),
+  q3_blockers: z.string().optional(),
+  q4_wins: z.string().optional(),
+  q5_priorities: z.string().optional(),
+  q6_resource_needs: z.string().optional(),
+  q7_timeline_change: z.string().optional(),
+}).strict();
+
+/**
+ * Create Touchbase Request Schema
+ */
+export const createTouchbaseSchema = z.object({
+  team_member_id: z.string().uuid('Invalid team member ID'),
+  touchbase_date: z.string().datetime('Invalid date format'),
+  responses: touchbaseResponsesSchema,
+}).strict();
+
+/**
+ * Update Touchbase Request Schema
+ * Only responses can be updated (within 24hr window)
+ */
+export const updateTouchbaseSchema = z.object({
+  responses: touchbaseResponsesSchema,
+}).strict();
+
+/**
+ * Query Parameters for GET /api/objectives/:objectiveId/touchbases
+ */
+export const listTouchbasesQuerySchema = z.object({
+  member_id: z.string().uuid().optional(),
+});
