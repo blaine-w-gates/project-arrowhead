@@ -19,14 +19,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
+// Check if in a test environment (Vitest integration tests or Playwright E2E tests)
+const isTestEnvironment = process.env.NODE_ENV === 'test' || !!process.env.VITEST;
+
 // Validate required environment variables
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITEST ? 'http://test-supabase.local' : '';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITEST ? 'test-service-role-key' : '';
+const SUPABASE_URL = process.env.SUPABASE_URL || (isTestEnvironment ? 'http://test-supabase.local' : '');
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || (isTestEnvironment ? 'test-service-role-key' : '');
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || process.env.VITEST ? 'test-jwt-secret' : '';
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || (isTestEnvironment ? 'test-jwt-secret' : '');
 
 // Only throw errors in non-test environments
-if (!process.env.VITEST) {
+if (!isTestEnvironment) {
   if (!SUPABASE_URL) {
     throw new Error('SUPABASE_URL environment variable is required');
   }
@@ -38,6 +41,9 @@ if (!process.env.VITEST) {
   if (!SUPABASE_JWT_SECRET) {
     console.warn('⚠️  SUPABASE_JWT_SECRET not set - JWT verification will use default (insecure for production)');
   }
+} else {
+  // Log warning in test environments
+  console.warn('⚠️  Supabase admin client running in TEST mode with dummy credentials. Admin API calls will not work with real Supabase.');
 }
 
 /**
@@ -67,6 +73,18 @@ export const supabaseClient: SupabaseClient | null = SUPABASE_ANON_KEY
       },
     })
   : null;
+
+/**
+ * Get Supabase admin client with validation
+ * Throws error if used in test environment where real Supabase is not available
+ * Use this when you need to ensure real Supabase admin access
+ */
+export function getSupabaseAdmin(): SupabaseClient {
+  if (isTestEnvironment && !process.env.SUPABASE_URL) {
+    throw new Error('Supabase admin client requested but not initialized. Running in test mode without real Supabase credentials. Mock this function in tests or provide real credentials.');
+  }
+  return supabaseAdmin;
+}
 
 /**
  * JWT secret for manual verification (if needed)
