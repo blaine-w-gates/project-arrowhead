@@ -28,11 +28,12 @@ interface AddObjectiveModalProps {
   open: boolean;
   onClose: () => void;
   projectId: number;
+  onObjectiveCreated?: (objectiveId: number) => void;
 }
 
 type FlowStep = 'prompt' | 'details';
 
-export function AddObjectiveModal({ open, onClose, projectId }: AddObjectiveModalProps) {
+export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated }: AddObjectiveModalProps) {
   const queryClient = useQueryClient();
   const [flowStep, setFlowStep] = useState<FlowStep>('prompt');
   const [knowsObjective, setKnowsObjective] = useState<boolean | null>(null);
@@ -58,9 +59,13 @@ export function AddObjectiveModal({ open, onClose, projectId }: AddObjectiveModa
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['objectives', projectId] });
       handleClose();
+      // Transition to journey wizard after creation
+      if (onObjectiveCreated && data.id) {
+        onObjectiveCreated(data.id);
+      }
     },
     onError: (err: Error) => {
       setError(err.message);
