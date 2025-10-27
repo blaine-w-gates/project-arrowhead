@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+// TODO: [ARCHITECT] Obsolete tests - Old passwordless OTP auth flow replaced by Supabase email/password auth
+// The passwordless signin flow (signin -> /api/auth/request -> verify -> /api/auth/verify) no longer exists.
+// Team MVP uses Supabase authentication with email/password on /signin page.
+// These tests need to be rewritten for the new Supabase auth flow.
+// Skipping until new E2E tests are written for Phase 3+ Team MVP authentication features.
+
+test.describe.skip('Old Passwordless Auth Tests (Obsolete - OTP Flow)', () => {
+
 // Happy path: user requests OTP on /signin and verifies on /verify
 // Assumes dev server started by Playwright with E2E_EXPOSE_OTP=1 so /api/auth/request returns { devCode }
 
@@ -43,3 +51,5 @@ test('Passwordless sign-in: /signin -> /verify happy path', async ({ page, conte
   const session = cookies.find((c) => c.name === 'sb_session');
   expect(session?.value).toBeTruthy();
 });
+
+}); // end test.describe.skip

@@ -3,9 +3,15 @@ import { test, expect } from '@playwright/test';
 /**
  * E2E Tests for Billing Stub Endpoints
  * 
- * These tests validate the billing API stubs (not yet integrated with Stripe).
- * They verify authentication, input validation, and expected stub responses.
+ * TODO: [ARCHITECT] Obsolete tests - Old individual-user billing system replaced by Team MVP billing
+ * These tests use the old passwordless OTP authentication flow and old /account page.
+ * Team MVP uses Supabase authentication and team-based billing (not individual user billing).
+ * The billing endpoints tested here (/api/billing/checkout, /api/billing/portal, /api/stripe/webhook)
+ * are stubs for the old individual-user product and will be replaced or modified for Team MVP.
+ * Skipping until new E2E tests are written for Phase 3+ Team MVP billing features.
  */
+
+test.describe.skip('Old Billing Tests (Obsolete - Individual User Billing)', () => {
 
 // Helper function to authenticate a user and return cookies
 async function authenticateUser(page: any, email: string) {
@@ -246,3 +252,5 @@ test('POST /api/stripe/webhook accepts different event types', async ({ request 
     expect(body.received).toBe(true);
   }
 });
+
+}); // end test.describe.skip
