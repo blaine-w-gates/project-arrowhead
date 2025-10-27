@@ -19,8 +19,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-// Check if in a test environment (Vitest integration tests or Playwright E2E tests)
-const isTestEnvironment = process.env.NODE_ENV === 'test' || !!process.env.VITEST;
+// Check if in a test environment
+// - CI=true: GitHub Actions and most CI environments (most reliable)
+// - NODE_ENV=test: Local Playwright tests
+// - VITEST: Vitest integration tests
+const isCI = process.env.CI === 'true';
+const isVitest = !!process.env.VITEST;
+const isTestEnvironment = process.env.NODE_ENV === 'test' || isCI || isVitest;
 
 // Validate required environment variables
 const SUPABASE_URL = process.env.SUPABASE_URL || (isTestEnvironment ? 'http://test-supabase.local' : '');
