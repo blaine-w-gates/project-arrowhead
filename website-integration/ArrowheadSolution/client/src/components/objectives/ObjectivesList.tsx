@@ -23,9 +23,10 @@ interface Objective {
 
 interface ObjectivesListProps {
   projectId: number;
+  onObjectiveClick?: (objectiveId: number) => void;
 }
 
-export function ObjectivesList({ projectId }: ObjectivesListProps) {
+export function ObjectivesList({ projectId, onObjectiveClick }: ObjectivesListProps) {
   const { data: objectives, isLoading, error } = useQuery<Objective[]>({
     queryKey: ['objectives', projectId],
     queryFn: async () => {
@@ -75,7 +76,11 @@ export function ObjectivesList({ projectId }: ObjectivesListProps) {
   return (
     <div className="space-y-3">
       {objectives.map((objective) => (
-        <Card key={objective.id}>
+        <Card 
+          key={objective.id}
+          className="cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => onObjectiveClick?.(objective.id)}
+        >
           <CardContent className="py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
