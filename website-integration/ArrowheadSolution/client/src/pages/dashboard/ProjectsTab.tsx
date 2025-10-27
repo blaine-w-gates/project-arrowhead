@@ -15,6 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { AddProjectModal } from '@/components/projects/AddProjectModal';
 import { ProjectCard } from '@/components/projects/ProjectCard';
+import { PermissionGrid } from '@/components/projects/PermissionGrid';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Project {
@@ -159,6 +160,14 @@ export default function ProjectsTab() {
           )}
         </>
       )}
+
+      {/* Permission Grid */}
+      <div className="mt-12">
+        <PermissionGrid
+          teamId={profile.teamId}
+          projects={activeProjects.map(p => ({ id: p.id, name: p.name }))}
+        />
+      </div>
 
       {/* Add Project Modal */}
       <AddProjectModal

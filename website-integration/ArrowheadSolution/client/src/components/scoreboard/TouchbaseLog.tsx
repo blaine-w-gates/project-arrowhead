@@ -8,11 +8,13 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ChevronDown, ChevronUp, Plus, Calendar, User } from 'lucide-react';
+import { NewTouchbaseModal } from './NewTouchbaseModal';
 
 interface Touchbase {
   id: number;
@@ -28,7 +30,9 @@ interface TouchbaseLogProps {
 }
 
 export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
+  const { profile } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showNewTouchbaseModal, setShowNewTouchbaseModal] = useState(false);
 
   const { data: touchbases, isLoading, error } = useQuery<Touchbase[]>({
     queryKey: ['touchbases', objectiveId],
@@ -47,8 +51,7 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
   });
 
   const handleNewTouchbase = () => {
-    // TODO: Implement New Touchbase modal in future iteration
-    alert('New Touchbase modal: Coming in next phase');
+    setShowNewTouchbaseModal(true);
   };
 
   return (
@@ -145,6 +148,16 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
             </div>
           )}
         </CardContent>
+      )}
+
+      {/* New Touchbase Modal */}
+      {profile?.teamId && (
+        <NewTouchbaseModal
+          open={showNewTouchbaseModal}
+          onClose={() => setShowNewTouchbaseModal(false)}
+          objectiveId={objectiveId}
+          teamId={profile.teamId}
+        />
       )}
     </Card>
   );
