@@ -104,6 +104,21 @@ router.post(
         );
       }
 
+      // Check if invite already pending for this virtual member
+      if (member.inviteStatus === 'invite_pending' && member.email) {
+        return res.status(400).json(
+          createErrorResponse(
+            'Invalid Request',
+            'An invitation has already been sent to this virtual member',
+            { 
+              email: member.email, 
+              status: member.inviteStatus,
+              member_id: member.id
+            }
+          )
+        );
+      }
+
       // Check if email is already in team_members table
       const existingMembersWithEmail = await db
         .select()

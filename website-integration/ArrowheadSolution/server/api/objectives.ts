@@ -67,6 +67,34 @@ function getLock(objectiveId: string): { userId: string, teamMemberId: string, e
 }
 
 /**
+ * Automatic cleanup of expired locks
+ * Runs every minute to free memory
+ */
+const lockCleanupInterval = setInterval(() => {
+  const now = new Date();
+  let cleanedCount = 0;
+  
+  for (const [objectiveId, lock] of Array.from(objectiveLocks.entries())) {
+    if (lock.expiresAt < now) {
+      objectiveLocks.delete(objectiveId);
+      cleanedCount++;
+    }
+  }
+  
+  if (cleanedCount > 0) {
+    console.log(`[Objectives] Auto-cleaned ${cleanedCount} expired lock(s)`);
+  }
+}, 60 * 1000); // Run every minute
+
+// Cleanup interval on server shutdown (graceful cleanup)
+if (typeof process !== 'undefined') {
+  process.on('SIGTERM', () => {
+    clearInterval(lockCleanupInterval);
+    console.log('[Objectives] Lock cleanup interval cleared');
+  });
+}
+
+/**
  * POST /api/projects/:projectId/objectives
  * Create a new objective
  * 
@@ -365,6 +393,9 @@ router.put(
         );
       }
 
+      const existingObjective = existingObjectives[0];
+      const currentVersion = existingObjective.version;
+
       // Build update object
       const updateObject: Partial<typeof objectives.$inferInsert> = {};
       
@@ -395,12 +426,30 @@ router.put(
         updateObject.isArchived = updateData.is_archived;
       }
 
-      // Update objective
+      // Optimistic locking: increment version and check current version in WHERE clause
+      updateObject.version = currentVersion + 1;
+      updateObject.updatedAt = new Date();
+
+      // Update objective with optimistic locking
       const updatedObjectives = await db
         .update(objectives)
         .set(updateObject)
-        .where(eq(objectives.id, objectiveId))
+        .where(and(
+          eq(objectives.id, objectiveId),
+          eq(objectives.version, currentVersion)
+        ))
         .returning();
+
+      // If no rows updated, version mismatch = concurrent modification
+      if (updatedObjectives.length === 0) {
+        return res.status(409).json(
+          createErrorResponse(
+            'Conflict',
+            'This objective was modified by another user. Please refresh and try again.',
+            { current_version: currentVersion }
+          )
+        );
+      }
 
       const updatedObjective = updatedObjectives[0];
 

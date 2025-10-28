@@ -66,6 +66,7 @@ export const objectives = pgTable("objectives", {
   targetCompletionDate: timestamp("target_completion_date"),
   actualCompletionDate: timestamp("actual_completion_date"),
   isArchived: boolean("is_archived").default(false).notNull(),
+  version: integer("version").default(1).notNull(), // Optimistic locking
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -101,6 +102,7 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 
 export const insertObjectiveSchema = createInsertSchema(objectives).omit({
   id: true,
+  version: true,
   createdAt: true,
   updatedAt: true,
 });

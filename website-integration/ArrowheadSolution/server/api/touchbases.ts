@@ -61,6 +61,34 @@ function getLock(touchbaseId: string): { userId: string, teamMemberId: string, e
 }
 
 /**
+ * Automatic cleanup of expired locks
+ * Runs every minute to free memory
+ */
+const lockCleanupInterval = setInterval(() => {
+  const now = new Date();
+  let cleanedCount = 0;
+  
+  for (const [touchbaseId, lock] of Array.from(touchbaseLocks.entries())) {
+    if (lock.expiresAt < now) {
+      touchbaseLocks.delete(touchbaseId);
+      cleanedCount++;
+    }
+  }
+  
+  if (cleanedCount > 0) {
+    console.log(`[Touchbases] Auto-cleaned ${cleanedCount} expired lock(s)`);
+  }
+}, 60 * 1000); // Run every minute
+
+// Cleanup interval on server shutdown (graceful cleanup)
+if (typeof process !== 'undefined') {
+  process.on('SIGTERM', () => {
+    clearInterval(lockCleanupInterval);
+    console.log('[Touchbases] Lock cleanup interval cleared');
+  });
+}
+
+/**
  * Helper: Check if user has privacy access to touchbase
  * Privacy Rule: Only creator, participant, Account Owner, Account Manager can view
  */
@@ -315,6 +343,7 @@ router.put(
       }
 
       const touchbase = existingTouchbases[0];
+      const currentVersion = touchbase.version;
 
       // Privacy check: Only creator can update
       if (touchbase.createdBy !== currentTeamMemberId) {
@@ -341,12 +370,30 @@ router.put(
         );
       }
 
-      // Update touchbase
+      // Update touchbase with optimistic locking
       const updatedTouchbases = await db
         .update(touchbases)
-        .set({ responses })
-        .where(eq(touchbases.id, touchbaseId))
+        .set({ 
+          responses,
+          version: currentVersion + 1,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(touchbases.id, touchbaseId),
+          eq(touchbases.version, currentVersion)
+        ))
         .returning();
+
+      // If no rows updated, version mismatch = concurrent modification
+      if (updatedTouchbases.length === 0) {
+        return res.status(409).json(
+          createErrorResponse(
+            'Conflict',
+            'This touchbase was modified by another user. Please refresh and try again.',
+            { current_version: currentVersion }
+          )
+        );
+      }
 
       const updatedTouchbase = updatedTouchbases[0];
 
