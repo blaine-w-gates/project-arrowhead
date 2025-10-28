@@ -22,8 +22,11 @@ import { projects } from "./projects";
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  subscriptionStatus: text("subscription_status"), // active, canceled, past_due, trialing, etc.
+  // Stripe Integration Fields
+  stripeCustomerId: text("stripe_customer_id"), // Stripe Customer ID (cus_xxx)
+  stripeSubscriptionId: text("stripe_subscription_id"), // Stripe Subscription ID (sub_xxx)
+  subscriptionStatus: text("subscription_status"), // trialing, active, past_due, canceled, incomplete, incomplete_expired, unpaid
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }), // When current billing period ends
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }), // When the 14-day trial expires (NULL if no trial or trial completed)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
