@@ -8,27 +8,45 @@
  * - RRGT/Dial functionality
  * 
  * Based on: PRD v5.2 Final, SLAD v6.0 Final
+ * 
+ * ⚠️ TODO: [ARCHITECT] These tests require Supabase test users in CI environment
+ * 
+ * Prerequisites:
+ * 1. Supabase project configured with test database
+ * 2. Test users seeded in auth.users table
+ * 3. Environment variables set in CI:
+ *    - E2E_TEST_EMAIL (Account Owner/Manager email)
+ *    - E2E_TEST_PASSWORD (password)
+ *    - E2E_TEST_MEMBER_EMAIL (Team Member email, optional)
+ *    - E2E_TEST_MEMBER_PASSWORD (password, optional)
+ * 
+ * Current Status: SKIPPED in CI until test user setup is complete.
+ * Tests can be run locally with proper environment variables.
  */
 
 import { test, expect, Page } from '@playwright/test';
 
 /**
  * Test User Setup
- * 
- * These tests require a Supabase test user to be set up.
- * Set environment variables:
- * - E2E_TEST_EMAIL: Test user email (e.g., "test@arrowhead.com")
- * - E2E_TEST_PASSWORD: Test user password
- * 
- * Or seed a test user in the database before running tests.
  */
+const TEST_EMAIL = process.env.E2E_TEST_EMAIL;
+const TEST_PASSWORD = process.env.E2E_TEST_PASSWORD;
 
-const TEST_EMAIL = process.env.E2E_TEST_EMAIL || 'test@arrowhead.com';
-const TEST_PASSWORD = process.env.E2E_TEST_PASSWORD || 'TestPassword123!';
+// Skip entire suite if test credentials not provided
+const SKIP_REASON = !TEST_EMAIL || !TEST_PASSWORD 
+  ? 'Test user credentials not configured (E2E_TEST_EMAIL, E2E_TEST_PASSWORD required)'
+  : false;
 
 // Helper: Authenticate user and return to dashboard
-async function loginUser(page: Page, email: string = TEST_EMAIL, password: string = TEST_PASSWORD) {
-  await page.goto('/signin');
+async function loginUser(page: Page, email: string = TEST_EMAIL!, password: string = TEST_PASSWORD!) {
+  if (!email || !password) {
+    throw new Error('Test credentials not provided');
+  }
+  
+  await page.goto('/signin', { waitUntil: 'networkidle', timeout: 15000 });
+  
+  // Wait for signin form to be ready
+  await page.waitForSelector('input[type="email"], input[name="email"]', { timeout: 5000 });
   
   // Fill email and password
   await page.getByLabel(/email/i).fill(email);
@@ -36,13 +54,19 @@ async function loginUser(page: Page, email: string = TEST_EMAIL, password: strin
   
   // Click sign in button
   const signInButton = page.getByRole('button', { name: /sign in/i });
+  await expect(signInButton).toBeEnabled({ timeout: 3000 });
   await signInButton.click();
   
-  // Wait for redirect to dashboard
-  await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+  // Wait for redirect to dashboard with longer timeout for auth
+  await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+  
+  // Verify dashboard loaded
+  await page.waitForLoadState('networkidle', { timeout: 10000 });
 }
 
 test.describe('Team MVP - Core User Flows', () => {
+  // Skip all tests if credentials not configured
+  test.skip(SKIP_REASON !== false, SKIP_REASON || '');
 
   // ===================================================================
   // TEST 1: LOGIN FLOW
@@ -437,7 +461,14 @@ test.describe('Team MVP - Team Member Role Flow', () => {
   const MEMBER_EMAIL = process.env.E2E_TEST_MEMBER_EMAIL;
   const MEMBER_PASSWORD = process.env.E2E_TEST_MEMBER_PASSWORD;
   
-  test.skip(!MEMBER_EMAIL || !MEMBER_PASSWORD, 'Team Member test user not configured');
+  // Skip if base credentials missing OR member credentials missing
+  const MEMBER_SKIP_REASON = !TEST_EMAIL || !TEST_PASSWORD
+    ? 'Base test credentials not configured'
+    : !MEMBER_EMAIL || !MEMBER_PASSWORD
+    ? 'Team Member test credentials not configured (E2E_TEST_MEMBER_EMAIL, E2E_TEST_MEMBER_PASSWORD required)'
+    : false;
+  
+  test.skip(MEMBER_SKIP_REASON !== false, MEMBER_SKIP_REASON || '');
   
   test('Team Member should see only assigned tasks in RRGT', async ({ page }) => {
     // Login as Team Member
