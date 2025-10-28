@@ -114,38 +114,45 @@ router.post(
         );
       }
 
-      // Create task
-      const newTasks = await db
-        .insert(tasks)
-        .values({
-          objectiveId,
-          title,
-          description: description || null,
-          status: 'todo',
-          priority: priority || 2,
-          dueDate: due_date ? new Date(due_date) : null,
-        })
-        .returning();
+      // Create task and assignments in transaction for data integrity
+      const result = await db.transaction(async (tx) => {
+        // Create task
+        const newTasks = await tx
+          .insert(tasks)
+          .values({
+            objectiveId,
+            title,
+            description: description || null,
+            status: 'todo',
+            priority: priority || 2,
+            dueDate: due_date ? new Date(due_date) : null,
+          })
+          .returning();
 
-      const newTask = newTasks[0];
+        const newTask = newTasks[0];
 
-      // Create assignments if provided
-      if (assigned_team_member_ids && assigned_team_member_ids.length > 0) {
-        const assignmentValues = assigned_team_member_ids.map(memberId => ({
-          taskId: newTask.id,
-          teamMemberId: memberId,
-        }));
+        // Create assignments if provided
+        if (assigned_team_member_ids && assigned_team_member_ids.length > 0) {
+          const assignmentValues = assigned_team_member_ids.map(memberId => ({
+            taskId: newTask.id,
+            teamMemberId: memberId,
+          }));
 
-        await db
-          .insert(taskAssignments)
-          .values(assignmentValues);
-      }
+          await tx
+            .insert(taskAssignments)
+            .values(assignmentValues);
+        }
 
-      // Fetch task with assignments
-      const taskWithAssignments = await db
-        .select()
-        .from(taskAssignments)
-        .where(eq(taskAssignments.taskId, newTask.id));
+        // Fetch task with assignments
+        const taskWithAssignments = await tx
+          .select()
+          .from(taskAssignments)
+          .where(eq(taskAssignments.taskId, newTask.id));
+
+        return { newTask, taskWithAssignments };
+      });
+
+      const { newTask, taskWithAssignments } = result;
 
       return res.status(201).json({
         message: 'Task created successfully',
@@ -439,28 +446,31 @@ router.patch(
         );
       }
 
-      // Delete all existing assignments
-      await db
-        .delete(taskAssignments)
-        .where(eq(taskAssignments.taskId, taskId));
+      // Update assignments in transaction for atomicity
+      const newAssignments = await db.transaction(async (tx) => {
+        // Delete all existing assignments
+        await tx
+          .delete(taskAssignments)
+          .where(eq(taskAssignments.taskId, taskId));
 
-      // Create new assignments
-      if (team_member_ids.length > 0) {
-        const assignmentValues = team_member_ids.map(memberId => ({
-          taskId,
-          teamMemberId: memberId,
-        }));
+        // Create new assignments
+        if (team_member_ids.length > 0) {
+          const assignmentValues = team_member_ids.map(memberId => ({
+            taskId,
+            teamMemberId: memberId,
+          }));
 
-        await db
-          .insert(taskAssignments)
-          .values(assignmentValues);
-      }
+          await tx
+            .insert(taskAssignments)
+            .values(assignmentValues);
+        }
 
-      // Fetch updated assignments
-      const newAssignments = await db
-        .select()
-        .from(taskAssignments)
-        .where(eq(taskAssignments.taskId, taskId));
+        // Fetch updated assignments
+        return await tx
+          .select()
+          .from(taskAssignments)
+          .where(eq(taskAssignments.taskId, taskId));
+      });
 
       return res.status(200).json({
         message: 'Task assignments updated successfully',

@@ -382,46 +382,56 @@ router.delete(
         );
       }
 
-      // Check if project has objectives
-      const objectiveCounts = await db
-        .select({ count: count() })
-        .from(objectives)
-        .where(eq(objectives.projectId, projectId));
-      
-      const objectivesCount = objectiveCounts[0]?.count || 0;
-
-      if (objectivesCount > 0) {
-        // Count tasks too for better error message
-        const taskCounts = await db
+      // Check and delete in transaction to prevent TOCTOU race condition
+      await db.transaction(async (tx) => {
+        // Check if project has objectives
+        const objectiveCounts = await tx
           .select({ count: count() })
-          .from(tasks)
-          .innerJoin(objectives, eq(tasks.objectiveId, objectives.id))
+          .from(objectives)
           .where(eq(objectives.projectId, projectId));
         
-        const tasksCount = taskCounts[0]?.count || 0;
+        const objectivesCount = objectiveCounts[0]?.count || 0;
 
-        return res.status(400).json(
-          createErrorResponse(
-            'Bad Request',
-            `This project has ${objectivesCount} objective(s) and ${tasksCount} task(s). Archive it first or delete the objectives/tasks.`,
-            {
+        if (objectivesCount > 0) {
+          // Count tasks too for better error message
+          const taskCounts = await tx
+            .select({ count: count() })
+            .from(tasks)
+            .innerJoin(objectives, eq(tasks.objectiveId, objectives.id))
+            .where(eq(objectives.projectId, projectId));
+          
+          const tasksCount = taskCounts[0]?.count || 0;
+
+          throw {
+            status: 400,
+            error: 'Bad Request',
+            message: `This project has ${objectivesCount} objective(s) and ${tasksCount} task(s). Archive it first or delete the objectives/tasks.`,
+            details: {
               objectives_count: objectivesCount,
               tasks_count: tasksCount,
             }
-          )
-        );
-      }
+          };
+        }
 
-      // Project is empty, safe to delete
-      await db
-        .delete(projects)
-        .where(eq(projects.id, projectId));
+        // Project is empty, safe to delete
+        await tx
+          .delete(projects)
+          .where(eq(projects.id, projectId));
+      });
 
       return res.status(200).json({
         message: 'Project deleted successfully',
         project_id: projectId,
       });
     } catch (error) {
+      // Handle custom transaction errors
+      if (error && typeof error === 'object' && 'status' in error) {
+        const customError = error as { status: number; error: string; message: string; details?: unknown };
+        return res.status(customError.status).json(
+          createErrorResponse(customError.error, customError.message, customError.details)
+        );
+      }
+      
       console.error('Error deleting project:', error);
       return res.status(500).json(
         createErrorResponse('Internal Server Error', 'Failed to delete project')

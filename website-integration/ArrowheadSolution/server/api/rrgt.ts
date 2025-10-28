@@ -18,6 +18,7 @@ import {
   formatValidationError,
   createErrorResponse,
 } from './validation';
+import { isAccountAdmin, createPermissionError } from './permissions';
 
 const router = Router();
 
@@ -107,14 +108,9 @@ router.get(
       const db = getDb();
 
       // STRICT PERMISSION CHECK: Only Account Owner/Manager
-      const userRole = req.userContext?.role;
-      if (userRole !== 'Account Owner' && userRole !== 'Account Manager') {
+      if (!isAccountAdmin(req.userContext)) {
         return res.status(403).json(
-          createErrorResponse(
-            'Forbidden',
-            'Only Account Owner and Account Manager can access team member RRGT data',
-            { current_role: userRole }
-          )
+          createPermissionError('view team member RRGT data (God-view)', req.userContext)
         );
       }
 

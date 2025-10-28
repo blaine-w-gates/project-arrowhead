@@ -7,7 +7,7 @@
  * Based on: SLAD v6.0 Final, Section 3.0 Data Model
  */
 
-import { pgTable, uuid, timestamp, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, timestamp, boolean, jsonb, integer, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -38,6 +38,7 @@ export const touchbases = pgTable("touchbases", {
   touchbaseDate: timestamp("touchbase_date").notNull(),
   responses: jsonb("responses").$type<TouchbaseResponses>().notNull(),
   editable: boolean("editable").default(true).notNull(),
+  version: integer("version").default(1).notNull(), // Optimistic locking
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
@@ -66,6 +67,7 @@ export const touchbasesRelations = relations(touchbases, ({ one }) => ({
 // Zod Schemas
 export const insertTouchbaseSchema = createInsertSchema(touchbases).omit({
   id: true,
+  version: true,
   createdAt: true,
   updatedAt: true,
 });
