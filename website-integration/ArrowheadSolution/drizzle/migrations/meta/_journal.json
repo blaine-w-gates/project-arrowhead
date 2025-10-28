@@ -15,6 +15,13 @@
       "when": 1761643710945,
       "tag": "0001_crazy_lenny_balinger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761667308262,
+      "tag": "0002_previous_dagger",
+      "breakpoints": true
     }
   ]
 }
