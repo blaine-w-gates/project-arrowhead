@@ -46,9 +46,12 @@ export default function Navigation() {
             </div>
           </div>
           
-          <div className="hidden md:flex items-center">
-            <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Link href="/journey">Use Free Tool</Link>
+          <div className="hidden md:flex items-center gap-3">
+            <Button asChild variant="ghost">
+              <Link href="/signin">Sign In</Link>
+            </Button>
+            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Link href="/signup">Get Started Free</Link>
             </Button>
           </div>
           
@@ -74,11 +77,18 @@ export default function Navigation() {
                   {link.label}
                 </Link>
               ))}
-              <Button asChild className="w-full mt-4 bg-accent hover:bg-accent/90 text-accent-foreground">
-                <Link href="/journey" onClick={() => setIsMenuOpen(false)}>
-                  Use Free Tool
-                </Link>
-              </Button>
+              <div className="flex flex-col gap-2 mt-4">
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/signin" onClick={() => setIsMenuOpen(false)}>
+                    Sign In
+                  </Link>
+                </Button>
+                <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Link href="/signup" onClick={() => setIsMenuOpen(false)}>
+                    Get Started Free
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         )}
