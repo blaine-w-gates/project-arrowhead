@@ -24,6 +24,7 @@ export const teams = pgTable("teams", {
   name: text("name").notNull(),
   stripeSubscriptionId: text("stripe_subscription_id"),
   subscriptionStatus: text("subscription_status"), // active, canceled, past_due, trialing, etc.
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }), // When the 14-day trial expires (NULL if no trial or trial completed)
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -16,6 +16,10 @@ interface TeamMemberProfile {
   name: string;
   email: string;
   isVirtual: boolean;
+  // Subscription info for trial logic
+  subscriptionStatus?: string;
+  trialEndsAt?: string | null;
+  daysLeftInTrial?: number | null;
 }
 
 interface AuthContextType {
@@ -53,6 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: data.name || '',
           email: data.email || '',
           isVirtual: data.isVirtual || false,
+          subscriptionStatus: data.subscriptionStatus,
+          trialEndsAt: data.trialEndsAt,
+          daysLeftInTrial: data.daysLeftInTrial,
         });
       } else {
         // Profile fetch failed - this is OK, user can still use free features
