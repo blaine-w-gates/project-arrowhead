@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Lightbulb, Compass, Settings, ArrowRight } from "lucide-react";
+import { Lightbulb, Compass, Settings, ArrowRight, Users, CheckCircle2 } from "lucide-react";
 
 export default function Homepage() {
   return (
@@ -142,6 +142,101 @@ export default function Homepage() {
                 <p className="text-muted-foreground">Create unity around shared objectives and ensure everyone is working toward the same strategic outcomes.</p>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Team MVP Section */}
+      <section className="py-24 bg-gradient-to-br from-primary/10 via-white to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center justify-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold mb-4">
+              <Users className="w-4 h-4" />
+              For Teams
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+              Ready to Scale with Your Team?
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+              Unlock powerful collaboration features designed for small teams who want to execute together.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 mb-12">
+            <Card className="p-8 border-2 hover:border-primary/50 transition-colors">
+              <CardContent className="p-0">
+                <h3 className="text-2xl font-bold text-foreground mb-6">Free Tool</h3>
+                <ul className="space-y-4 mb-6">
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">Individual brainstorming & objective planning</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">Journey-guided strategic thinking</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">PDF export of your plans</span>
+                  </li>
+                </ul>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/journey">Try Free Tool</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="p-8 border-2 border-primary shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-4 py-1 text-sm font-semibold rounded-bl-lg">
+                Most Popular
+              </div>
+              <CardContent className="p-0 pt-4">
+                <h3 className="text-2xl font-bold text-foreground mb-2">Team Edition</h3>
+                <div className="flex items-baseline gap-2 mb-6">
+                  <span className="text-4xl font-bold text-primary">$49</span>
+                  <span className="text-muted-foreground">/month</span>
+                </div>
+                <ul className="space-y-4 mb-6">
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-foreground font-medium">Everything in Free, plus:</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">Shared team dashboard</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">Collaborative task management (Scoreboard)</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">RRGT individual dashboards & Dial status</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">Weekly touchbase check-ins</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle2 className="w-5 h-5 text-primary mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-muted-foreground">Support for 2-10 team members</span>
+                  </li>
+                </ul>
+                <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                  <Link href="/signup">Start 14-Day Free Trial</Link>
+                </Button>
+                <p className="text-sm text-center text-muted-foreground mt-3">
+                  No credit card required
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <Link href="/pricing" className="text-primary hover:text-primary/80 font-medium inline-flex items-center gap-2">
+              View detailed pricing & features
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>
