@@ -7,9 +7,8 @@ on:
       - ".github/workflows/**"
       - "website-integration/ArrowheadSolution/**"
   pull_request:
-    paths:
-      - ".github/workflows/**"
-      - "website-integration/ArrowheadSolution/**"
+    # Run on all PRs to ensure TypeScript build check is always performed
+    # This is required by branch protection rules
 
 jobs:
   preflight:
