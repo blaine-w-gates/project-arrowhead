@@ -1,6 +1,6 @@
 import React from 'react';
 import { useParams, useLocation } from 'wouter';
-import { JourneyStep, type JourneyStepData } from '@/components/journey';
+import { JourneyStep, type JourneyStepData, JourneyUpgradeBanner, ModuleCompleteCTA } from '@/components/journey';
 import { useToast } from '@/hooks/use-toast';
 import { useJourney, useSessionId } from '@/hooks/useJourney';
 import { useTaskManager } from '@/hooks/useTaskManager';
@@ -175,18 +175,29 @@ const JourneyStepPage: React.FC = () => {
   // Don't block rendering for API errors - allow component to render with fallback behavior
   // The JourneyStep component can handle missing session data gracefully
 
+  // Check if this is the final step of the module
+  const isFinalStep = currentStep === moduleConfig.totalSteps;
+
   return (
-    <JourneyStep
-      moduleId={moduleId}
-      moduleName={moduleConfig.name}
-      moduleColor={moduleConfig.color}
-      currentStep={currentStep}
-      totalSteps={moduleConfig.totalSteps}
-      stepData={stepData}
-      sessionId={sessionId}
-      onStepComplete={handleStepComplete}
-      onAddTask={handleAddTask}
-    />
+    <>
+      <JourneyUpgradeBanner />
+      <JourneyStep
+        moduleId={moduleId}
+        moduleName={moduleConfig.name}
+        moduleColor={moduleConfig.color}
+        currentStep={currentStep}
+        totalSteps={moduleConfig.totalSteps}
+        stepData={stepData}
+        sessionId={sessionId}
+        onStepComplete={handleStepComplete}
+        onAddTask={handleAddTask}
+      />
+      {isFinalStep && (
+        <div className="container mx-auto px-4 max-w-4xl">
+          <ModuleCompleteCTA moduleName={moduleConfig.name} />
+        </div>
+      )}
+    </>
   );
 };
 
