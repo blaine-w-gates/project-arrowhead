@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push --config=drizzle.config.cjs",
     "db:seed:blog": "npx tsx scripts/seed-blog.mts",
     "db:seed:audit": "node scripts/audit-blog-seed.mjs",
+    "db:seed:test-users": "node scripts/seed-test-users.mjs",
     "db:rls:apply": "node scripts/apply-rls.mjs",
     "db:rls:verify": "node scripts/verify-rls.mjs",
     "db:rls:verify:rest": "node scripts/verify-rls-rest.mjs",
