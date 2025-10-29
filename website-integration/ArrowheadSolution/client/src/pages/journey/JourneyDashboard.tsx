@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, Target, ArrowRight, CheckSquare } from 'lucide-react';
+import { JourneyUpgradeBanner } from '@/components/journey';
 
 const JourneyDashboard: React.FC = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -30,8 +31,10 @@ const JourneyDashboard: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto mt-8 px-4 pt-24">
-      <div className="max-w-6xl mx-auto">
+    <>
+      <JourneyUpgradeBanner />
+      <div className="container mx-auto mt-8 px-4 pt-24">
+        <div className="max-w-6xl mx-auto">
         {/* Hero Section - exact clone of original */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-primary mb-4">Project Arrowhead</h1>
@@ -155,6 +158,7 @@ const JourneyDashboard: React.FC = () => {
           </Card>
         </div>
       </div>
+      </div>
 
       {/* Clear Session Confirmation Modal */}
       {showClearConfirm && (
@@ -181,7 +185,7 @@ const JourneyDashboard: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
