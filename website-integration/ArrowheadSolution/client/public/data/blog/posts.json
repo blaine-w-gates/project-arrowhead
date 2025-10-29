@@ -1,13 +1,13 @@
 [
   {
-    "id": 48187683,
-    "title": "blog",
-    "slug": "2025-08-26-blog",
-    "excerpt": "text\n\nmore text",
-    "imageUrl": "/images/uploads/whatsapp-image-2025-07-18-at-15.13.52.jpeg",
+    "id": 1838881423,
+    "title": "Beyond the Buzzwords: The First Question Every Team Must Answer Before Brainstorming",
+    "slug": "beyond-the-buzzwords",
+    "excerpt": "Most brainstorming fails because nobody primes the pump. Here’s how to create the right context so ideas flow—and where real innovation actually hides.",
+    "imageUrl": null,
     "published": true,
-    "publishedAt": "2025-08-26T15:41:00.000Z",
-    "createdAt": "2025-08-26T15:41:00.000Z"
+    "publishedAt": "2025-09-16T00:00:00.000Z",
+    "createdAt": "2025-09-16T00:00:00.000Z"
   },
   {
     "id": 3703317332,
@@ -18,35 +18,5 @@
     "published": true,
     "publishedAt": "2025-03-20T00:00:00.000Z",
     "createdAt": "2025-03-20T00:00:00.000Z"
-  },
-  {
-    "id": 2220362997,
-    "title": "5 Common Strategic Planning Mistakes to Avoid",
-    "slug": "strategic-planning-mistakes",
-    "excerpt": "Learn how to navigate the most common pitfalls in strategic planning and set your team up for success.",
-    "imageUrl": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
-    "published": true,
-    "publishedAt": "2025-03-15T00:00:00.000Z",
-    "createdAt": "2025-03-15T00:00:00.000Z"
-  },
-  {
-    "id": 3841915143,
-    "title": "The HSE Framework: A Complete Guide",
-    "slug": "hse-framework-guide",
-    "excerpt": "Deep dive into our proven Headlights, Steering Wheel, Engine framework for strategic success.",
-    "imageUrl": "https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
-    "published": true,
-    "publishedAt": "2025-03-10T00:00:00.000Z",
-    "createdAt": "2025-03-10T00:00:00.000Z"
-  },
-  {
-    "id": 1481513449,
-    "title": "Building High-Performance Teams Through Clear Objectives",
-    "slug": "high-performance-teams",
-    "excerpt": "Discover how clear objectives can transform team performance and drive exceptional results.",
-    "imageUrl": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
-    "published": true,
-    "publishedAt": "2025-03-05T00:00:00.000Z",
-    "createdAt": "2025-03-05T00:00:00.000Z"
   }
 ]
