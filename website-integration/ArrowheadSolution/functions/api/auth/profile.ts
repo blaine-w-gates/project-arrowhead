@@ -3,10 +3,25 @@
 // Method: GET
 // Returns authenticated user's profile and team information
 
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { teams, teamMembers } from '../../../shared/schema/teams';
-import { eq } from 'drizzle-orm';
+import { createClient } from '@supabase/supabase-js';
+
+// Row types for Supabase queries
+type TeamMemberRow = {
+  id: string;
+  team_id: string;
+  user_id: string;
+  name: string;
+  email: string | null;
+  role: string;
+  is_virtual: boolean;
+};
+
+type TeamRow = {
+  id: string;
+  name: string;
+  subscription_status: string | null;
+  trial_ends_at: string | null;
+};
 
 // CORS utilities
 function normalizeOrigin(o: string | null): string | null {
@@ -146,47 +161,55 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: Re
       return jsonWithCors(401, { message: "Unauthorized", error: "Invalid token payload" }, cors);
     }
 
-    // Connect to database
-    const databaseUrl = env.DATABASE_URL;
-    if (!databaseUrl) {
-      console.error("DATABASE_URL not configured");
-      return jsonWithCors(500, { message: "Internal Server Error", error: "Database not configured" }, cors);
+    // Initialize Supabase Admin client (bypasses RLS on server)
+    const supabaseUrl = env.SUPABASE_URL;
+    const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("Supabase env not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing");
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Server misconfiguration" }, cors);
     }
 
-    // Configure Neon for Cloudflare Workers
-    neonConfig.fetchConnectionCache = true;
-    
-    const pool = new Pool({ connectionString: databaseUrl });
-    const db = drizzle(pool);
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
-    // Find team member by user ID
-    const memberRecords = await db
-      .select()
-      .from(teamMembers)
-      .where(eq(teamMembers.userId, userId))
-      .limit(1);
+    // 1) Find team member by Supabase user ID
+    const { data: memberData, error: memberError } = await supabase
+      .from('team_members')
+      .select('id, team_id, user_id, name, email, role, is_virtual')
+      .eq('user_id', userId)
+      .limit(1)
+      .maybeSingle();
+    const member = memberData as TeamMemberRow | null;
 
-    if (memberRecords.length === 0) {
+    if (memberError) {
+      console.error('Supabase query error (team_members):', memberError);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to load profile" }, cors);
+    }
+
+    if (!member) {
       return jsonWithCors(404, { message: "Not Found", error: "Team member not found. User may not be part of a team yet." }, cors);
     }
 
-    const member = memberRecords[0];
-    const teamId = member.teamId;
+    // 2) Fetch team details
+    const { data: teamData, error: teamError } = await supabase
+      .from('teams')
+      .select('id, name, subscription_status, trial_ends_at')
+      .eq('id', member.team_id)
+      .limit(1)
+      .maybeSingle();
+    const team = teamData as TeamRow | null;
 
-    // Fetch team details
-    const teamRecords = await db
-      .select()
-      .from(teams)
-      .where(eq(teams.id, teamId))
-      .limit(1);
-
-    const team = teamRecords.length > 0 ? teamRecords[0] : null;
+    if (teamError) {
+      console.error('Supabase query error (teams):', teamError);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to load team info" }, cors);
+    }
 
     // Calculate trial days left if on trial
     let daysLeftInTrial: number | null = null;
-    if (team?.subscriptionStatus === 'trialing' && team?.trialEndsAt) {
+    if (team?.subscription_status === 'trialing' && team?.trial_ends_at) {
       const now = new Date();
-      const trialEnd = new Date(team.trialEndsAt);
+      const trialEnd = new Date(team.trial_ends_at as unknown as string);
       const diffTime = trialEnd.getTime() - now.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       daysLeftInTrial = Math.max(0, diffDays);
@@ -197,14 +220,14 @@ export const onRequestGet = async ({ request, env }: { request: Request; env: Re
       userId,
       email: member.email || '',
       teamMemberId: member.id,
-      teamId: member.teamId,
+      teamId: member.team_id,
       teamName: team?.name || '',
       role: member.role,
       name: member.name,
-      isVirtual: member.isVirtual,
+      isVirtual: member.is_virtual,
       // Subscription info for trial logic
-      subscriptionStatus: team?.subscriptionStatus || 'inactive',
-      trialEndsAt: team?.trialEndsAt || null,
+      subscriptionStatus: team?.subscription_status || 'inactive',
+      trialEndsAt: team?.trial_ends_at || null,
       daysLeftInTrial,
     }, cors);
 
