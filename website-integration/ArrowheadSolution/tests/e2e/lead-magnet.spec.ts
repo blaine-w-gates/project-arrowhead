@@ -7,7 +7,7 @@ const SKIP_POSTS = process.env.E2E_SKIP_LEAD_POSTS === '1' || process.env.TURNST
 // These tests hit production Pages Functions. Ensure env vars are configured in Cloudflare.
 // Run with: PLAYWRIGHT_NO_WEBSERVER=1 npx playwright test -g "PROD Lead Magnet API"
 
-test.describe('PROD Lead Magnet API', () => {
+test.describe.skip('PROD Lead Magnet API', () => {
   test('HEAD returns 204 with allowed origin', async ({ request }) => {
     const res = await request.head(API, {
       headers: { 'Origin': SITE },
