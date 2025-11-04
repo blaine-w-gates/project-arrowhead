@@ -7,6 +7,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,14 +37,15 @@ export function InviteMemberModal({
 }: InviteMemberModalProps) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
+  const { session } = useAuth();
 
   const inviteMutation = useMutation({
     mutationFn: async (emailAddress: string) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/team-members/${memberId}/invite`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ email: emailAddress }),
       });

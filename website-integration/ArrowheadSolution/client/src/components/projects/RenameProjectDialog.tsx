@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -37,14 +38,15 @@ export function RenameProjectDialog({
   const queryClient = useQueryClient();
   const [name, setName] = useState(currentName);
   const [error, setError] = useState('');
+  const { session } = useAuth();
 
   const renameMutation = useMutation({
     mutationFn: async (newName: string) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ name: newName }),
       });

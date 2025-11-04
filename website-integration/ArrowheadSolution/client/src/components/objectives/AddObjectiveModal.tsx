@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -40,14 +41,15 @@ export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated
   const [name, setName] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [error, setError] = useState('');
+  const { session } = useAuth();
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string; target_date?: string; start_with_brainstorm: boolean }) => {
+    mutationFn: async (data: { name: string; target_completion_date?: string; start_with_brainstorm: boolean }) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/projects/${projectId}/objectives`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify(data),
       });
@@ -92,7 +94,7 @@ export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated
 
     createMutation.mutate({
       name: name.trim(),
-      target_date: targetDate || undefined,
+      target_completion_date: targetDate || undefined,
       start_with_brainstorm: !knowsObjective,
     });
   };

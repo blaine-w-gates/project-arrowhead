@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -72,6 +73,7 @@ export function VisionModal({ open, onClose, projectId, teamId, isNew, initialDa
   const [currentStep, setCurrentStep] = useState(0);
   const [visionData, setVisionData] = useState<VisionData>({});
   const [error, setError] = useState('');
+  const { session } = useAuth();
 
   useEffect(() => {
     if (initialData) {
@@ -84,11 +86,11 @@ export function VisionModal({ open, onClose, projectId, teamId, isNew, initialDa
 
   const saveMutation = useMutation({
     mutationFn: async (data: VisionData) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ vision_data: data }),
       });

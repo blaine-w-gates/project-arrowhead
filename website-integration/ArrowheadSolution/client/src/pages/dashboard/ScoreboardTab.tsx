@@ -34,7 +34,7 @@ interface Objective {
 }
 
 export default function ScoreboardTab() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState<number | null>(null);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -45,8 +45,11 @@ export default function ScoreboardTab() {
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
       
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/teams/${profile.teamId}/projects`, {
         credentials: 'include',
+        headers,
       });
       
       if (!response.ok) {
@@ -64,8 +67,11 @@ export default function ScoreboardTab() {
     queryFn: async () => {
       if (!selectedProjectId) throw new Error('No project selected');
       
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/projects/${selectedProjectId}/objectives`, {
         credentials: 'include',
+        headers,
       });
       
       if (!response.ok) {

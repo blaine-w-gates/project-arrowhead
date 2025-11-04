@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,6 +44,7 @@ export function ProjectAssignmentModal({
 }: ProjectAssignmentModalProps) {
   const queryClient = useQueryClient();
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
+  const { session } = useAuth();
 
   useEffect(() => {
     if (member) {
@@ -52,11 +54,11 @@ export function ProjectAssignmentModal({
 
   const updateAssignmentsMutation = useMutation({
     mutationFn: async (projectIds: number[]) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/team-members/${memberId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ projectAssignments: projectIds }),
       });

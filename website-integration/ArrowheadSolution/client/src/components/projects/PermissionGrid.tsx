@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ interface PermissionGridProps {
 
 export function PermissionGrid({ teamId, projects }: PermissionGridProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -48,8 +50,11 @@ export function PermissionGrid({ teamId, projects }: PermissionGridProps) {
   const { data: members, isLoading, error } = useQuery<TeamMember[]>({
     queryKey: ['team-members', teamId],
     queryFn: async () => {
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/teams/${teamId}/members`, {
         credentials: 'include',
+        headers,
       });
 
       if (!response.ok) {
@@ -64,11 +69,11 @@ export function PermissionGrid({ teamId, projects }: PermissionGridProps) {
   // Update role mutation
   const updateRoleMutation = useMutation({
     mutationFn: async ({ memberId, role }: { memberId: string; role: string }) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/team-members/${memberId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ role }),
       });
@@ -88,11 +93,11 @@ export function PermissionGrid({ teamId, projects }: PermissionGridProps) {
   // Add virtual member mutation
   const addVirtualMutation = useMutation({
     mutationFn: async (name: string) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/teams/${teamId}/members`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ name, isVirtual: true }),
       });

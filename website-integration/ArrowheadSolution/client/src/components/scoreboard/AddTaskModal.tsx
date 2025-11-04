@@ -43,7 +43,7 @@ interface TeamMember {
 }
 
 export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -58,8 +58,11 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
 
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/teams/${profile.teamId}/members`, {
         credentials: 'include',
+        headers,
       });
 
       if (!response.ok) {
@@ -79,11 +82,11 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
       due_date?: string;
       assigned_member_ids: string[];
     }) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/objectives/${objectiveId}/tasks`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify(taskData),
       });

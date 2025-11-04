@@ -1,16 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-interface ProjectRow {
-  id: string;
-  team_id: string;
-  name: string;
-  vision_data: unknown | null;
-  completion_status: string | null;
-  estimated_completion_date: string | null;
-  is_archived: boolean;
-  created_at: string;
-  updated_at: string;
-}
+type JwtPayload = { sub?: unknown; exp?: number };
 
 function normalizeOrigin(o: string | null): string | null {
   if (!o) return null;
@@ -67,7 +57,7 @@ function jsonWithCors(status: number, data: unknown, cors: HeadersInit, extraHea
   });
 }
 
-async function verifyJwtWeb(token: string, secret: string): Promise<Record<string, unknown> | null> {
+async function verifyJwtWeb(token: string, secret: string): Promise<JwtPayload | null> {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -79,7 +69,7 @@ async function verifyJwtWeb(token: string, secret: string): Promise<Record<strin
     const valid = await crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(data));
     if (!valid) return null;
     const payloadJson = atob(payloadPart.replace(/-/g, '+').replace(/_/g, '/'));
-    const payload = JSON.parse(payloadJson);
+    const payload = JSON.parse(payloadJson) as JwtPayload;
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {
@@ -114,10 +104,10 @@ export const onRequestGet = async ({ request, env, params }: { request: Request;
     if (!payload) {
       return jsonWithCors(401, { message: "Unauthorized", error: "Invalid or expired token" }, cors);
     }
-    const userId = payload.sub as string;
-    const teamId = params?.teamId as string;
-    if (!userId || !teamId) {
-      return jsonWithCors(400, { message: "Bad Request", error: "Missing user or team" }, cors);
+
+    const projectId = params?.projectId as string;
+    if (!projectId) {
+      return jsonWithCors(400, { message: "Bad Request", error: "Missing project ID" }, cors);
     }
 
     const supabaseUrl = env.SUPABASE_URL;
@@ -128,28 +118,43 @@ export const onRequestGet = async ({ request, env, params }: { request: Request;
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
-    const { data: membership, error: memberErr } = await supabase
+    // Fetch project to verify team
+    const { data: project, error: projErr } = await supabase
+      .from('projects')
+      .select('id, team_id')
+      .eq('id', projectId)
+      .maybeSingle();
+    if (projErr) {
+      console.error('Supabase query error (project):', projErr);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to list objectives" }, cors);
+    }
+    if (!project) {
+      return jsonWithCors(404, { message: 'Not Found', error: 'Project not found' }, cors);
+    }
+
+    // Verify membership
+    const userId = typeof payload.sub === 'string' ? payload.sub : '';
+    const { data: member, error: memberErr } = await supabase
       .from('team_members')
       .select('id')
       .eq('user_id', userId)
-      .eq('team_id', teamId)
-      .limit(1)
+      .eq('team_id', project.team_id)
       .maybeSingle();
     if (memberErr) {
       console.error('Supabase query error (team_members check):', memberErr);
       return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to verify membership" }, cors);
     }
-    if (!membership) {
-      return jsonWithCors(403, { message: "Forbidden", error: "You can only view projects in your own team" }, cors);
+    if (!member) {
+      return jsonWithCors(403, { message: 'Forbidden', error: 'You can only view objectives in your own team' }, cors);
     }
 
     const url = new URL(request.url);
     const includeArchived = (url.searchParams.get('include_archived') || 'false') === 'true';
 
     let query = supabase
-      .from('projects')
-      .select('id, team_id, name, vision_data, completion_status, estimated_completion_date, is_archived, created_at, updated_at')
-      .eq('team_id', teamId);
+      .from('objectives')
+      .select('id, project_id, name, current_step, journey_status, brainstorm_data, choose_data, objectives_data, all_tasks_complete, target_completion_date, is_archived, created_at, updated_at')
+      .eq('project_id', projectId);
 
     if (!includeArchived) {
       query = query.eq('is_archived', false);
@@ -157,26 +162,44 @@ export const onRequestGet = async ({ request, env, params }: { request: Request;
 
     const { data: rows, error } = await query.order('created_at', { ascending: true });
     if (error) {
-      console.error('Supabase query error (projects):', error);
-      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to list projects" }, cors);
+      console.error('Supabase query error (objectives):', error);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to list objectives" }, cors);
     }
 
-    const rowsTyped = (rows ?? []) as ProjectRow[];
-    const projects = rowsTyped.map((r) => ({
+    const objectives = (rows || []).map((r: {
+      id: string;
+      project_id: string;
+      name: string;
+      current_step: number;
+      journey_status: string;
+      brainstorm_data: Record<string, string> | null;
+      choose_data: Record<string, string> | null;
+      objectives_data: Record<string, string> | null;
+      all_tasks_complete: boolean;
+      target_completion_date: string | null;
+      is_archived: boolean;
+      created_at: string;
+      updated_at: string;
+    }) => ({
       id: r.id,
       name: r.name,
-      isArchived: !!r.is_archived,
-      visionData: r.vision_data || null,
-      completionStatus: r.completion_status === 'completed',
-      estimatedCompletionDate: r.estimated_completion_date || null,
+      status: r.is_archived ? 'paused' : (r.all_tasks_complete || r.journey_status === 'complete') ? 'completed' : 'active',
+      completionStatus: r.all_tasks_complete,
+      estimatedCompletionDate: r.target_completion_date,
       createdAt: r.created_at,
       updatedAt: r.updated_at,
+      // Extra fields for journey consumers
+      currentStep: r.current_step,
+      journeyStatus: r.journey_status,
+      brainstormData: r.brainstorm_data,
+      chooseData: r.choose_data,
+      objectivesData: r.objectives_data,
     }));
 
-    return jsonWithCors(200, projects, cors);
+    return jsonWithCors(200, objectives, cors);
   } catch (error) {
-    console.error('Error listing projects:', error);
-    return jsonWithCors(500, { message: "Internal Server Error", error: error instanceof Error ? error.message : 'Failed to list projects' }, cors);
+    console.error('Error listing objectives:', error);
+    return jsonWithCors(500, { message: "Internal Server Error", error: error instanceof Error ? error.message : 'Failed to list objectives' }, cors);
   }
 };
 
@@ -201,10 +224,9 @@ export const onRequestPost = async ({ request, env, params }: { request: Request
       return jsonWithCors(401, { message: "Unauthorized", error: "Invalid or expired token" }, cors);
     }
 
-    const userId = payload.sub as string;
-    const teamId = params?.teamId as string;
-    if (!userId || !teamId) {
-      return jsonWithCors(400, { message: "Bad Request", error: "Missing user or team" }, cors);
+    const projectId = params?.projectId as string;
+    if (!projectId) {
+      return jsonWithCors(400, { message: "Bad Request", error: "Missing project ID" }, cors);
     }
 
     const supabaseUrl = env.SUPABASE_URL;
@@ -215,83 +237,84 @@ export const onRequestPost = async ({ request, env, params }: { request: Request
     }
     const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
 
-    // Verify membership & permissions
+    // Fetch project to verify team
+    const { data: project, error: projErr } = await supabase
+      .from('projects')
+      .select('id, team_id')
+      .eq('id', projectId)
+      .maybeSingle();
+    if (projErr) {
+      console.error('Supabase query error (project):', projErr);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to create objective" }, cors);
+    }
+    if (!project) {
+      return jsonWithCors(404, { message: 'Not Found', error: 'Project not found' }, cors);
+    }
+
+    // Verify membership & permissions (Project Owner+, Objective Owner creation allowed by server rules; we require Project Owner+ here)
+    const userId = typeof payload.sub === 'string' ? payload.sub : '';
     const { data: member, error: memberErr } = await supabase
       .from('team_members')
-      .select('id, role')
+      .select('role')
       .eq('user_id', userId)
-      .eq('team_id', teamId)
-      .limit(1)
+      .eq('team_id', project.team_id)
       .maybeSingle();
     if (memberErr) {
       console.error('Supabase query error (team_members check):', memberErr);
       return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to verify membership" }, cors);
     }
     if (!member) {
-      return jsonWithCors(403, { message: "Forbidden", error: "You can only create projects in your own team" }, cors);
+      return jsonWithCors(403, { message: 'Forbidden', error: 'You can only create objectives in your own team' }, cors);
     }
     const role = String(member.role);
     const canCreate = role === 'Account Owner' || role === 'Account Manager' || role === 'Project Owner';
     if (!canCreate) {
-      return jsonWithCors(403, { message: "Forbidden", error: "Insufficient permissions to create projects" }, cors);
+      return jsonWithCors(403, { message: 'Forbidden', error: 'Insufficient permissions to create objectives' }, cors);
     }
 
     // Parse body
-    interface CreateProjectBody { name?: string; vision?: unknown; estimated_completion_date?: string | null }
-    let body: CreateProjectBody;
+    interface CreateObjectiveBody { name?: string; start_with_brainstorm?: boolean; target_completion_date?: string }
+    let body: CreateObjectiveBody;
     try {
       body = await request.json();
     } catch {
-      return jsonWithCors(400, { message: "Bad Request", error: "Invalid JSON body" }, cors);
+      return jsonWithCors(400, { message: 'Bad Request', error: 'Invalid JSON body' }, cors);
     }
+
     const name = (body.name || '').toString().trim();
     if (!name) {
-      return jsonWithCors(400, { message: "Bad Request", error: "Project name is required" }, cors);
+      return jsonWithCors(400, { message: 'Bad Request', error: 'Objective name is required' }, cors);
     }
 
-    // Check for duplicate name in team
-    const { data: existing, error: dupErr } = await supabase
-      .from('projects')
-      .select('id')
-      .eq('team_id', teamId)
-      .eq('name', name)
-      .limit(1)
-      .maybeSingle();
-    if (dupErr) {
-      console.error('Supabase query error (duplicate check):', dupErr);
-      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to create project" }, cors);
-    }
-    if (existing) {
-      return jsonWithCors(409, { message: "Conflict", error: "A project with this name already exists in your team" }, cors);
-    }
+    const startWithBrainstorm = body.start_with_brainstorm !== false; // default true
 
-    const visionData = body.vision ?? null; // accept server-style `vision`; ignore if not provided
-    const estDate = body.estimated_completion_date ?? null;
-
-    // Insert project
-    const { data: inserted, error: insertErr } = await supabase
-      .from('projects')
+    const { data: inserted, error: insErr } = await supabase
+      .from('objectives')
       .insert([
         {
-          team_id: teamId,
+          project_id: projectId,
           name,
-          vision_data: visionData,
-          estimated_completion_date: estDate,
-          completion_status: 'not_started',
+          current_step: startWithBrainstorm ? 1 : 11,
+          journey_status: 'draft',
+          brainstorm_data: null,
+          choose_data: null,
+          objectives_data: null,
+          target_completion_date: body.target_completion_date ?? null,
+          all_tasks_complete: false,
           is_archived: false,
         },
       ])
       .select('id')
       .single();
-    if (insertErr) {
-      console.error('Supabase insert error (projects):', insertErr);
-      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to create project" }, cors);
+
+    if (insErr) {
+      console.error('Supabase insert error (objective):', insErr);
+      return jsonWithCors(500, { message: 'Internal Server Error', error: 'Failed to create objective' }, cors);
     }
 
-    // Return minimal response the client expects
     return jsonWithCors(201, { id: inserted.id }, cors);
   } catch (error) {
-    console.error('Error creating project:', error);
-    return jsonWithCors(500, { message: "Internal Server Error", error: error instanceof Error ? error.message : 'Failed to create project' }, cors);
+    console.error('Error creating objective:', error);
+    return jsonWithCors(500, { message: 'Internal Server Error', error: error instanceof Error ? error.message : 'Failed to create objective' }, cors);
   }
 };

@@ -63,7 +63,7 @@ interface TeamMember {
 }
 
 export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModalProps) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -91,8 +91,11 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
 
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/teams/${profile.teamId}/members`, {
         credentials: 'include',
+        headers,
       });
 
       if (!response.ok) {
@@ -114,11 +117,11 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
       due_date?: string;
       assigned_member_ids?: string[];
     }) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify(taskData),
       });
@@ -139,9 +142,12 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
   // Delete task mutation
   const deleteMutation = useMutation({
     mutationFn: async () => {
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers,
       });
 
       if (!response.ok) {

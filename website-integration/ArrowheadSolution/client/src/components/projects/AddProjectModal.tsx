@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -35,24 +36,36 @@ export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps)
   const [error, setError] = useState('');
   const [showVisionModal, setShowVisionModal] = useState(false);
   const [createdProjectId, setCreatedProjectId] = useState<number | null>(null);
+  const { session } = useAuth();
 
   const createMutation = useMutation({
     mutationFn: async (projectName: string) => {
+      type CreateProjectResponse = { id: number };
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
       const response = await fetch(`/api/teams/${teamId}/projects`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ name: projectName }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to create project');
+        const ct = response.headers.get('content-type') || '';
+        if (ct.includes('application/json')) {
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to create project');
+        } else {
+          const text = await response.text();
+          throw new Error(text || `Failed to create project (HTTP ${response.status})`);
+        }
       }
 
-      return response.json();
+      const ct = response.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        return (await response.json()) as CreateProjectResponse;
+      }
+      return { id: 0 } as CreateProjectResponse;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['projects', teamId] });
