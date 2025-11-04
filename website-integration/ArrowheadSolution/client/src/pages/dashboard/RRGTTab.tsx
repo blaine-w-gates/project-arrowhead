@@ -38,7 +38,7 @@ interface TeamMember {
 }
 
 export default function RRGTTab() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState<number | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -53,6 +53,9 @@ export default function RRGTTab() {
       
       const response = await fetch(`/api/teams/${profile.teamId}/projects`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
       
       if (!response.ok) {
@@ -72,6 +75,9 @@ export default function RRGTTab() {
       
       const response = await fetch(`/api/projects/${selectedProjectId}/objectives`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
       
       if (!response.ok) {
@@ -91,6 +97,9 @@ export default function RRGTTab() {
 
       const response = await fetch(`/api/teams/${profile.teamId}/members`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
@@ -120,6 +129,9 @@ export default function RRGTTab() {
       const url = `${rrgtEndpoint}${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {

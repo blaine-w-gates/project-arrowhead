@@ -8,6 +8,7 @@
  */
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ interface DialProps {
 
 export function DialPlaceholder({ dialState, items }: DialProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   // Find the actual items in the dial
   const leftItem = dialState?.leftItemId
     ? items.find(item => item.id === dialState.leftItemId) ?? null
@@ -68,6 +70,7 @@ export function DialPlaceholder({ dialState, items }: DialProps) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(newState),

@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -29,6 +30,7 @@ interface AddProjectModalProps {
 }
 
 export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps) {
+  const { session } = useAuth();
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [fillVisionNow, setFillVisionNow] = useState(false);
@@ -42,6 +44,7 @@ export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps)
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({ name: projectName }),

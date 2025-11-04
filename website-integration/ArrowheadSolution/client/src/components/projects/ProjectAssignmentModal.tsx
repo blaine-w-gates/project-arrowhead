@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ export function ProjectAssignmentModal({
   teamId,
 }: ProjectAssignmentModalProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export function ProjectAssignmentModal({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({ projectAssignments: projectIds }),

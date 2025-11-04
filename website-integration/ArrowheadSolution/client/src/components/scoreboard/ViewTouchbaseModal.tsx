@@ -67,7 +67,7 @@ const TOUCHBASE_QUESTIONS = [
 ];
 
 export function ViewTouchbaseModal({ open, onClose, touchbase }: ViewTouchbaseModalProps) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [responses, setResponses] = useState<Record<string, string>>({});
@@ -97,6 +97,7 @@ export function ViewTouchbaseModal({ open, onClose, touchbase }: ViewTouchbaseMo
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({ responses: updatedResponses }),

@@ -33,7 +33,7 @@ interface TouchbaseLogProps {
 }
 
 export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showNewTouchbaseModal, setShowNewTouchbaseModal] = useState(false);
   const [selectedTouchbase, setSelectedTouchbase] = useState<Touchbase | null>(null);
@@ -44,6 +44,9 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
     queryFn: async () => {
       const response = await fetch(`/api/objectives/${objectiveId}/touchbases`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {

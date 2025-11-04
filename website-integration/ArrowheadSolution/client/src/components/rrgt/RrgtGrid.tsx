@@ -8,6 +8,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -61,6 +62,7 @@ const COLUMN_CONFIG = [
 
 export function RrgtGrid({ projectId, objectiveId, memberIds, currentUserId }: RrgtGridProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<RrgtItem | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -82,6 +84,9 @@ export function RrgtGrid({ projectId, objectiveId, memberIds, currentUserId }: R
       const url = `${endpoint}${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
@@ -98,6 +103,9 @@ export function RrgtGrid({ projectId, objectiveId, memberIds, currentUserId }: R
       const response = await fetch(`/api/items/${itemId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
