@@ -88,24 +88,44 @@ END $$;
 -- ============================================================================
 
 -- Admin Users: AdminJS user accounts
-ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_users FORCE ROW LEVEL SECURITY;
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'admin_users') THEN
+    EXECUTE 'ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'ALTER TABLE public.admin_users FORCE ROW LEVEL SECURITY';
+  END IF;
+END $$;
 
 -- Admin Audit Log: AdminJS activity log
-ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_audit_log FORCE ROW LEVEL SECURITY;
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'admin_audit_log') THEN
+    EXECUTE 'ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'ALTER TABLE public.admin_audit_log FORCE ROW LEVEL SECURITY';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- Marketing/Lead Capture Tables
 -- ============================================================================
 
 -- Leads: Lead magnet subscribers
-ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.leads FORCE ROW LEVEL SECURITY;
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'leads') THEN
+    EXECUTE 'ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'ALTER TABLE public.leads FORCE ROW LEVEL SECURITY';
+  END IF;
+END $$;
 
 -- Email Subscribers: Newsletter subscribers
-ALTER TABLE public.email_subscribers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.email_subscribers FORCE ROW LEVEL SECURITY;
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'email_subscribers') THEN
+    EXECUTE 'ALTER TABLE public.email_subscribers ENABLE ROW LEVEL SECURITY';
+    EXECUTE 'ALTER TABLE public.email_subscribers FORCE ROW LEVEL SECURITY';
+  END IF;
+END $$;
 
 -- ============================================================================
 -- Verification Query
