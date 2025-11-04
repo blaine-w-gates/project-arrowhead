@@ -5,20 +5,13 @@
   <link>/blog</link>
   <description>Expert advice on business strategy and planning</description>
   <language>en-us</language>
-  <lastBuildDate>Wed, 29 Oct 2025 13:18:42 GMT</lastBuildDate>
+  <lastBuildDate>Tue, 04 Nov 2025 22:01:53 GMT</lastBuildDate>
   <item>
     <title><![CDATA[Beyond the Buzzwords: The First Question Every Team Must Answer Before Brainstorming]]></title>
     <link>/blog/beyond-the-buzzwords</link>
     <guid>/blog/beyond-the-buzzwords</guid>
     <pubDate>Tue, 16 Sep 2025 00:00:00 GMT</pubDate>
     <description><![CDATA[Most brainstorming fails because nobody primes the pump. Here’s how to create the right context so ideas flow—and where real innovation actually hides.]]></description>
-  </item>
-  <item>
-    <title><![CDATA[XSS Test: Script Sanitization]]></title>
-    <link>/blog/xss-test</link>
-    <guid>/blog/xss-test</guid>
-    <pubDate>Thu, 20 Mar 2025 00:00:00 GMT</pubDate>
-    <description><![CDATA[This post contains a script tag to verify sanitization.]]></description>
   </item>
 </channel>
 </rss>

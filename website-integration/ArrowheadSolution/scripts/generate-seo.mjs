@@ -104,9 +104,11 @@ async function main() {
   const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
   const baseUrl = process.env.PUBLIC_SITE_URL || '';
   const posts = await readPosts(root);
+  // Exclude security fixture post from SEO endpoints
+  const seoPosts = posts.filter(p => p.slug !== 'xss-test');
 
-  const sitemap = buildSitemap(posts, baseUrl);
-  const rss = buildRss(posts, baseUrl);
+  const sitemap = buildSitemap(seoPosts, baseUrl);
+  const rss = buildRss(seoPosts, baseUrl);
 
   const outDir = path.join(root, 'client', 'public');
   await writeIfChanged(path.join(outDir, 'sitemap.xml'), sitemap);
