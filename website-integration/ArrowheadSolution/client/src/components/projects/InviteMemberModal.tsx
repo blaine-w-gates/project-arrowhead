@@ -7,6 +7,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ export function InviteMemberModal({
 }: InviteMemberModalProps) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
+  const { session } = useAuth();
 
   const inviteMutation = useMutation({
     mutationFn: async (emailAddress: string) => {
@@ -43,6 +45,7 @@ export function InviteMemberModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({ email: emailAddress }),

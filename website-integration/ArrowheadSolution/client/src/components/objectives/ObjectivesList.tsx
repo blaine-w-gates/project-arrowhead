@@ -6,6 +6,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, Circle, Clock } from 'lucide-react';
@@ -27,11 +28,15 @@ interface ObjectivesListProps {
 }
 
 export function ObjectivesList({ projectId, onObjectiveClick }: ObjectivesListProps) {
+  const { session } = useAuth();
   const { data: objectives, isLoading, error } = useQuery<Objective[]>({
     queryKey: ['objectives', projectId],
     queryFn: async () => {
       const response = await fetch(`/api/projects/${projectId}/objectives`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {

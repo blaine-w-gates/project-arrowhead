@@ -42,7 +42,7 @@ function parseAllowedOrigins(env: { [key: string]: string | undefined }): Set<st
 
 function buildCorsHeaders(origin: string | null, allowed: Set<string>): HeadersInit {
   const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET, OPTIONS, HEAD",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, X-Requested-With",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
@@ -53,6 +53,132 @@ function buildCorsHeaders(origin: string | null, allowed: Set<string>): HeadersI
   }
   return headers;
 }
+export const onRequestPost = async ({ request, env, params }: { request: Request; env: Record<string, string>; params: Record<string, string> }) => {
+  const origin = normalizeOrigin(request.headers.get("Origin"));
+  const allowed = parseAllowedOrigins(env);
+  const cors = buildCorsHeaders(origin, allowed);
+
+  try {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return jsonWithCors(401, { message: "Unauthorized", error: "Missing or invalid Authorization header" }, cors);
+    }
+    const token = authHeader.substring(7);
+    const jwtSecret = env.SUPABASE_JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("SUPABASE_JWT_SECRET not configured");
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Server misconfiguration" }, cors);
+    }
+    const payload = await verifyJwtWeb(token, jwtSecret);
+    if (!payload) {
+      return jsonWithCors(401, { message: "Unauthorized", error: "Invalid or expired token" }, cors);
+    }
+
+    const userId = payload.sub as string;
+    const teamId = params?.teamId as string;
+    if (!userId || !teamId) {
+      return jsonWithCors(400, { message: "Bad Request", error: "Missing user or team" }, cors);
+    }
+
+    const supabaseUrl = env.SUPABASE_URL;
+    const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("Supabase env not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing");
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Server misconfiguration" }, cors);
+    }
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+    // Verify membership and permissions
+    const { data: member, error: memberErr } = await supabase
+      .from('team_members')
+      .select('id, role')
+      .eq('user_id', userId)
+      .eq('team_id', teamId)
+      .maybeSingle();
+    if (memberErr) {
+      console.error('Supabase query error (team_members get):', memberErr);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to verify membership" }, cors);
+    }
+    if (!member) {
+      return jsonWithCors(403, { message: "Forbidden", error: "You can only create projects in your own team" }, cors);
+    }
+
+    const role = (member as { role?: string }).role || '';
+    const allowedRoles = new Set(["Account Owner", "Account Manager", "Project Owner"]);
+    if (!allowedRoles.has(role)) {
+      return jsonWithCors(403, { message: "Forbidden", error: "Insufficient permissions to create projects" }, cors);
+    }
+
+    // Parse body
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return jsonWithCors(400, { message: "Bad Request", error: "Invalid JSON body" }, cors);
+    }
+
+    const parsed = (body ?? {}) as { name?: unknown; vision?: unknown; estimated_completion_date?: unknown };
+    const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
+    if (!name) {
+      return jsonWithCors(400, { message: "Bad Request", error: "'name' is required" }, cors);
+    }
+    const vision = parsed.vision && typeof parsed.vision === 'object' ? parsed.vision : null;
+    const estimatedDate = typeof parsed.estimated_completion_date === 'string' && parsed.estimated_completion_date
+      ? parsed.estimated_completion_date
+      : null;
+
+    // Check duplicate name within team
+    const { data: dup, error: dupErr } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('name', name)
+      .limit(1)
+      .maybeSingle();
+    if (dupErr) {
+      console.error('Supabase query error (duplicate name check):', dupErr);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to validate project name" }, cors);
+    }
+    if (dup) {
+      return jsonWithCors(409, { message: "Conflict", error: "A project with this name already exists in your team" }, cors);
+    }
+
+    // Insert project
+    const { data: inserted, error: insertErr } = await supabase
+      .from('projects')
+      .insert({
+        team_id: teamId,
+        name,
+        vision_data: vision,
+        estimated_completion_date: estimatedDate,
+        is_archived: false,
+        completion_status: 'not_started',
+      })
+      .select('id, team_id, name, vision_data, completion_status, estimated_completion_date, is_archived, created_at, updated_at')
+      .single();
+    if (insertErr) {
+      console.error('Supabase insert error (projects):', insertErr);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to create project" }, cors);
+    }
+
+    const p = inserted as ProjectRow;
+    const ui = {
+      id: p.id,
+      name: p.name,
+      isArchived: !!p.is_archived,
+      visionData: p.vision_data || null,
+      completionStatus: p.completion_status === 'completed',
+      estimatedCompletionDate: p.estimated_completion_date || null,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+    };
+
+    return jsonWithCors(201, ui, cors, { 'Location': `/api/projects/${p.id}` });
+  } catch (error) {
+    console.error('Error creating project:', error);
+    return jsonWithCors(500, { message: "Internal Server Error", error: error instanceof Error ? error.message : 'Failed to create project' }, cors);
+  }
+};
 
 function jsonWithCors(status: number, data: unknown, cors: HeadersInit, extraHeaders?: HeadersInit): Response {
   return new Response(JSON.stringify(data), {

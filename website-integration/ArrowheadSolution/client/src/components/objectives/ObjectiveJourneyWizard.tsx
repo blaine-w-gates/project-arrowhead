@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ const getModuleAndStep = (stepNumber: number): { module: JourneyModule; localSte
 
 export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: ObjectiveJourneyWizardProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [hasLock, setHasLock] = useState(false);
@@ -73,6 +75,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
     queryFn: async () => {
       const response = await fetch(`/api/objectives/${objectiveId}/resume`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
@@ -93,6 +98,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
         const response = await fetch(`/api/objectives/${objectiveId}/lock`, {
           method: 'POST',
           credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
         });
 
         if (!response.ok) {
@@ -110,6 +118,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
             await fetch(`/api/objectives/${objectiveId}/lock`, {
               method: 'POST',
               credentials: 'include',
+              headers: {
+                'Authorization': `Bearer ${session?.access_token ?? ''}`,
+              },
             });
           } catch (err) {
             console.error('Lock heartbeat failed:', err);
@@ -134,6 +145,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
         fetch(`/api/objectives/${objectiveId}/lock`, {
           method: 'DELETE',
           credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
         });
       }
     };
@@ -183,6 +197,7 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(data),

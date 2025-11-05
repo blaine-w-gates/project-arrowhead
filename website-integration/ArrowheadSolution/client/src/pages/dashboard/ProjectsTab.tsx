@@ -36,7 +36,7 @@ interface Project {
 }
 
 export default function ProjectsTab() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -48,6 +48,9 @@ export default function ProjectsTab() {
       
       const response = await fetch(`/api/teams/${profile.teamId}/projects`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
       
       if (!response.ok) {

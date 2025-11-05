@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -36,6 +37,7 @@ export function DeleteConfirmDialog({
 }: DeleteConfirmDialogProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
+  const { session } = useAuth();
 
   // Check if project has objectives
   const { data: objectives, isLoading } = useQuery({
@@ -43,6 +45,9 @@ export function DeleteConfirmDialog({
     queryFn: async () => {
       const response = await fetch(`/api/projects/${projectId}/objectives`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
@@ -59,6 +64,9 @@ export function DeleteConfirmDialog({
       const response = await fetch(`/api/projects/${projectId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {

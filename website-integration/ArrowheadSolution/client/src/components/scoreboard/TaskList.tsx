@@ -7,6 +7,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,6 +39,7 @@ interface TaskListProps {
 }
 
 export function TaskList({ objectiveId }: TaskListProps) {
+  const { session } = useAuth();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -46,6 +48,9 @@ export function TaskList({ objectiveId }: TaskListProps) {
     queryFn: async () => {
       const response = await fetch(`/api/objectives/${objectiveId}/tasks`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
