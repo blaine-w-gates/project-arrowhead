@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -46,6 +47,7 @@ export function RrgtItemModal({
   columnIndex,
 }: RrgtItemModalProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
 
@@ -68,6 +70,7 @@ export function RrgtItemModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(data),
@@ -98,6 +101,7 @@ export function RrgtItemModal({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(data),

@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -67,6 +68,7 @@ const TOUCHBASE_QUESTIONS = [
 
 export function NewTouchbaseModal({ open, onClose, objectiveId, teamId }: NewTouchbaseModalProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [touchbaseDate, setTouchbaseDate] = useState<string>(
     new Date().toISOString().split('T')[0]
@@ -79,6 +81,9 @@ export function NewTouchbaseModal({ open, onClose, objectiveId, teamId }: NewTou
     queryFn: async () => {
       const response = await fetch(`/api/teams/${teamId}/members`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
@@ -101,6 +106,7 @@ export function NewTouchbaseModal({ open, onClose, objectiveId, teamId }: NewTou
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(data),

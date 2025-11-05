@@ -29,7 +29,7 @@ interface Project {
 }
 
 export default function ObjectivesTab() {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [showAddObjectiveModal, setShowAddObjectiveModal] = useState(false);
   const [journeyObjectiveId, setJourneyObjectiveId] = useState<number | null>(null);
@@ -42,6 +42,9 @@ export default function ObjectivesTab() {
       
       const response = await fetch(`/api/teams/${profile.teamId}/projects`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
       
       if (!response.ok) {

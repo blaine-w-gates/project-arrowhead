@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -37,6 +38,7 @@ export function RenameProjectDialog({
   const queryClient = useQueryClient();
   const [name, setName] = useState(currentName);
   const [error, setError] = useState('');
+  const { session } = useAuth();
 
   const renameMutation = useMutation({
     mutationFn: async (newName: string) => {
@@ -44,6 +46,7 @@ export function RenameProjectDialog({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({ name: newName }),

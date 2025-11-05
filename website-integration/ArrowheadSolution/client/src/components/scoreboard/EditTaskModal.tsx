@@ -63,7 +63,7 @@ interface TeamMember {
 }
 
 export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModalProps) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -93,6 +93,9 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
 
       const response = await fetch(`/api/teams/${profile.teamId}/members`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
@@ -118,6 +121,7 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(taskData),
@@ -142,6 +146,9 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {

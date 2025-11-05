@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -69,6 +70,7 @@ const VISION_QUESTIONS = [
 
 export function VisionModal({ open, onClose, projectId, teamId, isNew, initialData }: VisionModalProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [visionData, setVisionData] = useState<VisionData>({});
   const [error, setError] = useState('');
@@ -88,6 +90,7 @@ export function VisionModal({ open, onClose, projectId, teamId, isNew, initialDa
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({ vision_data: data }),

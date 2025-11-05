@@ -43,7 +43,7 @@ interface TeamMember {
 }
 
 export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) {
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -60,6 +60,9 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
 
       const response = await fetch(`/api/teams/${profile.teamId}/members`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
       });
 
       if (!response.ok) {
@@ -83,6 +86,7 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(taskData),

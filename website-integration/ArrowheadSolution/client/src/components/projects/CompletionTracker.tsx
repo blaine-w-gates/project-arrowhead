@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -25,6 +26,7 @@ export function CompletionTracker({
   estimatedCompletionDate,
 }: CompletionTrackerProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [isComplete, setIsComplete] = useState(completionStatus ?? false);
   const [estimatedDate, setEstimatedDate] = useState(
     estimatedCompletionDate ? estimatedCompletionDate.split('T')[0] : ''
@@ -37,6 +39,7 @@ export function CompletionTracker({
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({

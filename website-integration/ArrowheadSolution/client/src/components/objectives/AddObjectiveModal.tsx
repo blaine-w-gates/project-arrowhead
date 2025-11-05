@@ -10,6 +10,7 @@
 
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ type FlowStep = 'prompt' | 'details';
 
 export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated }: AddObjectiveModalProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [flowStep, setFlowStep] = useState<FlowStep>('prompt');
   const [knowsObjective, setKnowsObjective] = useState<boolean | null>(null);
   const [name, setName] = useState('');
@@ -47,6 +49,7 @@ export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify(data),
