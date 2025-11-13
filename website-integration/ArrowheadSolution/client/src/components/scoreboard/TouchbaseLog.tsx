@@ -18,8 +18,8 @@ import { NewTouchbaseModal } from './NewTouchbaseModal';
 import { ViewTouchbaseModal } from './ViewTouchbaseModal';
 
 interface Touchbase {
-  id: number;
-  objectiveId: number;
+  id: string;
+  objectiveId: string;
   teamMemberId: string;
   teamMemberName: string;
   touchbaseDate: string;
@@ -29,7 +29,7 @@ interface Touchbase {
 }
 
 interface TouchbaseLogProps {
-  objectiveId: number;
+  objectiveId: string;
 }
 
 export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {

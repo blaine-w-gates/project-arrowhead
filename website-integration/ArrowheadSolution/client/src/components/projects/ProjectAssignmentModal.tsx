@@ -17,11 +17,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface TeamMember {
   id: string;
   name: string;
-  projectAssignments: number[];
+  projectAssignments: string[];
 }
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
 }
 
@@ -44,7 +44,7 @@ export function ProjectAssignmentModal({
 }: ProjectAssignmentModalProps) {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
   useEffect(() => {
     if (member) {
@@ -53,7 +53,7 @@ export function ProjectAssignmentModal({
   }, [member]);
 
   const updateAssignmentsMutation = useMutation({
-    mutationFn: async (projectIds: number[]) => {
+    mutationFn: async (projectIds: string[]) => {
       const response = await fetch(`/api/team-members/${memberId}`, {
         method: 'PUT',
         headers: {
@@ -77,7 +77,7 @@ export function ProjectAssignmentModal({
     },
   });
 
-  const handleToggleProject = (projectId: number) => {
+  const handleToggleProject = (projectId: string) => {
     setSelectedProjects(prev =>
       prev.includes(projectId)
         ? prev.filter(id => id !== projectId)

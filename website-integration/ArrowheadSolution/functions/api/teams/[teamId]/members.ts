@@ -47,7 +47,7 @@ function parseAllowedOrigins(env: { [key: string]: string | undefined }): Set<st
 
 function buildCorsHeaders(origin: string | null, allowed: Set<string>): HeadersInit {
   const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "GET, OPTIONS, HEAD",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, HEAD",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, X-Requested-With",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
@@ -217,5 +217,114 @@ export const onRequestGet = async ({ request, env, params }: { request: Request;
   } catch (error) {
     console.error('Error listing team members:', error);
     return jsonWithCors(500, { message: "Internal Server Error", error: error instanceof Error ? error.message : 'Failed to load team members' }, cors);
+  }
+};
+
+export const onRequestPost = async ({ request, env, params }: { request: Request; env: Record<string, string>; params: Record<string, string> }) => {
+  const origin = normalizeOrigin(request.headers.get("Origin"));
+  const allowed = parseAllowedOrigins(env);
+  const cors = buildCorsHeaders(origin, allowed);
+
+  try {
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return jsonWithCors(401, { message: "Unauthorized", error: "Missing or invalid Authorization header" }, cors);
+    }
+    const token = authHeader.substring(7);
+    const jwtSecret = env.SUPABASE_JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("SUPABASE_JWT_SECRET not configured");
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Server misconfiguration" }, cors);
+    }
+    const payload = await verifyJwtWeb(token, jwtSecret);
+    if (!payload) {
+      return jsonWithCors(401, { message: "Unauthorized", error: "Invalid or expired token" }, cors);
+    }
+
+    const teamId = params?.teamId as string;
+    if (!teamId) {
+      return jsonWithCors(400, { message: "Bad Request", error: "Missing teamId" }, cors);
+    }
+
+    const supabaseUrl = env.SUPABASE_URL;
+    const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("Supabase env not configured: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing");
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Server misconfiguration" }, cors);
+    }
+    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
+
+    // Verify requester membership and role (Account Owner or Account Manager)
+    const userId = (payload.sub as string) || '';
+    const { data: member, error: memberErr } = await supabase
+      .from('team_members')
+      .select('id, role')
+      .eq('user_id', userId)
+      .eq('team_id', teamId)
+      .maybeSingle();
+    if (memberErr) {
+      console.error('Supabase query error (team_members get):', memberErr);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to verify membership" }, cors);
+    }
+    if (!member) {
+      return jsonWithCors(403, { message: "Forbidden", error: "You can only manage members in your team" }, cors);
+    }
+
+    const role = (member as { role?: string }).role || '';
+    const allowedRoles = new Set(["Account Owner", "Account Manager"]);
+    if (!allowedRoles.has(role)) {
+      return jsonWithCors(403, { message: "Forbidden", error: "Insufficient permissions to add team members" }, cors);
+    }
+
+    // Parse body
+    type CreateMemberBody = {
+      name?: string;
+      isVirtual?: boolean;
+      email?: string;
+    };
+    let body: CreateMemberBody = {};
+    try { body = await request.json() as CreateMemberBody; } catch { body = {}; }
+    const rawName = typeof body.name === 'string' ? body.name.trim() : '';
+    if (!rawName) {
+      return jsonWithCors(400, { message: "Bad Request", error: "'name' is required" }, cors);
+    }
+
+    // Insert virtual persona
+    const { data: inserted, error: insErr } = await supabase
+      .from('team_members')
+      .insert({
+        team_id: teamId,
+        name: rawName,
+        email: null,
+        user_id: null,
+        role: 'Team Member',
+        is_virtual: true,
+        invite_status: null,
+      })
+      .select('id, user_id, team_id, name, email, role, is_virtual, invite_status, created_at')
+      .single();
+    if (insErr) {
+      console.error('Supabase insert error (team_members):', insErr);
+      return jsonWithCors(500, { message: "Internal Server Error", error: "Failed to add team member" }, cors);
+    }
+
+    const m = inserted as TeamMemberRow;
+    const result = {
+      id: m.id,
+      userId: m.user_id ?? null,
+      teamId: m.team_id,
+      role: 'team_member',
+      name: m.name || '',
+      email: m.email ?? null,
+      isVirtual: !!m.is_virtual,
+      invitationStatus: null as 'pending' | 'accepted' | null,
+      projectAssignments: [] as string[],
+      createdAt: m.created_at || new Date().toISOString(),
+    };
+
+    return jsonWithCors(201, result, cors, { 'Location': `/api/teams/${teamId}/members/${m.id}` });
+  } catch (error) {
+    console.error('Error creating team member:', error);
+    return jsonWithCors(500, { message: "Internal Server Error", error: error instanceof Error ? error.message : 'Failed to add team member' }, cors);
   }
 };

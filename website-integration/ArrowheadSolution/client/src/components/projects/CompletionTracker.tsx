@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from 'lucide-react';
 
 interface CompletionTrackerProps {
-  projectId: number;
+  projectId: string;
   completionStatus: boolean | null;
   estimatedCompletionDate: string | null;
 }

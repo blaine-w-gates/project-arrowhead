@@ -20,8 +20,8 @@ import { JourneyStep } from './journey/JourneyStep';
 import journeyContent from '@/data/journeyContent.json';
 
 interface ObjectiveData {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   name: string;
   targetDate: string | null;
   currentStep: number;
@@ -40,7 +40,7 @@ interface ObjectiveData {
 interface ObjectiveJourneyWizardProps {
   open: boolean;
   onClose: () => void;
-  objectiveId: number;
+  objectiveId: string;
 }
 
 type JourneyModule = 'brainstorm' | 'choose' | 'objectives';

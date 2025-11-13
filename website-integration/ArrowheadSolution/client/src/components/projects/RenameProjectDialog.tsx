@@ -23,7 +23,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface RenameProjectDialogProps {
   open: boolean;
   onClose: () => void;
-  projectId: number;
+  projectId: string;
   currentName: string;
   teamId: string;
 }

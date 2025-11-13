@@ -33,7 +33,7 @@ import { useAuth } from '@/contexts/AuthContext';
 interface AddTaskModalProps {
   open: boolean;
   onClose: () => void;
-  objectiveId: number;
+  objectiveId: string;
 }
 
 interface TeamMember {

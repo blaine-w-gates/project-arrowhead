@@ -45,8 +45,8 @@ interface RrgtData {
 }
 
 interface RrgtGridProps {
-  projectId: number | null;
-  objectiveId: number | null;
+  projectId: string | null;
+  objectiveId: string | null;
   memberIds?: string[];
   currentUserId: string;
 }
@@ -78,8 +78,8 @@ export function RrgtGrid({ projectId, objectiveId, memberIds, currentUserId }: R
     queryKey: ['rrgt', endpoint, projectId, objectiveId],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (projectId) params.append('project_id', projectId.toString());
-      if (objectiveId) params.append('objective_id', objectiveId.toString());
+      if (projectId) params.append('project_id', projectId);
+      if (objectiveId) params.append('objective_id', objectiveId);
 
       const url = `${endpoint}${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
@@ -119,7 +119,7 @@ export function RrgtGrid({ projectId, objectiveId, memberIds, currentUserId }: R
 
   // Filter tasks based on project/objective filters
   const filteredTasks = rrgtData?.tasks.filter(task => {
-    if (objectiveId && task.objectiveId !== objectiveId.toString()) return false;
+    if (objectiveId && task.objectiveId !== objectiveId) return false;
     return true;
   }) || [];
 

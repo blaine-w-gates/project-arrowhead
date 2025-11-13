@@ -28,8 +28,8 @@ import { HelpCircle, Check, X } from 'lucide-react';
 interface AddObjectiveModalProps {
   open: boolean;
   onClose: () => void;
-  projectId: number;
-  onObjectiveCreated?: (objectiveId: number) => void;
+  projectId: string;
+  onObjectiveCreated?: (objectiveId: string) => void;
 }
 
 type FlowStep = 'prompt' | 'details';
