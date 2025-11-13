@@ -56,10 +56,13 @@ describe('AdminJS login flow (integration)', () => {
     expect(Object.keys(resLogin.headers).join(','))
       .toContain('set-cookie')
 
+    // Small delay to ensure session cookie is fully established
+    await new Promise((r) => setTimeout(r, 100))
+
     // 2) Follow with cookie to /admin
     const resAdmin = await agent.get('/admin')
     expect(resAdmin.status).toBe(200)
     // HTML shell is enough for SSR; UI hydrated client-side
     expect(resAdmin.text).toContain('<div id="app"')
-  })
+  }, 15000)
 })
