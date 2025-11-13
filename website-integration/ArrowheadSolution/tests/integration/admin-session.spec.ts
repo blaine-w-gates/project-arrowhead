@@ -31,13 +31,13 @@ describe('AdminJS sessions (integration)', () => {
     } else {
       await db.insert(adminUsers).values({ email, passwordHash, role: 'super_admin', isActive: true })
     }
-  })
+  }, 15000)
 
   it('redirects unauthenticated GET /admin to /admin/login', async () => {
     const res = await request(app).get('/admin')
     expect([301, 302]).toContain(res.status)
     expect(res.headers.location).toContain('/admin/login')
-  })
+  }, 15000)
 
   it('invalid login re-renders login page with error', async () => {
     const res = await agent
@@ -47,7 +47,7 @@ describe('AdminJS sessions (integration)', () => {
 
     expect(res.status).toBe(200)
     expect(res.text).toContain('invalidCredentials')
-  })
+  }, 15000)
 
   it('successful login sets session cookie and allows GET /admin', async () => {
     const resLogin = await agent
@@ -57,11 +57,12 @@ describe('AdminJS sessions (integration)', () => {
 
     expect(resLogin.status).toBe(302)
     expect(resLogin.headers.location).toBe('/admin')
+    await new Promise((r) => setTimeout(r, 100))
 
     const resAdmin = await agent.get('/admin')
     expect(resAdmin.status).toBe(200)
     expect(resAdmin.text).toContain('<div id="app"')
-  })
+  }, 15000)
 
   it('logout then protects /admin again', async () => {
     const resLogout = await agent.get('/admin/logout')

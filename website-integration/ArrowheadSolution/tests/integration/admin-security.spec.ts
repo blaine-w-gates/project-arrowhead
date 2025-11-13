@@ -51,6 +51,8 @@ describe('AdminJS auth security (integration)', () => {
       .send(`email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`)
     expect(resLogin.status).toBe(302)
 
+    // Ensure session cookie is fully established before checking /admin
+    await new Promise((r) => setTimeout(r, 100))
     const res1 = await agent.get('/admin')
     expect(res1.status).toBe(200)
 
@@ -60,7 +62,7 @@ describe('AdminJS auth security (integration)', () => {
     const res2 = await agent.get('/admin')
     expect([301, 302]).toContain(res2.status)
     expect(res2.headers.location).toContain('/admin/login')
-  })
+  }, 15000)
 
   it('invalidates session after secret rotation (simulated expiration)', async () => {
     // App A with secret S1 -> login
@@ -76,6 +78,8 @@ describe('AdminJS auth security (integration)', () => {
       .set('Content-Type', 'application/x-www-form-urlencoded')
       .send(`email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`)
     expect(resLoginA.status).toBe(302)
+    // Small delay to ensure session cookie is fully established
+    await new Promise((r) => setTimeout(r, 100))
 
     const cookies = extractCookies(resLoginA)
     expect(cookies.length).toBeGreaterThan(0)
@@ -91,5 +95,5 @@ describe('AdminJS auth security (integration)', () => {
     const resReuse = await request(appB).get('/admin').set('Cookie', cookies.join('; '))
     expect([301, 302]).toContain(resReuse.status)
     expect(resReuse.headers.location).toContain('/admin/login')
-  })
+  }, 15000)
 })

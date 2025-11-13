@@ -508,17 +508,21 @@ router.post(
 
       // Check if already locked by another user
       const existingLock = getLock(objectiveId);
-      if (existingLock && existingLock.teamMemberId !== teamMemberId) {
-        return res.status(423).json(
-          createErrorResponse(
-            'Locked',
-            'This objective is already locked by another user',
-            { 
-              locked_by: existingLock.userId,
-              expires_at: existingLock.expiresAt 
-            }
-          )
-        );
+      if (existingLock) {
+        const sameMember = !!teamMemberId && existingLock.teamMemberId === teamMemberId;
+        const sameUser = !!(req.userContext?.userId) && existingLock.userId === req.userContext.userId;
+        if (!sameMember && !sameUser) {
+          return res.status(423).json(
+            createErrorResponse(
+              'Locked',
+              'This objective is already locked by another user',
+              { 
+                locked_by: existingLock.userId,
+                expires_at: existingLock.expiresAt 
+              }
+            )
+          );
+        }
       }
 
       // Acquire or renew lock
