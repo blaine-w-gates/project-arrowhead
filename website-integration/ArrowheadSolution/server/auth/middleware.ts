@@ -13,6 +13,32 @@ import { getDb } from '../db';
 import { teamMembers } from '../../shared/schema/teams';
 import { eq, sql } from 'drizzle-orm';
 
+type Limitable = { limit: (n: number) => Promise<unknown> };
+function hasLimit(x: unknown): x is Limitable {
+  return !!x && typeof (x as { limit?: unknown }).limit === 'function';
+}
+function isPromiseLike(x: unknown): x is Promise<unknown> {
+  return !!x && typeof (x as { then?: unknown }).then === 'function';
+}
+type TeamMemberRow = { id: string; teamId: string; role: string };
+const fetchOneSafe = async <T>(dbAny: unknown, q: unknown): Promise<T | undefined> => {
+  if (hasLimit(q)) {
+    const rows = await (q as Limitable).limit(1);
+    if (Array.isArray(rows)) return rows[0] as T;
+  }
+  if (hasLimit(dbAny)) {
+    try {
+      const rows = await (dbAny as Limitable).limit(1);
+      if (Array.isArray(rows)) return rows[0] as T;
+    } catch (_err) { void 0; }
+  }
+  if (isPromiseLike(q)) {
+    const rows = await (q as Promise<unknown>);
+    if (Array.isArray(rows)) return rows[0] as T;
+  }
+  return undefined;
+};
+
 /**
  * User context attached to Express request
  * Contains authenticated user and their team membership info
@@ -85,45 +111,24 @@ export async function requireAuth(
       email: verification.email,
     };
 
-    // Helper: fetch one row resiliently (mock DB may not support chaining)
-    // IMPORTANT: If a DB client implements .limit() and it rejects, propagate the error.
-    async function fetchOneSafe<T>(dbAny: any, q: any): Promise<T | undefined> {
-      if (q && typeof q.limit === 'function') {
-        // If the query supports limit, use it and let errors propagate
-        const rows = await q.limit(1);
-        return rows?.[0];
-      }
-
-      if (dbAny && typeof dbAny.limit === 'function') {
-        // As a fallback for some mock setups
-        const rows = await dbAny.limit(1);
-        return rows?.[0];
-      }
-
-      // Final fallback: try awaiting the query value if it's a promise-like
-      if (q && typeof q.then === 'function') {
-        const rows: any = await q;
-        return Array.isArray(rows) ? rows[0] : rows?.[0];
-      }
-      return undefined;
-    }
+    // Helper moved to top-level to satisfy TS/ESLint rules
 
     // Look up team membership in database
     const db = getDb();
     const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST || !!process.env.VITEST_WORKER_ID;
-    let membership: any | undefined;
-    if (isTestEnv && (db as any) && typeof (db as any).limit === 'function') {
+    let membership: TeamMemberRow | undefined;
+    if (isTestEnv && hasLimit(db)) {
       try {
-        const rows: any = await (db as any).limit(1);
-        membership = Array.isArray(rows) ? rows[0] : undefined;
-      } catch {}
+        const rowsUnknown = await (db as Limitable).limit(1);
+        membership = Array.isArray(rowsUnknown) ? (rowsUnknown[0] as TeamMemberRow) : undefined;
+      } catch (_err) { void 0; }
     }
     if (!membership) {
       const membershipQuery = db
         .select()
         .from(teamMembers)
         .where(eq(teamMembers.userId, verification.userId));
-      membership = await fetchOneSafe<any>(db as any, membershipQuery as any);
+      membership = await fetchOneSafe<TeamMemberRow>(db, membershipQuery);
     }
 
     if (membership) {
@@ -143,13 +148,18 @@ export async function requireAuth(
           .select()
           .from(teamMembers)
           .where(eq(teamMembers.id, virtualPersonaHeader));
-        const virtualPersonaRecords = typeof (vpQuery as unknown as { limit?: unknown }).limit === 'function'
-          // @ts-expect-error - limit may exist on real client
-          ? await (vpQuery as any).limit(1)
-          : await (vpQuery as unknown as Promise<any[]>);
+        let vpRowsUnknown: unknown;
+        if (hasLimit(vpQuery)) {
+          vpRowsUnknown = await (vpQuery as Limitable).limit(1);
+        } else if (isPromiseLike(vpQuery)) {
+          vpRowsUnknown = await (vpQuery as Promise<unknown>);
+        } else {
+          vpRowsUnknown = [];
+        }
+        const virtualPersonaRecords = Array.isArray(vpRowsUnknown) ? (vpRowsUnknown as TeamMemberRow[]) : [];
 
         if (virtualPersonaRecords.length > 0) {
-          const virtualPersona = virtualPersonaRecords[0];
+          const virtualPersona = virtualPersonaRecords[0] as TeamMemberRow;
           
           // Ensure virtual persona is in the same team
           if (virtualPersona.teamId === userContext.teamId) {
@@ -232,10 +242,15 @@ export async function optionalAuth(
       .select()
       .from(teamMembers)
       .where(eq(teamMembers.userId, verification.userId));
-    const membershipRecords = typeof (membershipQuery as unknown as { limit?: unknown }).limit === 'function'
-      // @ts-expect-error - limit may exist on real client
-      ? await (membershipQuery as any).limit(1)
-      : await (membershipQuery as unknown as Promise<any[]>);
+    let membershipRowsUnknown: unknown;
+    if (hasLimit(membershipQuery)) {
+      membershipRowsUnknown = await (membershipQuery as Limitable).limit(1);
+    } else if (isPromiseLike(membershipQuery)) {
+      membershipRowsUnknown = await (membershipQuery as Promise<unknown>);
+    } else {
+      membershipRowsUnknown = [];
+    }
+    const membershipRecords = Array.isArray(membershipRowsUnknown) ? (membershipRowsUnknown as TeamMemberRow[]) : [];
 
     if (membershipRecords.length > 0) {
       const membership = membershipRecords[0];

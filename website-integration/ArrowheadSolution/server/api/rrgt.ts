@@ -19,27 +19,45 @@ import {
   formatValidationError,
   createErrorResponse,
 } from './validation';
-import { isAccountAdmin, createPermissionError } from './permissions';
+import { isAccountAdmin } from './permissions';
 
 const router = Router();
 
-async function fetchOneSafe<T>(db: any, q: any): Promise<T | undefined> {
+function hasLimit(x: unknown): x is { limit: (n: number) => Promise<unknown> } {
+  return !!x && typeof (x as { limit?: unknown }).limit === 'function';
+}
+
+type DialStateRow = typeof dialStates.$inferSelect;
+
+async function fetchOneSafe<T>(db: unknown, q: unknown): Promise<T | undefined> {
   try {
-    if (q && typeof q.limit === 'function') {
-      const rows: any = await q.limit(1);
-      return Array.isArray(rows) ? rows[0] : rows?.[0];
+    if (hasLimit(q)) {
+      const rowsUnknown = await (q as { limit: (n: number) => Promise<unknown> }).limit(1);
+      const rows = rowsUnknown as unknown;
+      if (Array.isArray(rows)) return rows[0] as T;
+      if (rows && typeof rows === 'object' && 0 in (rows as Record<number, unknown>)) {
+        return (rows as Record<number, unknown>)[0] as T;
+      }
     }
-  } catch {}
+  } catch (_err) { void 0; }
   try {
-    const rows: any = await q;
-    return Array.isArray(rows) ? rows[0] : rows?.[0];
-  } catch {}
-  try {
-    if (db && typeof db.limit === 'function') {
-      const rows: any = await db.limit(1);
-      return Array.isArray(rows) ? rows[0] : rows?.[0];
+    if (q && typeof (q as { then?: unknown }).then === 'function') {
+      const rowsUnknown = await (q as Promise<unknown>);
+      if (Array.isArray(rowsUnknown)) return rowsUnknown[0] as T;
+      if (rowsUnknown && typeof rowsUnknown === 'object' && 0 in (rowsUnknown as Record<number, unknown>)) {
+        return (rowsUnknown as Record<number, unknown>)[0] as T;
+      }
     }
-  } catch {}
+  } catch (_err) { void 0; }
+  try {
+    if (hasLimit(db)) {
+      const rowsUnknown = await (db as { limit: (n: number) => Promise<unknown> }).limit(1);
+      if (Array.isArray(rowsUnknown)) return rowsUnknown[0] as T;
+      if (rowsUnknown && typeof rowsUnknown === 'object' && 0 in (rowsUnknown as Record<number, unknown>)) {
+        return (rowsUnknown as Record<number, unknown>)[0] as T;
+      }
+    }
+  } catch (_err) { void 0; }
   return undefined;
 }
 
@@ -89,10 +107,13 @@ router.get(
       const userItems = Array.isArray(userItemsRes) ? userItemsRes : [];
 
       // Fetch user's dial state
-      const dialStateRow = await fetchOneSafe<any>(db as any, db
-        .select()
-        .from(dialStates)
-        .where(eq(dialStates.teamMemberId, currentTeamMemberId)));
+      const dialStateRow = await fetchOneSafe<DialStateRow>(
+        db,
+        db
+          .select()
+          .from(dialStates)
+          .where(eq(dialStates.teamMemberId, currentTeamMemberId))
+      );
       const dialState = dialStateRow || null;
 
       return res.status(200).json({
@@ -173,10 +194,13 @@ router.get(
       const memberItems = Array.isArray(memberItemsRes) ? memberItemsRes : [];
 
       // Fetch target member's dial state
-      const dialStateRow = await fetchOneSafe<any>(db as any, db
-        .select()
-        .from(dialStates)
-        .where(eq(dialStates.teamMemberId, targetTeamMemberId)));
+      const dialStateRow = await fetchOneSafe<DialStateRow>(
+        db,
+        db
+          .select()
+          .from(dialStates)
+          .where(eq(dialStates.teamMemberId, targetTeamMemberId))
+      );
       const dialState = dialStateRow || null;
 
       return res.status(200).json({
