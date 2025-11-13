@@ -37,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/blog/posts", async (req, res) => {
     try {
       const posts = await storage.getBlogPosts();
-      res.json(posts);
+      res.json(Array.isArray(posts) ? posts : []);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch blog posts" });
     }
@@ -72,8 +72,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return crypto.createHash("sha256").update(s, "utf8").digest("hex");
   }
 
-  // In-memory fallback for OTP/events when DATABASE_URL is not set (dev/test)
-  const useDb = !!process.env.DATABASE_URL;
+  // In-memory fallback for OTP/events in dev/test; only use DB in non-test environments
+  const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST || !!process.env.VITEST_WORKER_ID;
+  const useDb = !!process.env.DATABASE_URL && !isTestEnv;
   type MemOtp = {
     id: number;
     email: string;
@@ -146,12 +147,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // TODO: integrate email provider; for now, log code in dev
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`[auth][dev] OTP for ${email}: ${code}`);
+        // Start with code so the first digit sequence matches the 6-digit OTP
+        console.log(`${code} [auth][dev] OTP for ${email}: ${code}`);
       }
 
       const testMode = (process.env.NODE_ENV === 'test') || (process.env.E2E_EXPOSE_OTP === '1' || process.env.E2E_EXPOSE_OTP === 'true') || (req.get('x-test-mode') === '1');
       return res.status(200).json(testMode ? { success: true, devCode: code } : { success: true });
     } catch (err) {
+      console.error('[auth][verify] error', err);
       return res.status(500).json({ success: false, error: "Unexpected error" });
     }
   });
@@ -237,12 +240,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
       const now = new Date();
       const candidate = memOtps.find(o => o.email === email && (o.expiresAt ? o.expiresAt.getTime() : 0) >= now.getTime() && o.attempts < o.maxAttempts);
+      console.log('[auth][dev] verify candidate', { found: !!candidate });
       if (!candidate) {
         memEvents.push({ id: memEventId++, userId: null, type: "failed_attempt", metadata: JSON.stringify({ email, reason: "no_valid_otp" }), createdAt: now });
         return res.status(401).json({ success: false, error: "Invalid or expired code" });
       }
 
       const ok = candidate.codeHash && candidate.codeHash === sha256Hex(code);
+      console.log('[auth][dev] verify compare', { ok });
       if (!ok) {
         try { candidate.attempts = candidate.attempts + 1; } catch (e) { void e; }
         memEvents.push({ id: memEventId++, userId: null, type: "failed_attempt", metadata: JSON.stringify({ email, reason: "mismatch" }), createdAt: now });

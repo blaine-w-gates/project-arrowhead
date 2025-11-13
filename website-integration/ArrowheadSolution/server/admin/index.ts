@@ -217,8 +217,9 @@ export async function setupAdminPanel(app: Express) {
     },
     null,
     {
-      resave: false,
-      // ensure session cookie is set even before explicit mutation in some proxies
+      resave: true,
+      rolling: true,
+      // Ensure a session cookie is issued reliably across environments
       saveUninitialized: true,
       secret: process.env.ADMIN_SESSION_SECRET || 'changeme-in-production',
       cookie: {
