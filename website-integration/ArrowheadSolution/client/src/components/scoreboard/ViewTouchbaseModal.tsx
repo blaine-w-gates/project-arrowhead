@@ -19,8 +19,8 @@ import { Calendar, User, Edit2, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Touchbase {
-  id: number;
-  objectiveId: number;
+  id: string;
+  objectiveId: string;
   teamMemberId: string;
   teamMemberName: string;
   touchbaseDate: string;

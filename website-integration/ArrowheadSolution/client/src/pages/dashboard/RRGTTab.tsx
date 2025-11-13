@@ -21,13 +21,13 @@ import { RrgtGrid } from '@/components/rrgt/RrgtGrid';
 import { DialPlaceholder } from '@/components/rrgt/DialPlaceholder';
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   isArchived: boolean;
 }
 
 interface Objective {
-  id: number;
+  id: string;
   name: string;
 }
 
@@ -39,8 +39,8 @@ interface TeamMember {
 
 export default function RRGTTab() {
   const { profile, session } = useAuth();
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [selectedObjectiveId, setSelectedObjectiveId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
   const isManager = profile?.role === 'Account Owner' || profile?.role === 'Account Manager';
@@ -123,8 +123,8 @@ export default function RRGTTab() {
     queryKey: ['rrgt', rrgtEndpoint, selectedProjectId, selectedObjectiveId],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedProjectId) params.append('project_id', selectedProjectId.toString());
-      if (selectedObjectiveId) params.append('objective_id', selectedObjectiveId.toString());
+      if (selectedProjectId) params.append('project_id', selectedProjectId);
+      if (selectedObjectiveId) params.append('objective_id', selectedObjectiveId);
 
       const url = `${rrgtEndpoint}${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
@@ -143,7 +143,7 @@ export default function RRGTTab() {
   });
 
   const handleProjectChange = (projectId: string) => {
-    setSelectedProjectId(parseInt(projectId));
+    setSelectedProjectId(projectId || null);
     setSelectedObjectiveId(null);
   };
 
@@ -192,7 +192,7 @@ export default function RRGTTab() {
             <div className="space-y-2">
               <Label>Project</Label>
               <Select
-                value={selectedProjectId?.toString() || ''}
+                value={selectedProjectId || ''}
                 onValueChange={handleProjectChange}
                 disabled={projectsLoading || activeProjects.length === 0}
               >
@@ -208,7 +208,7 @@ export default function RRGTTab() {
                 <SelectContent>
                   <SelectItem value="">All Projects</SelectItem>
                   {activeProjects.map((project) => (
-                    <SelectItem key={project.id} value={project.id.toString()}>
+                    <SelectItem key={project.id} value={project.id}>
                       {project.name}
                     </SelectItem>
                   ))}
@@ -220,8 +220,8 @@ export default function RRGTTab() {
             <div className="space-y-2">
               <Label>Objective</Label>
               <Select
-                value={selectedObjectiveId?.toString() || ''}
-                onValueChange={(value) => setSelectedObjectiveId(value ? parseInt(value) : null)}
+                value={selectedObjectiveId || ''}
+                onValueChange={(value) => setSelectedObjectiveId(value || null)}
                 disabled={!selectedProjectId || objectivesLoading || !objectives || objectives.length === 0}
               >
                 <SelectTrigger>
@@ -238,7 +238,7 @@ export default function RRGTTab() {
                 <SelectContent>
                   <SelectItem value="">All Objectives</SelectItem>
                   {objectives?.map((objective) => (
-                    <SelectItem key={objective.id} value={objective.id.toString()}>
+                    <SelectItem key={objective.id} value={objective.id}>
                       {objective.name}
                     </SelectItem>
                   ))}

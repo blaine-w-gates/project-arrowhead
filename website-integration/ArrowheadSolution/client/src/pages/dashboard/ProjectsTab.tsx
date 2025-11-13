@@ -19,7 +19,7 @@ import { PermissionGrid } from '@/components/projects/PermissionGrid';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   isArchived: boolean;
   visionData: {

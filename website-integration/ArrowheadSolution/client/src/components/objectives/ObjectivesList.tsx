@@ -13,18 +13,19 @@ import { CheckCircle, Circle, Clock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Objective {
-  id: number;
+  id: string;
   name: string;
   status: 'active' | 'completed' | 'paused';
   completionStatus: boolean | null;
   estimatedCompletionDate: string | null;
+  actualCompletionDate?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 interface ObjectivesListProps {
-  projectId: number;
-  onObjectiveClick?: (objectiveId: number) => void;
+  projectId: string;
+  onObjectiveClick?: (objectiveId: string) => void;
 }
 
 export function ObjectivesList({ projectId, onObjectiveClick }: ObjectivesListProps) {

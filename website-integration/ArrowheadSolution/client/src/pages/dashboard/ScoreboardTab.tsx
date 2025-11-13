@@ -21,13 +21,13 @@ import { AddTaskModal } from '@/components/scoreboard/AddTaskModal';
 import { CompletionTracker } from '@/components/projects/CompletionTracker';
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   isArchived: boolean;
 }
 
 interface Objective {
-  id: number;
+  id: string;
   name: string;
   completionStatus: boolean | null;
   estimatedCompletionDate: string | null;
@@ -35,8 +35,8 @@ interface Objective {
 
 export default function ScoreboardTab() {
   const { profile, session } = useAuth();
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [selectedObjectiveId, setSelectedObjectiveId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
 
   // Fetch projects
@@ -88,7 +88,7 @@ export default function ScoreboardTab() {
 
   // Reset objective selection when project changes
   const handleProjectChange = (projectId: string) => {
-    setSelectedProjectId(parseInt(projectId));
+    setSelectedProjectId(projectId);
     setSelectedObjectiveId(null);
   };
 
@@ -121,7 +121,7 @@ export default function ScoreboardTab() {
           <div className="space-y-2">
             <label className="text-sm font-medium">Project</label>
             <Select
-              value={selectedProjectId?.toString() || ''}
+              value={selectedProjectId || ''}
               onValueChange={handleProjectChange}
               disabled={projectsLoading || activeProjects.length === 0}
             >
@@ -136,7 +136,7 @@ export default function ScoreboardTab() {
               </SelectTrigger>
               <SelectContent>
                 {activeProjects.map((project) => (
-                  <SelectItem key={project.id} value={project.id.toString()}>
+                  <SelectItem key={project.id} value={project.id}>
                     {project.name}
                   </SelectItem>
                 ))}
@@ -148,8 +148,8 @@ export default function ScoreboardTab() {
           <div className="space-y-2">
             <label className="text-sm font-medium">Objective</label>
             <Select
-              value={selectedObjectiveId?.toString() || ''}
-              onValueChange={(value) => setSelectedObjectiveId(parseInt(value))}
+              value={selectedObjectiveId || ''}
+              onValueChange={(value) => setSelectedObjectiveId(value)}
               disabled={!selectedProjectId || objectivesLoading || !objectives || objectives.length === 0}
             >
               <SelectTrigger>
@@ -165,7 +165,7 @@ export default function ScoreboardTab() {
               </SelectTrigger>
               <SelectContent>
                 {objectives?.map((objective) => (
-                  <SelectItem key={objective.id} value={objective.id.toString()}>
+                  <SelectItem key={objective.id} value={objective.id}>
                     {objective.name}
                   </SelectItem>
                 ))}

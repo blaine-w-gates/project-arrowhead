@@ -36,7 +36,7 @@ export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps)
   const [fillVisionNow, setFillVisionNow] = useState(false);
   const [error, setError] = useState('');
   const [showVisionModal, setShowVisionModal] = useState(false);
-  const [createdProjectId, setCreatedProjectId] = useState<number | null>(null);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 
   const createMutation = useMutation({
     mutationFn: async (projectName: string) => {
@@ -61,7 +61,7 @@ export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps)
       queryClient.invalidateQueries({ queryKey: ['projects', teamId] });
       
       if (fillVisionNow) {
-        setCreatedProjectId(data.id);
+        setCreatedProjectId(String(data.id));
         setShowVisionModal(true);
       } else {
         handleClose();
@@ -159,7 +159,7 @@ export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps)
       </Dialog>
 
       {/* Vision Modal - opened after project creation if checkbox was checked */}
-      {createdProjectId && (
+      {typeof createdProjectId === 'string' && (
         <VisionModal
           open={showVisionModal}
           onClose={handleVisionClose}
