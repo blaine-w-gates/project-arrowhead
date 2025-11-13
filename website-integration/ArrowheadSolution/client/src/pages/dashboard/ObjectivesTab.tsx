@@ -21,7 +21,7 @@ import { AddObjectiveModal } from '@/components/objectives/AddObjectiveModal';
 import { ObjectiveJourneyWizard } from '@/components/objectives/ObjectiveJourneyWizard';
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   isArchived: boolean;
   completionStatus: boolean | null;
@@ -30,9 +30,9 @@ interface Project {
 
 export default function ObjectivesTab() {
   const { profile, session } = useAuth();
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [showAddObjectiveModal, setShowAddObjectiveModal] = useState(false);
-  const [journeyObjectiveId, setJourneyObjectiveId] = useState<number | null>(null);
+  const [journeyObjectiveId, setJourneyObjectiveId] = useState<string | null>(null);
 
   // Fetch projects for dropdown
   const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
@@ -85,8 +85,8 @@ export default function ObjectivesTab() {
         </CardHeader>
         <CardContent>
           <Select
-            value={selectedProjectId?.toString() || ''}
-            onValueChange={(value) => setSelectedProjectId(parseInt(value))}
+            value={selectedProjectId || ''}
+            onValueChange={(value) => setSelectedProjectId(value)}
             disabled={projectsLoading || activeProjects.length === 0}
           >
             <SelectTrigger className="w-full">
@@ -100,7 +100,7 @@ export default function ObjectivesTab() {
             </SelectTrigger>
             <SelectContent>
               {activeProjects.map((project) => (
-                <SelectItem key={project.id} value={project.id.toString()}>
+                <SelectItem key={project.id} value={project.id}>
                   {project.name}
                 </SelectItem>
               ))}
@@ -147,7 +147,7 @@ export default function ObjectivesTab() {
             <CardContent>
               <ObjectivesList 
                 projectId={selectedProject.id}
-                onObjectiveClick={(objectiveId: number) => setJourneyObjectiveId(objectiveId)}
+                onObjectiveClick={(objectiveId: string) => setJourneyObjectiveId(objectiveId)}
               />
             </CardContent>
           </Card>
@@ -169,7 +169,7 @@ export default function ObjectivesTab() {
           open={showAddObjectiveModal}
           onClose={() => setShowAddObjectiveModal(false)}
           projectId={selectedProjectId}
-          onObjectiveCreated={(objectiveId: number) => setJourneyObjectiveId(objectiveId)}
+          onObjectiveCreated={(objectiveId: string) => setJourneyObjectiveId(objectiveId)}
         />
       )}
 

@@ -28,13 +28,13 @@ interface TeamMember {
   email: string | null;
   isVirtual: boolean;
   invitationStatus: 'pending' | 'accepted' | null;
-  projectAssignments: number[];
+  projectAssignments: string[];
   createdAt: string;
 }
 
 interface PermissionGridProps {
   teamId: string;
-  projects: Array<{ id: number; name: string }>;
+  projects: Array<{ id: string; name: string }>;
 }
 
 export function PermissionGrid({ teamId, projects }: PermissionGridProps) {

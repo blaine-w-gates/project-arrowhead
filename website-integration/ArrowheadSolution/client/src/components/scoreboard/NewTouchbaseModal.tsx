@@ -24,7 +24,7 @@ interface TeamMember {
 interface NewTouchbaseModalProps {
   open: boolean;
   onClose: () => void;
-  objectiveId: number;
+  objectiveId: string;
   teamId: string;
 }
 

@@ -23,7 +23,7 @@ import { AlertTriangle } from 'lucide-react';
 interface DeleteConfirmDialogProps {
   open: boolean;
   onClose: () => void;
-  projectId: number;
+  projectId: string;
   projectName: string;
   teamId: string;
 }

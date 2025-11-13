@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 
 interface Project {
-  id: number;
+  id: string;
   name: string;
   isArchived: boolean;
   visionData: {
@@ -46,6 +47,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, teamId }: ProjectCardProps) {
   const queryClient = useQueryClient();
+  const { session } = useAuth();
   const [showVisionModal, setShowVisionModal] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -57,6 +59,7 @@ export function ProjectCard({ project, teamId }: ProjectCardProps) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
         body: JSON.stringify({ is_archived: isArchived }),

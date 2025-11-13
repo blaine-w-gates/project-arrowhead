@@ -40,7 +40,7 @@ interface TaskAssignee {
 }
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
   description: string | null;
   status: 'not_started' | 'in_progress' | 'completed' | 'blocked';
@@ -53,7 +53,7 @@ interface EditTaskModalProps {
   open: boolean;
   onClose: () => void;
   task: Task;
-  objectiveId: number;
+  objectiveId: string;
 }
 
 interface TeamMember {
