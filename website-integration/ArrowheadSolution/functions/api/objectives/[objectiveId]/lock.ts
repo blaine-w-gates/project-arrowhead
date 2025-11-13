@@ -170,6 +170,11 @@ export const onRequestPost = async ({ request, env, params }: { request: Request
     if (!member) {
       return jsonWithCors(403, { message: "Forbidden", error: "You can only edit objectives in your own team" }, cors);
     }
+    const role = (member as { role?: string }).role || '';
+    const allowedRoles = new Set(["Account Owner", "Account Manager", "Project Owner"]);
+    if (!allowedRoles.has(role)) {
+      return jsonWithCors(403, { message: "Forbidden", error: "Insufficient permissions to edit objectives" }, cors);
+    }
 
     const teamMemberId = (member as { id: string }).id;
 
