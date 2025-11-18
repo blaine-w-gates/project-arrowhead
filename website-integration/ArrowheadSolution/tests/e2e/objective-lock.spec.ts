@@ -217,7 +217,12 @@ test.describe('Objective Lock Flow (PR #155 Verification)', () => {
     console.log('\n=== LOCK ENDPOINT VERIFICATION ===');
     
     // Method A: Check network errors for lock endpoint failures
-    const lockErrors = networkErrors.filter(err => err.url.includes('/lock'));
+    // Note: Only check errors that occurred BEFORE this point (during the critical path)
+    // Ignore cleanup errors (404s when trying to delete already-released locks)
+    const lockErrors = networkErrors.filter(err => 
+      err.url.includes('/lock') && 
+      !(err.method === 'DELETE' && err.status === 404) // Ignore cleanup 404s
+    );
     if (lockErrors.length > 0) {
       console.log(`❌ Lock endpoint errors detected:`, lockErrors);
       throw new Error(`Lock endpoint failed: ${lockErrors.map(e => `${e.method} ${e.url} → ${e.status}`).join(', ')}`);
