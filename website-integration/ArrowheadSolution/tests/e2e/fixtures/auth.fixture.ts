@@ -17,15 +17,19 @@ import { fileURLToPath } from 'url';
 
 // Load environment variables from project root
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.join(__dirname, '..', '..', '..');
-dotenv.config({ path: path.join(projectRoot, '.env') });
+const projectRoot = path.resolve(__dirname, '../../..');
+
+// Load .env file only in local development (CI sets env vars directly)
+if (!process.env.CI) {
+  dotenv.config({ path: path.join(projectRoot, '.env') });
+}
 
 // --- Setup Supabase Admin Client ---
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
+  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY - ensure GitHub secrets are configured or .env file exists locally');
 }
 
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
