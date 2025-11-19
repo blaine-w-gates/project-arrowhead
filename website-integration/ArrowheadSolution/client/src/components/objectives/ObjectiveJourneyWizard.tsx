@@ -84,7 +84,10 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
         throw new Error('Failed to fetch objective');
       }
 
-      return response.json();
+      const data = await response.json();
+      // Server returns wrapped response: { objective: {...}, is_locked, ... }
+      // Extract the nested objective data
+      return data.objective;
     },
     enabled: open && !!objectiveId,
   });
