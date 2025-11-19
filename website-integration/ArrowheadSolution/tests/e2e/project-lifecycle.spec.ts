@@ -8,51 +8,12 @@
  * 
  * Based on: STRATEGIC_TESTING_PLAN.md Phase 2.3
  * 
- * Prerequisites:
- * - AddProjectModal.tsx exists
- * - VisionModal.tsx exists
- * - ProjectCard.tsx with archive/delete actions
- * - projects table has vision_data and is_archived columns
+ * REFACTORED: Now uses auth.fixture.ts for reliable God Mode signup/confirmation
  */
 
-import { test, expect, Page } from '@playwright/test';
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-// Load environment variables from project root
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.join(__dirname, '..', '..');
-
-// Load .env file only in local development (CI sets env vars directly)
-if (!process.env.CI) {
-  dotenv.config({ path: path.join(projectRoot, '.env') });
-}
-
-// --- Setup Supabase Admin Client ---
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY - ensure GitHub secrets are configured or .env file exists locally');
-}
-
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
-
-/**
- * Generate unique test email for idempotent test runs
- */
-function generateTestEmail(): string {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(7);
-  return `arrowhead.test.user+${timestamp}-${random}@gmail.com`;
-}
+import { test, expect } from '@playwright/test';
+import { generateTestEmail, signUpNewUser, initializeTeam } from './fixtures/auth.fixture';
+import { cleanupTestData } from './fixtures/data.fixture';
 
 /**
  * Test configuration
@@ -61,336 +22,81 @@ const TEST_PASSWORD = 'TestPassword123!';
 const TEST_TEAM_NAME = 'E2E Project Test Team';
 const TEST_USER_NAME = 'Test Project Owner';
 
-/**
- * Helper: Sign up a new user via Supabase with Auto-Confirmation
- */
-async function signUpNewUser(page: Page, email: string, password: string) {
-  console.log(`📝 Step 1: Signing up Account Owner with email: ${email}`);
-  
-  await page.goto('/signup', { waitUntil: 'networkidle', timeout: 15000 });
-  
-  await page.getByLabel(/^email$/i).fill(email);
-  await page.getByLabel(/^password$/i).fill(password);
-  await page.getByLabel(/confirm password/i).fill(password);
-  
-  const signUpButton = page.getByRole('button', { name: /sign up/i });
-  await expect(signUpButton).toBeEnabled({ timeout: 3000 });
-  await signUpButton.click();
-  
-  // Wait for the "Check your email" message or redirect
-  // This ensures the user is created in the database before we try to verify them
-  await expect(page.getByText(/check your email/i).or(page.getByText(/dashboard/i))).toBeVisible({ timeout: 60000 });
-
-  // --- Programmatic Confirmation ---
-  console.log('🔧 Auto-confirming user via Supabase Admin API...');
-  
-  // 1. Find the user ID by email
-  const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-  if (listError) {
-    console.error('❌ Error listing users:', listError);
-    throw new Error(`Failed to list users: ${listError.message}`);
-  }
-
-  const user = users?.find(u => u.email === email);
-  if (!user) {
-    throw new Error(`Could not find user ${email} in Supabase to auto-confirm.`);
-  }
-
-  if (!user.email_confirmed_at) {
-    // 2. Manually confirm the email
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      user.id, 
-      { email_confirm: true }
-    );
-
-    if (updateError) {
-      throw new Error(`Failed to auto-confirm user: ${updateError.message}`);
-    }
-    console.log('✅ User auto-confirmed via API.');
-  } else {
-    console.log('ℹ️ User already confirmed.');
-  }
-
-  // 3. Log in fresh (since verification usually requires a new session or link click)
-  console.log('🔐 Logging in with confirmed account...');
-  await page.goto('/signin');
-  await page.getByLabel(/^email$/i).fill(email);
-  await page.getByLabel(/^password$/i).fill(password);
-  
-  const signInButton = page.getByRole('button', { name: /sign in/i });
-  await signInButton.click();
-
-  try {
-    await page.waitForURL(/\/dashboard\//, { timeout: 60000 });
-    console.log('✅ Login successful - redirected to dashboard');
-  } catch (error) {
-    console.error('❌ Failed to redirect to dashboard after login');
-    throw error;
-  }
-}
-
-/**
- * Helper: Initialize team via UI modal
- */
-async function initializeTeamViaUI(
-  page: Page,
-  teamName: string,
-  userName: string
-): Promise<void> {
-  console.log('🏢 Waiting for team initialization modal...');
-  
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 60000 });
-  await expect(page.getByText(/Welcome! Let's Get Started/i)).toBeVisible();
-  
-  console.log('📝 Filling team initialization form...');
-  await page.getByLabel(/your name/i).fill(userName);
-  await page.getByLabel(/team name/i).fill(teamName);
-  
-  const getStartedButton = page.getByRole('button', { name: /get started/i });
-  await expect(getStartedButton).toBeEnabled();
-  await getStartedButton.click();
-  
-  // Wait for modal to close (it calls refreshProfile() instead of reload now)
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 60000 });
-  
-  // Verify we're still on dashboard (session preserved)
-  // The app redirects to /dashboard/projects after team initialization
-  await expect(page).toHaveURL(/\/dashboard\//, { timeout: 5000 });
-  console.log('✅ Team initialized via UI');
-}
-
-/**
- * Helper: Create project via UI
- * Returns the project name for verification
- */
-async function createProjectViaUI(
-  page: Page,
-  projectName: string
-): Promise<void> {
+// Keep these test-specific helpers that aren't in fixtures
+async function createProjectViaUI(page: any, projectName: string): Promise<void> {
   console.log(`📁 Creating project: ${projectName}`);
-  
-  // Click "Add Project" button
   const addProjectButton = page.getByRole('button', { name: /add project/i });
   await expect(addProjectButton).toBeVisible({ timeout: 5000 });
   await addProjectButton.click();
-  
-  // Wait for modal
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5000 });
-  
-  // Fill project name
   const projectNameInput = page.getByLabel(/project name/i);
   await projectNameInput.fill(projectName);
-  
-  // Click create button
   const createButton = page.getByRole('button', { name: /^create$/i }).last();
   await expect(createButton).toBeEnabled();
   await createButton.click();
-  
-  // Wait for project to appear
   await expect(page.getByText(projectName)).toBeVisible({ timeout: 5000 });
   console.log(`✅ Project created: ${projectName}`);
 }
 
-/**
- * Helper: Fill vision via UI
- */
-async function fillVisionViaUI(
-  page: Page,
-  projectName: string,
-  visionData: {
-    purpose: string;
-    achieve: string;
-    market: string;
-    customers: string;
-    win: string;
-  }
-): Promise<void> {
+async function fillVisionViaUI(page: any, projectName: string, visionData: any): Promise<void> {
   console.log(`📝 Filling vision for: ${projectName}`);
-  
-  // Find project card
   const projectCard = page.locator('.card, [data-testid="project-card"]', { hasText: projectName }).first();
   await expect(projectCard).toBeVisible({ timeout: 5000 });
-  
-  // Click "Add Vision" or "Edit Vision" button
   const visionButton = projectCard.getByRole('button', { name: /vision/i });
   await visionButton.click();
-  
-  // Wait for Vision Modal
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5000 });
   await expect(page.getByText(/vision/i).first()).toBeVisible();
-  
-  // Fill all 5 vision questions
-  // Note: Actual input selectors may vary based on implementation
   const inputs = page.locator('textarea, input[type="text"]').filter({ hasNot: page.locator('[data-testid="hidden"]') });
   const visibleInputs = await inputs.all();
-  
   if (visibleInputs.length >= 5) {
     await visibleInputs[0].fill(visionData.purpose);
     await visibleInputs[1].fill(visionData.achieve);
     await visibleInputs[2].fill(visionData.market);
     await visibleInputs[3].fill(visionData.customers);
     await visibleInputs[4].fill(visionData.win);
-  } else {
-    console.warn('⚠️ Vision inputs may have changed. Attempting alternative selectors...');
-    // Try alternative approach: look for labeled inputs
-    await page.getByLabel(/purpose|why/i).fill(visionData.purpose);
-    await page.getByLabel(/achieve|what/i).fill(visionData.achieve);
-    await page.getByLabel(/market|where/i).fill(visionData.market);
-    await page.getByLabel(/customers|who/i).fill(visionData.customers);
-    await page.getByLabel(/win|how/i).fill(visionData.win);
   }
-  
-  // Save vision
   const saveButton = page.getByRole('button', { name: /save|submit/i });
   await expect(saveButton).toBeEnabled();
   await saveButton.click();
-  
-  // Wait for modal to close
   await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 5000 });
   console.log('✅ Vision saved');
 }
 
-/**
- * Helper: Create objective via API
- * Used for testing delete protection
- */
-async function createObjectiveViaAPI(
-  page: Page,
-  projectId: string,
-  objectiveName: string
-): Promise<string> {
-  console.log(`🎯 Creating objective: ${objectiveName}`);
-  
-  const response = await page.evaluate(async ({ projectId, objectiveName }) => {
+async function createObjectiveViaAPI(page: any, projectId: string, objectiveName: string): Promise<string> {
+  const response = await page.evaluate(async ({ projectId, objectiveName }: any) => {
     const res = await fetch(`/api/projects/${projectId}/objectives`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        name: objectiveName,
-        description: 'E2E test objective',
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: objectiveName, description: 'E2E test objective' }),
     });
-    
-    return {
-      status: res.status,
-      data: await res.json(),
-    };
+    return { status: res.status, data: await res.json() };
   }, { projectId, objectiveName });
-  
   if (response.status !== 201 && response.status !== 200) {
     throw new Error(`Failed to create objective: ${JSON.stringify(response.data)}`);
   }
-  
-  console.log(`✅ Objective created: ${response.data.id}`);
   return response.data.id;
 }
 
-/**
- * Helper: Get project ID by name via API
- */
-async function getProjectIdByName(
-  page: Page,
-  projectName: string
-): Promise<string | null> {
-  const response = await page.evaluate(async ({ projectName }) => {
-    // Get team ID from profile first
-    const profileRes = await fetch('/api/auth/profile', {
-      credentials: 'include',
-    });
+async function getProjectIdByName(page: any, projectName: string): Promise<string | null> {
+  return await page.evaluate(async ({ projectName }: any) => {
+    const profileRes = await fetch('/api/auth/profile', { credentials: 'include' });
     const profile = await profileRes.json();
     const teamId = profile.teamId;
-    
-    // Fetch projects
-    const projectsRes = await fetch(`/api/teams/${teamId}/projects`, {
-      credentials: 'include',
-    });
+    const projectsRes = await fetch(`/api/teams/${teamId}/projects`, { credentials: 'include' });
     const projects = await projectsRes.json();
-    
-    // Find project by name
     const project = projects.find((p: { name: string }) => p.name === projectName);
     return project ? project.id : null;
   }, { projectName });
-  
-  return response;
 }
 
-/**
- * Helper: Delete project via API
- * Returns response for assertion
- */
-async function deleteProjectViaAPI(
-  page: Page,
-  projectId: string
-): Promise<{ status: number; data: unknown }> {
-  return await page.evaluate(async ({ projectId }) => {
+async function deleteProjectViaAPI(page: any, projectId: string): Promise<{ status: number; data: unknown }> {
+  return await page.evaluate(async ({ projectId }: any) => {
     const res = await fetch(`/api/projects/${projectId}`, {
       method: 'DELETE',
       credentials: 'include',
     });
-    
-    return {
-      status: res.status,
-      data: await res.json(),
-    };
+    return { status: res.status, data: await res.json() };
   }, { projectId });
-}
-
-/**
- * Helper: Cleanup test user and team
- */
-async function cleanupTestData(email: string, page: Page) {
-  if (!email) {
-    console.warn('⚠️ No email provided - skipping cleanup');
-    return;
-  }
-  
-  console.log(`🧹 Starting cleanup for: ${email}`);
-  
-  const secret = process.env.E2E_TEST_SECRET || 'test-secret-local';
-  
-  try {
-    const response = await page.evaluate(async ({ email, secret }) => {
-      const res = await fetch('/api/test/cleanup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-e2e-secret': secret,
-        },
-        body: JSON.stringify({ email }),
-      });
-      
-      // Safe JSON parsing - handle empty/error responses
-      const text = await res.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : { error: 'Empty response' };
-      } catch (e) {
-        data = { error: 'Invalid JSON', body: text };
-      }
-      
-      return {
-        status: res.status,
-        data,
-      };
-    }, { email, secret });
-    
-    if (response.status === 200) {
-      console.log('✅ Cleanup successful:', response.data);
-    } else if (response.status === 404 && response.data?.message?.includes('not available')) {
-      // Expected for production tests - cleanup endpoint disabled in production
-      console.log('ℹ️ Cleanup skipped (production environment)');
-    } else {
-      console.warn('⚠️ Cleanup failed:', {
-        status: response.status,
-        data: response.data,
-      });
-    }
-  } catch (error) {
-    // Cleanup failures should not fail tests - just log for debugging
-    console.warn('⚠️ Cleanup error (non-fatal):', error instanceof Error ? error.message : error);
-  }
 }
 
 // ===================================================================
@@ -417,7 +123,7 @@ test.describe('Project Lifecycle', () => {
     // STEP 1: Sign up and initialize team
     console.log('📝 Step 1: Setting up Account Owner...');
     await signUpNewUser(page, testEmail, TEST_PASSWORD);
-    await initializeTeamViaUI(page, TEST_TEAM_NAME, TEST_USER_NAME);
+    await initializeTeam(page, TEST_TEAM_NAME, TEST_USER_NAME);
     await page.waitForLoadState('networkidle');
     
     // STEP 2: Navigate to Projects tab
@@ -461,7 +167,7 @@ test.describe('Project Lifecycle', () => {
     // STEP 1: Sign up and initialize team
     console.log('📝 Step 1: Setting up Account Owner...');
     await signUpNewUser(page, testEmail, TEST_PASSWORD);
-    await initializeTeamViaUI(page, TEST_TEAM_NAME, TEST_USER_NAME);
+    await initializeTeam(page, TEST_TEAM_NAME, TEST_USER_NAME);
     await page.waitForLoadState('networkidle');
     
     // STEP 2: Create project
@@ -538,7 +244,7 @@ test.describe('Project Lifecycle', () => {
     // STEP 1: Sign up and initialize team
     console.log('📝 Step 1: Setting up Account Owner...');
     await signUpNewUser(page, testEmail, TEST_PASSWORD);
-    await initializeTeamViaUI(page, TEST_TEAM_NAME, TEST_USER_NAME);
+    await initializeTeam(page, TEST_TEAM_NAME, TEST_USER_NAME);
     await page.waitForLoadState('networkidle');
     
     // STEP 2: Create empty project
