@@ -18,9 +18,10 @@ import { fileURLToPath } from 'url';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env file in the server directory
+// Load environment variables from .env file in the project root
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '.env') });
+const projectRoot = path.join(__dirname, '..');
+dotenv.config({ path: path.join(projectRoot, '.env') });
 
 export interface IStorage {
   // User methods

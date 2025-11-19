@@ -6,8 +6,9 @@ import { fileURLToPath } from 'url';
 
 // Load environment variables from .env.local first (if present), then .env (ESM-safe)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '.env.local') });
-dotenv.config({ path: path.join(__dirname, '.env') });
+const projectRoot = path.join(__dirname, '..');
+dotenv.config({ path: path.join(projectRoot, '.env.local') });
+dotenv.config({ path: path.join(projectRoot, '.env') });
 
 let pool: pg.Pool | undefined;
 let dbInstance: ReturnType<typeof drizzle> | undefined;
@@ -17,31 +18,47 @@ export function getDb() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set. Cannot initialize database.');
   }
-  // Allow forcing an IPv4 address via PGHOSTADDR while preserving TLS SNI using the original hostname
-  const url = new URL(process.env.DATABASE_URL);
-  const servername = url.hostname;
-  const hostOverride = process.env.PGHOSTADDR || process.env.DB_HOST_IPV4;
-
-  // Build an effective connection string with IPv4 host if provided
+  // Parse and handle connection string overrides (for Render/Supabase compatibility)
   let effectiveConnectionString = process.env.DATABASE_URL;
+  const hostOverride = process.env.DB_HOST;
+  const u = new URL(effectiveConnectionString);
+  const servername = hostOverride || u.hostname;
+  
   if (hostOverride) {
-    const u = new URL(process.env.DATABASE_URL);
     u.hostname = hostOverride;
-    // Preserve sslmode=require in query for clarity; Node 'pg' relies on ssl option below
-    if (!u.searchParams.has('sslmode')) u.searchParams.set('sslmode', 'require');
-    effectiveConnectionString = u.toString();
   }
+  
+  // Check if using Supabase (either pooler or direct)
+  const isSupabase = u.hostname.includes('supabase.co') || u.hostname.includes('pooler.supabase.com');
+  
+  // Add pgbouncer=true for Supabase connection pooler if not already present
+  if (u.port === '6543' && u.hostname.includes('supabase.co') && !u.searchParams.has('pgbouncer')) {
+    u.searchParams.set('pgbouncer', 'true');
+  }
+  
+  // For non-Supabase connections, preserve sslmode=require
+  if (!isSupabase && !u.searchParams.has('sslmode')) {
+    u.searchParams.set('sslmode', 'require');
+  }
+  
+  effectiveConnectionString = u.toString();
 
   // Decide SSL usage: disable for local dev, enable for remote
-  const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(new URL(effectiveConnectionString).hostname);
+  const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
   const sslDisabled = process.env.DB_SSL_DISABLE === '1' || (process.env.NODE_ENV === 'development' && isLocalHost);
 
   const poolConfig: pg.PoolConfig = {
     connectionString: effectiveConnectionString,
     ...(sslDisabled
       ? {}
-      : { ssl: { rejectUnauthorized: true, servername } }
+      : { ssl: isSupabase 
+          ? { rejectUnauthorized: false } // Supabase uses self-signed certs
+          : { rejectUnauthorized: true, servername }
+        }
     ),
+    connectionTimeoutMillis: 10000, // 10 second connection timeout
+    idleTimeoutMillis: 30000, // 30 second idle timeout
+    max: 20, // maximum pool size
   };
 
   pool = new pg.Pool(poolConfig);

@@ -283,6 +283,11 @@ export async function optionalAuth(
  * ```
  */
 export async function setDatabaseSessionContext(req: AuthenticatedRequest): Promise<void> {
+  // Skip session context when using pgbouncer (it doesn't support SET LOCAL with parameters)
+  if (process.env.DATABASE_URL?.includes('pgbouncer=true')) {
+    return;
+  }
+
   const db = getDb() as { execute?: (query: unknown) => Promise<unknown> };
   const effectiveId = req.userContext?.effectiveTeamMemberId;
 
