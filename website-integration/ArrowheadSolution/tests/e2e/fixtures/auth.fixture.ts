@@ -76,51 +76,64 @@ export async function signUpNewUser(
     throw new Error(`Cannot proceed with signup - Supabase Admin API not accessible: ${err}`);
   }
   
-  // Navigate to signup page
-  await page.goto('/signup', { waitUntil: 'networkidle', timeout: 15000 });
-  
-  // Fill signup form
-  await page.getByLabel(/^email$/i).fill(email);
-  await page.getByLabel(/^password$/i).fill(password);
-  await page.getByLabel(/confirm password/i).fill(password);
-  
-  // Submit form and WAIT FOR NETWORK REQUEST
-  // Critical: In CI, React hydration can be slow. We must verify the form actually submits.
-  const signUpButton = page.getByRole('button', { name: /sign up/i });
-  await expect(signUpButton).toBeEnabled({ timeout: 3000 });
-  
-  console.log('🔘 Clicking signup button and waiting for network request...');
+  console.log(`   Env: CI=${process.env.CI ?? ''} E2E_BYPASS_UI_SIGNUP=${process.env.E2E_BYPASS_UI_SIGNUP ?? ''}`);
+  if (process.env.CI || process.env.E2E_BYPASS_UI_SIGNUP === '1') {
+    console.log('⏭️ Bypassing UI signup (CI or E2E_BYPASS_UI_SIGNUP=1) - creating user via Supabase Admin');
+    const { error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (createError) {
+      throw new Error(`Admin createUser failed: ${createError.message}`);
+    }
+  } else {
+    // Navigate to signup page
+    await page.goto('/signup', { waitUntil: 'networkidle', timeout: 15000 });
+    
+    // Fill signup form
+    await page.getByLabel(/^email$/i).fill(email);
+    await page.getByLabel(/^password$/i).fill(password);
+    await page.getByLabel(/confirm password/i).fill(password);
+    
+    // Submit form and WAIT FOR NETWORK REQUEST
+    // Critical: In CI, React hydration can be slow. We must verify the form actually submits.
+    const signUpButton = page.getByRole('button', { name: /sign up/i });
+    await expect(signUpButton).toBeEnabled({ timeout: 3000 });
+    
+    console.log('🔘 Clicking signup button and waiting for network request...');
 
-  // Add random jitter to prevent thundering herd on Supabase Auth in parallel CI tests
-  const jitter = Math.floor(Math.random() * 2000); // 0-2000ms
-  if (process.env.CI) {
-    console.log(`   ⏳ Jitter wait: ${jitter}ms`);
-    await page.waitForTimeout(jitter);
+    // Add random jitter to prevent thundering herd on Supabase Auth in parallel CI tests
+    const jitter = Math.floor(Math.random() * 2000); // 0-2000ms
+    if (process.env.CI) {
+      console.log(`   ⏳ Jitter wait: ${jitter}ms`);
+      await page.waitForTimeout(jitter);
+    }
+    
+    // CRITICAL: Webkit in CI is slow. Give ample time for:
+    // 1. Click event propagation (hydration delay)
+    // 2. Network request to Supabase
+    // 3. Response from Supabase (free tier can be slow)
+    const [request, response] = await Promise.all([
+      page.waitForRequest(req => 
+        req.url().includes('/auth/v1/signup') && req.method() === 'POST',
+        { timeout: 60000 }
+      ),
+      page.waitForResponse(resp => 
+        resp.url().includes('/auth/v1/signup') && resp.status() >= 200 && resp.status() < 400,
+        { timeout: 60000 }
+      ),
+      signUpButton.click()
+    ]);
+    
+    console.log(`✅ Signup request sent: ${request.method()} ${request.url()}`);
+    console.log(`✅ Signup response received: ${response.status()} ${response.statusText()}`);
+    
+    // Wait for success confirmation or redirect
+    await expect(
+      page.getByText(/check your email/i).or(page.getByText(/dashboard/i))
+    ).toBeVisible({ timeout: 15000 });
   }
-  
-  // CRITICAL: Webkit in CI is slow. Give ample time for:
-  // 1. Click event propagation (hydration delay)
-  // 2. Network request to Supabase
-  // 3. Response from Supabase (free tier can be slow)
-  const [request, response] = await Promise.all([
-    page.waitForRequest(req => 
-      req.url().includes('/auth/v1/signup') && req.method() === 'POST',
-      { timeout: 60000 }  // 60s - accounts for CI slowness + Supabase free tier
-    ),
-    page.waitForResponse(resp => 
-      resp.url().includes('/auth/v1/signup') && resp.status() >= 200 && resp.status() < 400,
-      { timeout: 60000 }  // 60s - Supabase can be slow on free tier
-    ),
-    signUpButton.click()
-  ]);
-  
-  console.log(`✅ Signup request sent: ${request.method()} ${request.url()}`);
-  console.log(`✅ Signup response received: ${response.status()} ${response.statusText()}`);
-  
-  // Wait for success confirmation or redirect
-  await expect(
-    page.getByText(/check your email/i).or(page.getByText(/dashboard/i))
-  ).toBeVisible({ timeout: 15000 });
 
   // Auto-confirm user via Supabase Admin API
   console.log('🔧 Auto-confirming user via Supabase Admin API...');
