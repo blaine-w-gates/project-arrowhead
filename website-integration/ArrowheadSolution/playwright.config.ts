@@ -52,8 +52,9 @@ export default defineConfig({
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
         // Pass Supabase credentials to dev server environment so it can use real admin client
-        // These are inherited from GitHub Actions secrets or local .env file
+        // CRITICAL: Spread parent env to preserve system vars, then add our secrets
         env: {
+          ...process.env,
           SUPABASE_URL: process.env.SUPABASE_URL || '',
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
           SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET || '',
