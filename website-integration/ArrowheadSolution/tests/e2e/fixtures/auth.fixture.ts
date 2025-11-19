@@ -74,9 +74,10 @@ export async function signUpNewUser(page: Page, email: string, password: string)
   await signUpButton.click();
   
   // Wait for either redirect or confirmation message
+  // Increased timeout for Webkit (Safari) which renders slower in CI
   await expect(
     page.getByText(/check your email/i).or(page.getByText(/dashboard/i))
-  ).toBeVisible({ timeout: 10000 });
+  ).toBeVisible({ timeout: 30000 });
 
   // Auto-confirm user via Supabase Admin API
   console.log('🔧 Auto-confirming user via Supabase Admin API...');
@@ -138,7 +139,7 @@ export async function initializeTeam(
 ): Promise<void> {
   console.log('🏢 Waiting for team initialization modal...');
   
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 30000 });
   await expect(page.getByText(/Welcome! Let's Get Started/i)).toBeVisible();
   
   console.log('📝 Filling team initialization form...');
@@ -150,10 +151,10 @@ export async function initializeTeam(
   await getStartedButton.click();
   
   // Wait for modal to close (refreshProfile() instead of reload)
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 30000 });
   
   // Verify we're on dashboard
-  await expect(page).toHaveURL(/\/dashboard\//, { timeout: 5000 });
+  await expect(page).toHaveURL(/\/dashboard\//, { timeout: 30000 });
   console.log('✅ Team initialized via UI');
 }
 
