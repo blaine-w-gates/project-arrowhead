@@ -90,14 +90,19 @@ export async function signUpNewUser(
   await expect(signUpButton).toBeEnabled({ timeout: 3000 });
   
   console.log('🔘 Clicking signup button and waiting for network request...');
+  
+  // CRITICAL: Webkit in CI is slow. Give ample time for:
+  // 1. Click event propagation (hydration delay)
+  // 2. Network request to Supabase
+  // 3. Response from Supabase (free tier can be slow)
   const [request, response] = await Promise.all([
     page.waitForRequest(req => 
       req.url().includes('/auth/v1/signup') && req.method() === 'POST',
-      { timeout: 10000 }
+      { timeout: 60000 }  // 60s - accounts for CI slowness + Supabase free tier
     ),
     page.waitForResponse(resp => 
       resp.url().includes('/auth/v1/signup') && resp.status() >= 200 && resp.status() < 400,
-      { timeout: 10000 }
+      { timeout: 60000 }  // 60s - Supabase can be slow on free tier
     ),
     signUpButton.click()
   ]);
