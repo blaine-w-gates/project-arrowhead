@@ -47,8 +47,8 @@ export default defineConfig({
     : {
         // Ensure the Node dev server proxies to the Python backend on 5050 during tests
         // Expose E2E_EXPOSE_OTP=1 so /api/auth/request returns { devCode } for the test environment
-        // Provide AUTH_JWT_SECRET so /api/auth/verify can issue a signed session cookie during tests
-        command: 'AUTH_JWT_SECRET=testsecret E2E_EXPOSE_OTP=1 PY_BACKEND_PORT=5050 npm run dev',
+        // Pass Supabase credentials so server can use real admin client (not TEST mode)
+        command: `SUPABASE_URL=${process.env.SUPABASE_URL} SUPABASE_SERVICE_ROLE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY} SUPABASE_JWT_SECRET=${process.env.SUPABASE_JWT_SECRET} DATABASE_URL=${process.env.DATABASE_URL} AUTH_JWT_SECRET=testsecret E2E_EXPOSE_OTP=1 PY_BACKEND_PORT=5050 npm run dev`,
         url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
