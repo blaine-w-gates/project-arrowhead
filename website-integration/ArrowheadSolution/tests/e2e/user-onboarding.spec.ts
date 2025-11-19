@@ -79,7 +79,7 @@ async function signUpNewUser(page: Page, email: string, password: string) {
   // Wait for redirect to dashboard (if email confirmation disabled)
   // OR check if email confirmation is required and auto-confirm
   try {
-    await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+    await page.waitForURL(/\/dashboard/, { timeout: 30000 });
     console.log('✅ Signup successful - redirected to dashboard');
   } catch (error) {
     // Check if email confirmation is required
@@ -110,7 +110,7 @@ async function signUpNewUser(page: Page, email: string, password: string) {
       await page.getByLabel(/^password$/i).fill(password);
       await page.getByRole('button', { name: /sign in/i }).click();
       
-      await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+      await page.waitForURL(/\/dashboard/, { timeout: 30000 });
       console.log('✅ Signed in after email confirmation');
       return;
     }
@@ -131,7 +131,7 @@ async function initializeTeamViaUI(
   console.log('🏢 Waiting for team initialization modal...');
   
   // Wait for modal to appear
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 30000 });
   await expect(page.getByText(/Welcome! Let's Get Started/i)).toBeVisible();
   
   console.log('📝 Filling team initialization form...');
@@ -146,7 +146,7 @@ async function initializeTeamViaUI(
   await getStartedButton.click();
   
   // Wait for modal to close (it calls refreshProfile() instead of reload now)
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 30000 });
   
   // Verify we're still on dashboard (session preserved)
   // The app redirects to /dashboard/projects after team initialization

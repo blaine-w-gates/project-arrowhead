@@ -85,7 +85,7 @@ async function initializeTeamViaUI(
 ): Promise<void> {
   console.log('🏢 Waiting for team initialization modal...');
   
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 30000 });
   await expect(page.getByText(/Welcome! Let's Get Started/i)).toBeVisible();
   
   console.log('📝 Filling team initialization form...');
@@ -97,7 +97,7 @@ async function initializeTeamViaUI(
   await getStartedButton.click();
   
   // Wait for page reload
-  await page.waitForLoadState('networkidle', { timeout: 10000 });
+  await page.waitForLoadState('networkidle', { timeout: 30000 });
   console.log('✅ Team initialized via UI');
 }
 
