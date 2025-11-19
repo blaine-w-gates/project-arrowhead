@@ -53,6 +53,12 @@ jobs:
         run: npx playwright test --project=chromium
         working-directory: website-integration/ArrowheadSolution
         env:
+          CI: true
+          # Supabase credentials for test database operations
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           # Ensure Playwright starts the webServer defined in config
           PLAYWRIGHT_NO_WEBSERVER: ''
           # Explicitly skip admin tests in CI until test DB is wired
@@ -113,6 +119,12 @@ jobs:
         run: npx playwright test --project=${{ matrix.browser }}
         working-directory: website-integration/ArrowheadSolution
         env:
+          CI: true
+          # Supabase credentials for test database operations
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PLAYWRIGHT_NO_WEBSERVER: ''
           E2E_SKIP_ADMIN: '1'
           E2E_SKIP_BILLING: '1'
@@ -166,6 +178,12 @@ jobs:
         run: npx playwright test --project=webkit
         working-directory: website-integration/ArrowheadSolution
         env:
+          CI: true
+          # Supabase credentials for test database operations
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PLAYWRIGHT_NO_WEBSERVER: ''
           E2E_SKIP_ADMIN: '1'
           E2E_SKIP_BILLING: '1'
@@ -223,6 +241,12 @@ jobs:
         run: npx playwright test --project=${{ matrix.browser }}
         working-directory: website-integration/ArrowheadSolution
         env:
+          CI: true
+          # Supabase credentials for test database operations
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PLAYWRIGHT_NO_WEBSERVER: ''
           E2E_SKIP_ADMIN: '1'
           E2E_SKIP_BILLING: '1'
