@@ -84,44 +84,31 @@ export async function signUpNewUser(
   await page.getByLabel(/^password$/i).fill(password);
   await page.getByLabel(/confirm password/i).fill(password);
   
-  // Submit form
+  // Submit form and WAIT FOR NETWORK REQUEST
+  // Critical: In CI, React hydration can be slow. We must verify the form actually submits.
   const signUpButton = page.getByRole('button', { name: /sign up/i });
   await expect(signUpButton).toBeEnabled({ timeout: 3000 });
-  await signUpButton.click();
   
-  // Wait for navigation/response with detailed error capture
-  try {
-    await expect(
-      page.getByText(/check your email/i).or(page.getByText(/dashboard/i))
-    ).toBeVisible({ timeout: 30000 });
-  } catch (error) {
-    // Capture what's actually on the page when it fails
-    const currentUrl = page.url();
-    const pageTitle = await page.title();
-    const bodyText = await page.locator('body').textContent();
-    
-    console.error('❌ SIGNUP FAILED - Diagnostic Info:');
-    console.error(`   URL: ${currentUrl}`);
-    console.error(`   Title: ${pageTitle}`);
-    console.error(`   Body text (first 500 chars): ${bodyText?.substring(0, 500)}`);
-    
-    // Check for common error messages
-    const errorPatterns = [
-      /invalid|error|failed/i,
-      /rate limit/i,
-      /already exists/i,
-      /password.*weak|weak.*password/i,
-      /email.*invalid|invalid.*email/i
-    ];
-    
-    for (const pattern of errorPatterns) {
-      if (pattern.test(bodyText || '')) {
-        console.error(`   ⚠️ FOUND ERROR PATTERN: ${pattern}`);
-      }
-    }
-    
-    throw new Error(`Signup response timeout. Email: ${email}. Check logs above for page content.`);
-  }
+  console.log('🔘 Clicking signup button and waiting for network request...');
+  const [request, response] = await Promise.all([
+    page.waitForRequest(req => 
+      req.url().includes('/auth/v1/signup') && req.method() === 'POST',
+      { timeout: 10000 }
+    ),
+    page.waitForResponse(resp => 
+      resp.url().includes('/auth/v1/signup') && resp.status() >= 200 && resp.status() < 400,
+      { timeout: 10000 }
+    ),
+    signUpButton.click()
+  ]);
+  
+  console.log(`✅ Signup request sent: ${request.method()} ${request.url()}`);
+  console.log(`✅ Signup response received: ${response.status()} ${response.statusText()}`);
+  
+  // Wait for success confirmation or redirect
+  await expect(
+    page.getByText(/check your email/i).or(page.getByText(/dashboard/i))
+  ).toBeVisible({ timeout: 15000 });
 
   // Auto-confirm user via Supabase Admin API
   console.log('🔧 Auto-confirming user via Supabase Admin API...');
