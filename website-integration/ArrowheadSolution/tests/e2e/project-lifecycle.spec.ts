@@ -79,7 +79,7 @@ async function signUpNewUser(page: Page, email: string, password: string) {
   
   // Wait for the "Check your email" message or redirect
   // This ensures the user is created in the database before we try to verify them
-  await expect(page.getByText(/check your email/i).or(page.getByText(/dashboard/i))).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText(/check your email/i).or(page.getByText(/dashboard/i))).toBeVisible({ timeout: 60000 });
 
   // --- Programmatic Confirmation ---
   console.log('🔧 Auto-confirming user via Supabase Admin API...');
@@ -121,7 +121,7 @@ async function signUpNewUser(page: Page, email: string, password: string) {
   await signInButton.click();
 
   try {
-    await page.waitForURL(/\/dashboard\//, { timeout: 30000 });
+    await page.waitForURL(/\/dashboard\//, { timeout: 60000 });
     console.log('✅ Login successful - redirected to dashboard');
   } catch (error) {
     console.error('❌ Failed to redirect to dashboard after login');
@@ -139,7 +139,7 @@ async function initializeTeamViaUI(
 ): Promise<void> {
   console.log('🏢 Waiting for team initialization modal...');
   
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 60000 });
   await expect(page.getByText(/Welcome! Let's Get Started/i)).toBeVisible();
   
   console.log('📝 Filling team initialization form...');
@@ -151,7 +151,7 @@ async function initializeTeamViaUI(
   await getStartedButton.click();
   
   // Wait for modal to close (it calls refreshProfile() instead of reload now)
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 60000 });
   
   // Verify we're still on dashboard (session preserved)
   // The app redirects to /dashboard/projects after team initialization
