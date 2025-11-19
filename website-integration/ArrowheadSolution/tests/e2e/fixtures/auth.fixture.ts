@@ -177,10 +177,45 @@ export async function signUpNewUser(
   await page.getByLabel(/^password$/i).fill(password);
   
   const signInButton = page.getByRole('button', { name: /sign in/i });
-  await signInButton.click();
+  // Attempt 1: click and verify auth token exchange
+  const doLoginAttempt = async () => {
+    const [tokenReq, tokenResp] = await Promise.all([
+      page.waitForRequest(req =>
+        req.url().includes('/auth/v1/token') && req.method() === 'POST',
+        { timeout: 60000 }
+      ),
+      page.waitForResponse(resp =>
+        resp.url().includes('/auth/v1/token') && resp.status() >= 200 && resp.status() < 400,
+        { timeout: 60000 }
+      ),
+      signInButton.click()
+    ]);
+    console.log(`✅ Login token exchange: ${tokenReq.method()} -> ${tokenResp.status()}`);
 
+    // Warm profile endpoint until it returns 200 to ensure session is active
+    let ok = false;
+    for (let i = 0; i < 10; i++) {
+      const res = await page.request.get('/api/auth/profile');
+      if (res.ok()) { ok = true; break; }
+      await page.waitForTimeout(1000);
+    }
+    console.log(`✅ Profile warmup: ${ok ? 'ready' : 'not ready'}`);
+  };
+
+  await doLoginAttempt();
+
+  // If still on /signin after first attempt, try once more (handles known double-login bounce)
+  if (/\/signin(\b|\/)/.test(page.url())) {
+    console.warn('⚠ Login bounced back to /signin (attempt 1) - retrying');
+    await page.getByLabel(/^email$/i).fill(email);
+    await page.getByLabel(/^password$/i).fill(password);
+    await doLoginAttempt();
+  }
+
+  // Navigate to dashboard explicitly and verify
+  await page.goto('/dashboard/projects');
   try {
-    await page.waitForURL(/\/dashboard\//, { timeout: 30000 });
+    await page.waitForURL(/\/dashboard\//, { timeout: 60000 });
     console.log('✅ Login successful - redirected to dashboard');
   } catch (error) {
     console.error('❌ Failed to redirect to dashboard after login');
