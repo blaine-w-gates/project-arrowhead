@@ -90,6 +90,13 @@ export async function signUpNewUser(
   await expect(signUpButton).toBeEnabled({ timeout: 3000 });
   
   console.log('🔘 Clicking signup button and waiting for network request...');
+
+  // Add random jitter to prevent thundering herd on Supabase Auth in parallel CI tests
+  const jitter = Math.floor(Math.random() * 2000); // 0-2000ms
+  if (process.env.CI) {
+    console.log(`   ⏳ Jitter wait: ${jitter}ms`);
+    await page.waitForTimeout(jitter);
+  }
   
   // CRITICAL: Webkit in CI is slow. Give ample time for:
   // 1. Click event propagation (hydration delay)
