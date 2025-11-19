@@ -57,8 +57,24 @@ export function generateTestEmail(): string {
  * @param password - User password
  * @returns Promise that resolves when user is signed up, confirmed, and logged in
  */
-export async function signUpNewUser(page: Page, email: string, password: string): Promise<void> {
+export async function signUpNewUser(
+  page: Page,
+  email: string,
+  password: string
+): Promise<void> {
   console.log(`📝 Signing up new user: ${email}`);
+  
+  // Pre-flight: Verify Supabase Admin API is responsive
+  try {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers();
+    if (error) {
+      throw new Error(`Supabase Admin API error: ${error.message}`);
+    }
+    console.log(`   ✅ Supabase Admin API operational (${data.users.length} existing users)`);
+  } catch (err) {
+    console.error(`❌ Supabase Admin API pre-flight check FAILED:`, err);
+    throw new Error(`Cannot proceed with signup - Supabase Admin API not accessible: ${err}`);
+  }
   
   // Navigate to signup page
   await page.goto('/signup', { waitUntil: 'networkidle', timeout: 15000 });
@@ -73,24 +89,59 @@ export async function signUpNewUser(page: Page, email: string, password: string)
   await expect(signUpButton).toBeEnabled({ timeout: 3000 });
   await signUpButton.click();
   
-  // Wait for either redirect or confirmation message
-  // Increased timeout for Webkit (Safari) which renders slower in CI
-  await expect(
-    page.getByText(/check your email/i).or(page.getByText(/dashboard/i))
-  ).toBeVisible({ timeout: 30000 });
+  // Wait for navigation/response with detailed error capture
+  try {
+    await expect(
+      page.getByText(/check your email/i).or(page.getByText(/dashboard/i))
+    ).toBeVisible({ timeout: 30000 });
+  } catch (error) {
+    // Capture what's actually on the page when it fails
+    const currentUrl = page.url();
+    const pageTitle = await page.title();
+    const bodyText = await page.locator('body').textContent();
+    
+    console.error('❌ SIGNUP FAILED - Diagnostic Info:');
+    console.error(`   URL: ${currentUrl}`);
+    console.error(`   Title: ${pageTitle}`);
+    console.error(`   Body text (first 500 chars): ${bodyText?.substring(0, 500)}`);
+    
+    // Check for common error messages
+    const errorPatterns = [
+      /invalid|error|failed/i,
+      /rate limit/i,
+      /already exists/i,
+      /password.*weak|weak.*password/i,
+      /email.*invalid|invalid.*email/i
+    ];
+    
+    for (const pattern of errorPatterns) {
+      if (pattern.test(bodyText || '')) {
+        console.error(`   ⚠️ FOUND ERROR PATTERN: ${pattern}`);
+      }
+    }
+    
+    throw new Error(`Signup response timeout. Email: ${email}. Check logs above for page content.`);
+  }
 
   // Auto-confirm user via Supabase Admin API
   console.log('🔧 Auto-confirming user via Supabase Admin API...');
+  console.log(`   Supabase URL: ${supabaseUrl?.substring(0, 30)}...`);
+  console.log(`   Service Role Key present: ${!!serviceRoleKey}`);
   
   const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
   if (listError) {
     console.error('❌ Error listing users:', listError);
+    console.error(`   Error details: ${JSON.stringify(listError, null, 2)}`);
     throw new Error(`Failed to list users: ${listError.message}`);
   }
 
+  console.log(`   Total users in Supabase: ${users?.length || 0}`);
   const user = users?.find(u => u.email === email);
   if (!user) {
-    throw new Error(`Could not find user ${email} in Supabase to auto-confirm.`);
+    console.error(`❌ User not found in Supabase after signup`);
+    console.error(`   Searched for: ${email}`);
+    console.error(`   Available users (last 3): ${users?.slice(-3).map(u => u.email).join(', ')}`);
+    throw new Error(`Could not find user ${email} in Supabase to auto-confirm. User may not have been created.`);
   }
 
   if (!user.email_confirmed_at) {
