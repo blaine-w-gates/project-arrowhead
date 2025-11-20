@@ -39,6 +39,49 @@ export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   }
 });
 
+let __lastEmail: string | null = null;
+let __lastPassword: string | null = null;
+let __lastToken: string | null = null;
+
+async function ensureAuthToken(page: Page): Promise<string> {
+  const grab = async (): Promise<string> => {
+    return await page.evaluate(() => {
+      try {
+        for (let idx = 0; idx < localStorage.length; idx++) {
+          const key = localStorage.key(idx) || '';
+          if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            try {
+              const parsed: any = JSON.parse(raw);
+              const tok = parsed?.access_token || parsed?.currentSession?.access_token;
+              if (tok) return String(tok);
+            } catch (_e) { void _e; }
+          }
+        }
+      } catch (_e) { void _e; }
+      return '';
+    });
+  };
+  for (let i = 0; i < 30; i++) {
+    const t = await grab();
+    if (t) return t;
+    await page.waitForTimeout(1000);
+  }
+  if (__lastEmail && __lastPassword) {
+    await page.goto('/signin');
+    await page.getByLabel(/^email$/i).fill(__lastEmail);
+    await page.getByLabel(/^password$/i).fill(__lastPassword);
+    await page.getByRole('button', { name: /sign in/i }).click();
+    for (let i = 0; i < 30; i++) {
+      const t = await grab();
+      if (t) return t;
+      await page.waitForTimeout(1000);
+    }
+  }
+  throw new Error('No Supabase token available');
+}
+
 /**
  * Generate unique test email for idempotent test runs
  * Format: arrowhead.test.user+{timestamp}-{random}@gmail.com
@@ -63,6 +106,8 @@ export async function signUpNewUser(
   password: string
 ): Promise<void> {
   console.log(`📝 Signing up new user: ${email}`);
+  __lastEmail = email;
+  __lastPassword = password;
   
   // Pre-flight: Verify Supabase Admin API is responsive
   try {
@@ -234,6 +279,9 @@ export async function signUpNewUser(
     console.error('❌ Failed to redirect to dashboard after login');
     throw error;
   }
+  try {
+    __lastToken = await ensureAuthToken(page);
+  } catch (_e) { void _e; }
 }
 
 /**
@@ -273,32 +321,11 @@ export async function initializeTeam(
 
   if (!uiVisible) {
     console.warn('⚠ Team init modal not found - using API fallback');
-    // Get Supabase access token from page localStorage
-    const getTokenFromPage = async (): Promise<string> => {
-      return await page.evaluate(() => {
-        try {
-          for (let idx = 0; idx < localStorage.length; idx++) {
-            const key = localStorage.key(idx) || '';
-            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-              const raw = localStorage.getItem(key);
-              if (!raw) continue;
-              try {
-                const parsed: any = JSON.parse(raw);
-                const tok = parsed?.access_token || parsed?.currentSession?.access_token;
-                if (tok) return String(tok);
-              } catch (_e) { void _e; }
-            }
-          }
-        } catch (_e) { void _e; }
-        return '';
-      });
-    };
-
     let token = '';
-    for (let attempt = 0; attempt < 30; attempt++) {
-      token = await getTokenFromPage();
-      if (token) break;
-      await page.waitForTimeout(1000);
+    try {
+      token = await ensureAuthToken(page);
+    } catch (_e) {
+      token = __lastToken || '';
     }
     if (!token) throw new Error('Initialize team API failed: no Supabase token available');
 

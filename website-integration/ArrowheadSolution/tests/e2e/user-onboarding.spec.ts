@@ -180,20 +180,34 @@ test.describe('Onboarding Edge Cases', () => {
     await signUpNewUser(page, localTestEmail, TEST_PASSWORD);
     await initializeTeam(page, TEST_TEAM_NAME, TEST_USER_NAME);
     
-    // Attempt to initialize team again
+    // Attempt to initialize team again (authenticated request)
     const response = await page.evaluate(async ({ teamName, userName }) => {
+      const getToken = (): string => {
+        try {
+          for (let idx = 0; idx < localStorage.length; idx++) {
+            const key = localStorage.key(idx) || '';
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              const raw = localStorage.getItem(key);
+              if (!raw) continue;
+              try {
+                const parsed: any = JSON.parse(raw);
+                const tok = parsed?.access_token || parsed?.currentSession?.access_token;
+                if (tok) return String(tok);
+              } catch (_e) { void _e; }
+            }
+          }
+        } catch (_e) { void _e; }
+        return '';
+      };
+      const token = getToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const res = await fetch('/api/auth/initialize-team', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({ teamName, userName }),
       });
-      
-      return {
-        status: res.status,
-        data: await res.json(),
-      };
+      return { status: res.status, data: await res.json() };
     }, { teamName: 'Second Team', userName: 'Second User' });
     
     // Should return 400 error
