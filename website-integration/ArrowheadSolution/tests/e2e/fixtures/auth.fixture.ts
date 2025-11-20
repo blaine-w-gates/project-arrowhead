@@ -273,22 +273,84 @@ export async function initializeTeam(
 
   if (!uiVisible) {
     console.warn('⚠ Team init modal not found - using API fallback');
-    const resp = await page.request.post('/api/auth/initialize-team', {
-      headers: { 'Content-Type': 'application/json' },
-      data: { teamName, userName },
-    });
-    if (!resp.ok()) {
-      throw new Error(`Initialize team API failed: HTTP ${resp.status()}`);
-    }
-    // Wait for profile to reflect team
-    for (let i = 0; i < 20; i++) {
-      const r = await page.request.get('/api/auth/profile');
-      if (r.ok()) {
+    // Use client-side fetch to ensure cookies/session are included in WebKit
+    let initOk = false;
+    let lastStatus = 0;
+    let lastBody = '';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const result = await page.evaluate(async ({ teamName, userName }) => {
+        const getToken = (): string => {
+          try {
+            for (let idx = 0; idx < localStorage.length; idx++) {
+              const key = localStorage.key(idx) || '';
+              if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                try {
+                  const parsed: any = JSON.parse(raw);
+                  const tok = parsed?.access_token || parsed?.currentSession?.access_token;
+                  if (tok) return String(tok);
+                } catch (_e) { void _e; }
+              }
+            }
+          } catch (_e) { void _e; }
+          return '';
+        };
         try {
-          const p = await r.json();
-          if (p?.teamId || p?.team_id) break;
-        } catch (_e) { void _e; }
-      }
+          const token = getToken();
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          const res = await fetch('/api/auth/initialize-team', {
+            method: 'POST',
+            headers,
+            credentials: 'include',
+            body: JSON.stringify({ teamName, userName })
+          });
+          const text = await res.text().catch(() => '');
+          return { ok: res.ok, status: res.status, text };
+        } catch (e: any) {
+          return { ok: false, status: 0, text: String(e?.message || e) };
+        }
+      }, { teamName, userName });
+      lastStatus = result.status;
+      lastBody = result.text || '';
+      if (result.ok || result.status === 200 || result.status === 201) { initOk = true; break; }
+      await page.waitForTimeout(1000);
+    }
+    if (!initOk) {
+      throw new Error(`Initialize team API failed: HTTP ${lastStatus}${lastBody ? ` - ${lastBody}` : ''}`);
+    }
+    // Poll profile via client-side fetch until teamId present
+    for (let i = 0; i < 20; i++) {
+      const teamReady = await page.evaluate(async () => {
+        const getToken = (): string => {
+          try {
+            for (let idx = 0; idx < localStorage.length; idx++) {
+              const key = localStorage.key(idx) || '';
+              if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                try {
+                  const parsed: any = JSON.parse(raw);
+                  const tok = parsed?.access_token || parsed?.currentSession?.access_token;
+                  if (tok) return String(tok);
+                } catch (_e) { void _e; }
+              }
+            }
+          } catch (_e) { void _e; }
+          return '';
+        };
+        try {
+          const token = getToken();
+          const headers: Record<string, string> = {};
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          const r = await fetch('/api/auth/profile', { credentials: 'include', headers });
+          if (!r.ok) return false;
+          const p: any = await r.json().catch(() => null);
+          return !!(p && (p.teamId || p.team_id));
+        } catch (_e) { return false; }
+      });
+      if (teamReady) break;
       await page.waitForTimeout(500);
     }
     await page.goto('/dashboard/projects');
