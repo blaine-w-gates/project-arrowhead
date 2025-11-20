@@ -297,21 +297,8 @@ export async function initializeTeam(
   userName: string
 ): Promise<void> {
   console.log('🏢 Waiting for team initialization modal...');
-  await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
-  // Fast path: team may already exist (rare). Check profile.
-  try {
-    const res = await page.request.get('/api/auth/profile');
-    if (res.ok()) {
-      const json = await res.json();
-      if (json?.teamId || json?.team_id) {
-        await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
-        console.log('ℹ️ Team already initialized');
-        return;
-      }
-    }
-  } catch (_e) { void _e; }
 
-  // In CI: skip UI modal entirely and use API path immediately
+  // In CI: skip UI modal entirely and use API path immediately (avoid any goto before tokenized API)
   if (process.env.CI) {
     console.warn('⚠ CI detected - using API path for team initialization');
     const getLocalToken = async (): Promise<string> => {
@@ -370,6 +357,22 @@ export async function initializeTeam(
     console.log('✅ Team initialized via API (CI)');
     return;
   }
+
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+  // Fast path: team may already exist (rare). Check profile.
+  try {
+    const res = await page.request.get('/api/auth/profile');
+    if (res.ok()) {
+      const json = await res.json();
+      if (json?.teamId || json?.team_id) {
+        await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
+        console.log('ℹ️ Team already initialized');
+        return;
+      }
+    }
+  } catch (_e) { void _e; }
+
+  
 
   const dialog = page.getByRole('dialog');
   let uiVisible = false;
