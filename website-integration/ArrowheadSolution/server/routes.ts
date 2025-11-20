@@ -865,6 +865,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const authRouter = await import('./api/auth');
   app.use('/api', authRouter.default);
 
+  // Mount Test API router (E2E test utilities)
+  // Only available in non-production environments
+  const testRouter = await import('./api/test');
+  app.use('/api', testRouter.default);
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { TeamInitializationModal } from "@/components/TeamInitializationModal";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 import GlobalSidebar from "./components/GlobalSidebar";
@@ -95,6 +96,7 @@ function App() {
               <Router />
               <Footer />
               <Toaster />
+              <TeamInitializationModal />
             </div>
           </TooltipProvider>
         </AuthProvider>

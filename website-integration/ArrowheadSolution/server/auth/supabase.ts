@@ -14,41 +14,48 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Load environment variables
+// Load environment variables from project root
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+const projectRoot = path.join(__dirname, '..', '..');
+dotenv.config({ path: path.join(projectRoot, '.env.local') });
+dotenv.config({ path: path.join(projectRoot, '.env') });
 
-// Check if in a test environment
-// - CI=true: GitHub Actions and most CI environments (most reliable)
-// - NODE_ENV=test: Local Playwright tests
-// - VITEST: Vitest integration tests
+// Validate required environment variables
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+
+// Check if we have real credentials
+const hasRealCredentials = !!SUPABASE_URL && !!SUPABASE_SERVICE_ROLE_KEY;
+
+// Determine if we're in a test/CI environment
 const isCI = process.env.CI === 'true';
 const isVitest = !!process.env.VITEST;
 const isTestEnvironment = process.env.NODE_ENV === 'test' || isCI || isVitest;
 
-// Validate required environment variables
-const SUPABASE_URL = process.env.SUPABASE_URL || (isTestEnvironment ? 'http://test-supabase.local' : '');
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || (isTestEnvironment ? 'test-service-role-key' : '');
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
-const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || (isTestEnvironment ? 'test-jwt-secret' : '');
+// Use dummy credentials ONLY if in test env AND real credentials are missing
+const useDummyCredentials = isTestEnvironment && !hasRealCredentials;
 
-// Only throw errors in non-test environments
-if (!isTestEnvironment) {
-  if (!SUPABASE_URL) {
-    throw new Error('SUPABASE_URL environment variable is required');
-  }
+// Set final values
+const finalSupabaseUrl = SUPABASE_URL || (useDummyCredentials ? 'http://test-supabase.local' : '');
+const finalServiceRoleKey = SUPABASE_SERVICE_ROLE_KEY || (useDummyCredentials ? 'test-service-role-key' : '');
+const finalJwtSecret = SUPABASE_JWT_SECRET || (useDummyCredentials ? 'test-jwt-secret' : '');
 
-  if (!SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is required for server-side operations');
-  }
+// Validation and warnings
+if (!hasRealCredentials && !useDummyCredentials) {
+  // Production/non-test environment without credentials = ERROR
+  throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required');
+}
 
-  if (!SUPABASE_JWT_SECRET) {
-    console.warn('⚠️  SUPABASE_JWT_SECRET not set - JWT verification will use default (insecure for production)');
-  }
-} else {
-  // Log warning in test environments
-  console.warn('⚠️  Supabase admin client running in TEST mode with dummy credentials. Admin API calls will not work with real Supabase.');
+if (useDummyCredentials) {
+  console.warn('⚠️  Supabase admin client using DUMMY credentials (test mode). Real Supabase operations will fail.');
+} else if (isTestEnvironment) {
+  console.log('✅ Supabase admin client initialized with REAL credentials in CI/test environment');
+}
+
+if (!SUPABASE_JWT_SECRET && hasRealCredentials) {
+  console.warn('⚠️  SUPABASE_JWT_SECRET not set - JWT verification may fail');
 }
 
 /**
@@ -56,8 +63,8 @@ if (!isTestEnvironment) {
  * Use for admin operations and database queries
  */
 export const supabaseAdmin: SupabaseClient = createClient(
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
+  finalSupabaseUrl,
+  finalServiceRoleKey,
   {
     auth: {
       autoRefreshToken: false,
@@ -71,7 +78,7 @@ export const supabaseAdmin: SupabaseClient = createClient(
  * Rarely used server-side, but available if needed
  */
 export const supabaseClient: SupabaseClient | null = SUPABASE_ANON_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  ? createClient(finalSupabaseUrl, SUPABASE_ANON_KEY, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -85,8 +92,8 @@ export const supabaseClient: SupabaseClient | null = SUPABASE_ANON_KEY
  * Use this when you need to ensure real Supabase admin access
  */
 export function getSupabaseAdmin(): SupabaseClient {
-  if (isTestEnvironment && !process.env.SUPABASE_URL) {
-    throw new Error('Supabase admin client requested but not initialized. Running in test mode without real Supabase credentials. Mock this function in tests or provide real credentials.');
+  if (useDummyCredentials) {
+    throw new Error('Supabase admin client requested but running in TEST mode with dummy credentials. Mock this function in tests or provide real credentials.');
   }
   return supabaseAdmin;
 }
@@ -95,7 +102,7 @@ export function getSupabaseAdmin(): SupabaseClient {
  * JWT secret for manual verification (if needed)
  * Supabase JWTs are signed with this secret
  */
-export const jwtSecret = SUPABASE_JWT_SECRET || '';
+export const jwtSecret = finalJwtSecret;
 
 /**
  * Extract user ID from Supabase JWT
