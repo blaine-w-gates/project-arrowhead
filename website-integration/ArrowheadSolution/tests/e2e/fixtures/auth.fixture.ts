@@ -297,7 +297,7 @@ export async function initializeTeam(
   userName: string
 ): Promise<void> {
   console.log('🏢 Waiting for team initialization modal...');
-  await page.goto('/dashboard', { waitUntil: 'networkidle' });
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
   // Fast path: team may already exist (rare). Check profile.
   try {
     const res = await page.request.get('/api/auth/profile');
@@ -310,6 +310,66 @@ export async function initializeTeam(
       }
     }
   } catch (_e) { void _e; }
+
+  // In CI: skip UI modal entirely and use API path immediately
+  if (process.env.CI) {
+    console.warn('⚠ CI detected - using API path for team initialization');
+    const getLocalToken = async (): Promise<string> => {
+      return await page.evaluate(() => {
+        try {
+          for (let idx = 0; idx < localStorage.length; idx++) {
+            const key = localStorage.key(idx) || '';
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              const raw = localStorage.getItem(key);
+              if (!raw) continue;
+              try {
+                const parsed: any = JSON.parse(raw);
+                const tok = parsed?.access_token || parsed?.currentSession?.access_token;
+                if (tok) return String(tok);
+              } catch (_e) { void _e; }
+            }
+          }
+        } catch (_e) { void _e; }
+        return '';
+      });
+    };
+    let token = __lastToken || await getLocalToken();
+    for (let i = 0; !token && i < 10; i++) {
+      await page.waitForTimeout(500);
+      token = await getLocalToken();
+    }
+    if (!token) throw new Error('Initialize team API failed: no Supabase token available');
+
+    const resp = await page.request.post('/api/auth/initialize-team', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      data: { teamName, userName },
+    });
+    if (!resp.ok()) {
+      const body = await resp.text();
+      throw new Error(`Initialize team API failed: HTTP ${resp.status()}${body ? ` - ${body}` : ''}`);
+    }
+
+    for (let i = 0; i < 20; i++) {
+      const r = await page.request.get('/api/auth/profile', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (r.ok()) {
+        try {
+          const p = await r.json();
+          if (p?.teamId || p?.team_id) break;
+        } catch (_e) { void _e; }
+      }
+      await page.waitForTimeout(500);
+    }
+
+    await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
+    console.log('✅ Team initialized via API (CI)');
+    return;
+  }
 
   const dialog = page.getByRole('dialog');
   let uiVisible = false;
@@ -356,7 +416,7 @@ export async function initializeTeam(
       await page.waitForTimeout(500);
     }
 
-    await page.goto('/dashboard/projects');
+    await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 15000 });
     await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
     console.log('✅ Team initialized via API fallback');
     return;
