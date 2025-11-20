@@ -39,11 +39,68 @@ export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   }
 });
 
+// Public client for non-admin auth flows (used only to obtain an access token in CI without page.evaluate)
+const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+let supabasePublic: ReturnType<typeof createClient> | null = null;
+if (anonKey) {
+  supabasePublic = createClient(supabaseUrl, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
 let __lastEmail: string | null = null;
 let __lastPassword: string | null = null;
 let __lastToken: string | null = null;
 
 async function ensureAuthToken(page: Page): Promise<string> {
+  // In CI, avoid page.evaluate entirely. First try to read from storageState, then fallback to anon sign-in if available.
+  if (process.env.CI) {
+    if (__lastToken) return __lastToken;
+    try {
+      const state = await page.context().storageState();
+      for (const origin of state.origins || []) {
+        for (const item of (origin as any).localStorage || []) {
+          const key = item?.name || item?.key || '';
+          if (typeof key === 'string' && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            try {
+              const parsed = JSON.parse(item.value);
+              const tok = parsed?.access_token || parsed?.currentSession?.access_token;
+              if (tok) {
+                __lastToken = String(tok);
+                return __lastToken;
+              }
+            } catch (_e) { void _e; }
+          }
+        }
+      }
+    } catch (_e) { void _e; }
+
+    if (__lastEmail && __lastPassword) {
+      // Prefer anon client when available; otherwise attempt with admin client
+      const doSignIn = async () => {
+        if (supabasePublic) {
+          return await supabasePublic.auth.signInWithPassword({
+            email: __lastEmail!,
+            password: __lastPassword!,
+          });
+        }
+        return await supabaseAdmin.auth.signInWithPassword({
+          email: __lastEmail!,
+          password: __lastPassword!,
+        } as any);
+      };
+      const { data, error } = await doSignIn();
+      if (!error && data?.session?.access_token) {
+        __lastToken = data.session.access_token;
+        return __lastToken;
+      }
+    }
+    throw new Error('No Supabase token available');
+  }
+
   const grab = async (): Promise<string> => {
     return await page.evaluate(() => {
       try {
@@ -281,7 +338,7 @@ export async function signUpNewUser(
   }
   try {
     __lastToken = await ensureAuthToken(page);
-  } catch (_e) { void _e; }
+  } catch (_e) { if (process.env.CI) { throw _e as any; } void _e; }
 }
 
 /**
@@ -301,8 +358,13 @@ export async function initializeTeam(
   // In CI: skip UI modal entirely and use API path immediately (avoid any goto before tokenized API)
   if (process.env.CI) {
     console.warn('⚠ CI detected - using API path for team initialization');
-    const token = __lastToken;
-    if (!token) throw new Error('Initialize team API failed: no cached Supabase token (__lastToken missing)');
+    let token = '';
+    try {
+      token = await ensureAuthToken(page);
+    } catch (_e) {
+      token = __lastToken || '';
+    }
+    if (!token) throw new Error('Initialize team API failed: no Supabase token available');
 
     const resp = await page.request.post('/api/auth/initialize-team', {
       headers: {
