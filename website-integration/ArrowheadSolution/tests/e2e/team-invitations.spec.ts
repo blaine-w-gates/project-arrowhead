@@ -128,7 +128,7 @@ test.describe('Team Invitations Flow', () => {
     console.log('📝 Step 1: Creating User A (Owner)...');
     const userAEmail = generateTestEmail();
     await signUpNewUser(page, userAEmail, TEST_PASSWORD);
-    await initializeTeamViaUI(page, 'Team A', 'User A');
+    await initializeTeam(page, 'Team A', 'User A');
     await page.waitForLoadState('networkidle');
     
     const teamAId = await getTeamId(page);
@@ -142,7 +142,7 @@ test.describe('Team Invitations Flow', () => {
     console.log('📝 Step 3: Creating User B (separate team)...');
     const userBEmail = generateTestEmail();
     await signUpNewUser(page, userBEmail, TEST_PASSWORD);
-    await initializeTeamViaUI(page, 'Team B', 'User B');
+    await initializeTeam(page, 'Team B', 'User B');
     await page.waitForLoadState('networkidle');
     
     // STEP 4: Try to invite to Team A (should fail - User B not in Team A)

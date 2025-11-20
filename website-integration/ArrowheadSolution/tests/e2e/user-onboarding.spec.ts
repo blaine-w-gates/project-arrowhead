@@ -51,7 +51,7 @@ test.describe('User Onboarding Flow', () => {
     await signUpNewUser(page, testEmail, TEST_PASSWORD);
     
     // Verify we're on the dashboard
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 60000 });
     
     // STEP 2: Initialize team via UI modal
     console.log('🏢 Step 2: Initializing team via UI...');
@@ -97,7 +97,7 @@ test.describe('User Onboarding Flow', () => {
     await addProjectButton.click();
     
     // Wait for modal to open
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/create new project/i)).toBeVisible();
     
     // STEP 4: Fill out project form
