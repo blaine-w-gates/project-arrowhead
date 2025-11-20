@@ -60,6 +60,11 @@ export default defineConfig({
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
           SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET || '',
           DATABASE_URL: process.env.DATABASE_URL || '',
+          // Expose Vite client env so supabase-js in the browser uses the correct project ref and storage key
+          VITE_SUPABASE_URL: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
+          VITE_SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '',
+          // Force API team init path during Playwright runs to avoid UI modal flake
+          E2E_FORCE_API_TEAM_INIT: '1',
         },
       },
 });

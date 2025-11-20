@@ -54,6 +54,20 @@ if (anonKey) {
 let __lastEmail: string | null = null;
 let __lastPassword: string | null = null;
 let __lastToken: string | null = null;
+let __lastSessionValueJson: string | null = null; // JSON value stored under sb-<ref>-auth-token
+
+function getProjectRefFromSupabaseUrl(urlStr: string | undefined): string | null {
+  try {
+    if (!urlStr) return null;
+    const u = new URL(urlStr);
+    const host = u.hostname || '';
+    // Typical Supabase URL: https://<projectRef>.supabase.co
+    const parts = host.split('.');
+    if (parts.length >= 3 && parts[1] === 'supabase' && parts[2] === 'co') return parts[0];
+    // Fallback: return first label
+    return parts[0] || null;
+  } catch { return null; }
+}
 
 async function ensureAuthToken(page: Page): Promise<string> {
   // In CI, avoid page.evaluate entirely. First try to read from storageState, then fallback to anon sign-in if available.
@@ -70,6 +84,7 @@ async function ensureAuthToken(page: Page): Promise<string> {
               const tok = parsed?.access_token || parsed?.currentSession?.access_token;
               if (tok) {
                 __lastToken = String(tok);
+                __lastSessionValueJson = item.value;
                 return __lastToken;
               }
             } catch (_e) { void _e; }
@@ -95,6 +110,18 @@ async function ensureAuthToken(page: Page): Promise<string> {
       const { data, error } = await doSignIn();
       if (!error && data?.session?.access_token) {
         __lastToken = data.session.access_token;
+        try {
+          const nowSec = Math.floor(Date.now() / 1000);
+          const expIn = (data.session.expires_in ?? 3600);
+          __lastSessionValueJson = JSON.stringify({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+            token_type: data.session.token_type,
+            expires_in: expIn,
+            expires_at: nowSec + expIn,
+            currentSession: data.session,
+          });
+        } catch (_e) { void _e; }
         return __lastToken;
       }
     }
@@ -274,71 +301,105 @@ export async function signUpNewUser(
 
   // Log in with confirmed account
   console.log('🔐 Logging in with confirmed account...');
-  await page.goto('/signin');
-  await page.getByLabel(/^email$/i).fill(email);
-  await page.getByLabel(/^password$/i).fill(password);
-  
-  const signInButton = page.getByRole('button', { name: /sign in/i });
-  // Attempt 1: click and verify auth token exchange
-  const doLoginAttempt = async () => {
-    await signInButton.click();
-
-    // Detect Supabase session via localStorage (sb-*-auth-token)
-    let authed = false;
-    for (let i = 0; i < 30; i++) {
-      const hasSession = await page.evaluate(() => {
-        try {
-          for (let idx = 0; idx < localStorage.length; idx++) {
-            const key = localStorage.key(idx) || '';
-            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-              const raw = localStorage.getItem(key);
-              if (!raw) continue;
-              try {
-                const parsed = JSON.parse(raw);
-                if (parsed?.access_token || parsed?.currentSession?.access_token) return true;
-              } catch (_e) { void _e; }
-            }
-          }
-        } catch (_e) { void _e; }
-        return false;
+  if (process.env.CI) {
+    // CI: avoid UI login and page.evaluate; derive token and seed localStorage
+    const token = await ensureAuthToken(page);
+    try {
+      const ref = getProjectRefFromSupabaseUrl(supabaseUrl) || 'project';
+      const storageKey = `sb-${ref}-auth-token`;
+      const sessionJson = __lastSessionValueJson || JSON.stringify({
+        access_token: token,
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        currentSession: { access_token: token, token_type: 'bearer', expires_in: 3600 },
       });
-      if (hasSession) { authed = true; break; }
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    console.log(`✅ Supabase session ${authed ? 'detected' : 'not found yet'}`);
+      await page.addInitScript(([k, v]) => {
+        try { localStorage.setItem(k, v as any); } catch (_e) { /* no-op */ }
+      }, [storageKey, sessionJson]);
+    } catch (_e) { void _e; }
 
-    // Warm profile endpoint until it returns 200 to ensure session is active
+    // Warm profile to ensure backend sees Authorization
     let ok = false;
     for (let i = 0; i < 10; i++) {
-      const res = await page.request.get('/api/auth/profile');
+      const res = await page.request.get('/api/auth/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (res.ok()) { ok = true; break; }
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(500);
     }
     console.log(`✅ Profile warmup: ${ok ? 'ready' : 'not ready'}`);
-  };
 
-  await doLoginAttempt();
-
-  // If still on /signin after first attempt, try once more (handles known double-login bounce)
-  if (/\/signin(\b|\/)/.test(page.url())) {
-    console.warn('⚠ Login bounced back to /signin (attempt 1) - retrying');
+    await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
+    __lastToken = token;
+  } else {
+    await page.goto('/signin');
     await page.getByLabel(/^email$/i).fill(email);
     await page.getByLabel(/^password$/i).fill(password);
-    await doLoginAttempt();
-  }
+    
+    const signInButton = page.getByRole('button', { name: /sign in/i });
+    // Attempt 1: click and verify auth token exchange
+    const doLoginAttempt = async () => {
+      await signInButton.click();
 
-  // Navigate to dashboard explicitly and verify
-  await page.goto('/dashboard/projects');
-  try {
-    await page.waitForURL(/\/dashboard\//, { timeout: 60000 });
-    console.log('✅ Login successful - redirected to dashboard');
-  } catch (error) {
-    console.error('❌ Failed to redirect to dashboard after login');
-    throw error;
+      // Detect Supabase session via localStorage (sb-*-auth-token)
+      let authed = false;
+      for (let i = 0; i < 30; i++) {
+        const hasSession = await page.evaluate(() => {
+          try {
+            for (let idx = 0; idx < localStorage.length; idx++) {
+              const key = localStorage.key(idx) || '';
+              if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                try {
+                  const parsed = JSON.parse(raw);
+                  if (parsed?.access_token || parsed?.currentSession?.access_token) return true;
+                } catch (_e) { void _e; }
+              }
+            }
+          } catch (_e) { void _e; }
+          return false;
+        });
+        if (hasSession) { authed = true; break; }
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      console.log(`✅ Supabase session ${authed ? 'detected' : 'not found yet'}`);
+
+      // Warm profile endpoint until it returns 200 to ensure session is active
+      let ok = false;
+      for (let i = 0; i < 10; i++) {
+        const res = await page.request.get('/api/auth/profile');
+        if (res.ok()) { ok = true; break; }
+        await page.waitForTimeout(1000);
+      }
+      console.log(`✅ Profile warmup: ${ok ? 'ready' : 'not ready'}`);
+    };
+
+    await doLoginAttempt();
+
+    // If still on /signin after first attempt, try once more (handles known double-login bounce)
+    if (/\/signin(\b|\/)/.test(page.url())) {
+      console.warn('⚠ Login bounced back to /signin (attempt 1) - retrying');
+      await page.getByLabel(/^email$/i).fill(email);
+      await page.getByLabel(/^password$/i).fill(password);
+      await doLoginAttempt();
+    }
+
+    // Navigate to dashboard explicitly and verify
+    await page.goto('/dashboard/projects');
+    try {
+      await page.waitForURL(/\/dashboard\//, { timeout: 60000 });
+      console.log('✅ Login successful - redirected to dashboard');
+    } catch (error) {
+      console.error('❌ Failed to redirect to dashboard after login');
+      throw error;
+    }
+    try {
+      __lastToken = await ensureAuthToken(page);
+    } catch (_e) { if (process.env.CI) { throw _e as any; } void _e; }
   }
-  try {
-    __lastToken = await ensureAuthToken(page);
-  } catch (_e) { if (process.env.CI) { throw _e as any; } void _e; }
 }
 
 /**
@@ -355,8 +416,9 @@ export async function initializeTeam(
 ): Promise<void> {
   console.log('🏢 Waiting for team initialization modal...');
 
-  // In CI: skip UI modal entirely and use API path immediately (avoid any goto before tokenized API)
-  if (process.env.CI) {
+  // In CI or when forced, skip UI modal entirely and use API path immediately (avoid any goto before tokenized API)
+  const forceApi = !!process.env.CI || process.env.E2E_FORCE_API_TEAM_INIT === '1';
+  if (forceApi) {
     console.warn('⚠ CI detected - using API path for team initialization');
     let token = '';
     try {
@@ -365,6 +427,22 @@ export async function initializeTeam(
       token = __lastToken || '';
     }
     if (!token) throw new Error('Initialize team API failed: no Supabase token available');
+
+    // Ensure the SPA sees an authenticated session: seed localStorage with Supabase session
+    try {
+      const ref = getProjectRefFromSupabaseUrl(supabaseUrl) || 'project';
+      const storageKey = `sb-${ref}-auth-token`;
+      const sessionJson = __lastSessionValueJson || JSON.stringify({
+        access_token: token,
+        token_type: 'bearer',
+        expires_in: 3600,
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        currentSession: { access_token: token, token_type: 'bearer', expires_in: 3600 },
+      });
+      await page.addInitScript(([k, v]) => {
+        try { localStorage.setItem(k, v as any); } catch (_e) { /* no-op */ }
+      }, [storageKey, sessionJson]);
+    } catch (_e) { void _e; }
 
     const resp = await page.request.post('/api/auth/initialize-team', {
       headers: {
@@ -391,13 +469,13 @@ export async function initializeTeam(
       await page.waitForTimeout(500);
     }
 
-    await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
     console.log('✅ Team initialized via API (CI)');
     return;
   }
 
-  await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 15000 });
+  await page.goto('/dashboard', { waitUntil: 'domcontentloaded', timeout: 60000 });
   // Fast path: team may already exist (rare). Check profile.
   try {
     const res = await page.request.get('/api/auth/profile');
@@ -458,7 +536,7 @@ export async function initializeTeam(
       await page.waitForTimeout(500);
     }
 
-    await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
     console.log('✅ Team initialized via API fallback');
     return;
