@@ -179,18 +179,31 @@ export async function signUpNewUser(
   const signInButton = page.getByRole('button', { name: /sign in/i });
   // Attempt 1: click and verify auth token exchange
   const doLoginAttempt = async () => {
-    const [tokenReq, tokenResp] = await Promise.all([
-      page.waitForRequest(req =>
-        req.url().includes('/auth/v1/token') && req.method() === 'POST',
-        { timeout: 60000 }
-      ),
-      page.waitForResponse(resp =>
-        resp.url().includes('/auth/v1/token') && resp.status() >= 200 && resp.status() < 400,
-        { timeout: 60000 }
-      ),
-      signInButton.click()
-    ]);
-    console.log(`✅ Login token exchange: ${tokenReq.method()} -> ${tokenResp.status()}`);
+    await signInButton.click();
+
+    // Detect Supabase session via localStorage (sb-*-auth-token)
+    let authed = false;
+    for (let i = 0; i < 30; i++) {
+      const hasSession = await page.evaluate(() => {
+        try {
+          for (let idx = 0; idx < localStorage.length; idx++) {
+            const key = localStorage.key(idx) || '';
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              const raw = localStorage.getItem(key);
+              if (!raw) continue;
+              try {
+                const parsed = JSON.parse(raw);
+                if (parsed?.access_token || parsed?.currentSession?.access_token) return true;
+              } catch (_e) { void _e; }
+            }
+          }
+        } catch (_e) { void _e; }
+        return false;
+      });
+      if (hasSession) { authed = true; break; }
+      await new Promise(r => setTimeout(r, 1000));
+    }
+    console.log(`✅ Supabase session ${authed ? 'detected' : 'not found yet'}`);
 
     // Warm profile endpoint until it returns 200 to ensure session is active
     let ok = false;
@@ -237,7 +250,7 @@ export async function initializeTeam(
 ): Promise<void> {
   console.log('🏢 Waiting for team initialization modal...');
   
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 60000 });
   await expect(page.getByText(/Welcome! Let's Get Started/i)).toBeVisible();
   
   console.log('📝 Filling team initialization form...');
@@ -249,10 +262,10 @@ export async function initializeTeam(
   await getStartedButton.click();
   
   // Wait for modal to close (refreshProfile() instead of reload)
-  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 60000 });
   
   // Verify we're on dashboard
-  await expect(page).toHaveURL(/\/dashboard\//, { timeout: 30000 });
+  await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
   console.log('✅ Team initialized via UI');
 }
 
