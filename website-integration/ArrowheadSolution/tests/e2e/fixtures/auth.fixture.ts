@@ -301,31 +301,8 @@ export async function initializeTeam(
   // In CI: skip UI modal entirely and use API path immediately (avoid any goto before tokenized API)
   if (process.env.CI) {
     console.warn('⚠ CI detected - using API path for team initialization');
-    const getLocalToken = async (): Promise<string> => {
-      return await page.evaluate(() => {
-        try {
-          for (let idx = 0; idx < localStorage.length; idx++) {
-            const key = localStorage.key(idx) || '';
-            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
-              const raw = localStorage.getItem(key);
-              if (!raw) continue;
-              try {
-                const parsed: any = JSON.parse(raw);
-                const tok = parsed?.access_token || parsed?.currentSession?.access_token;
-                if (tok) return String(tok);
-              } catch (_e) { void _e; }
-            }
-          }
-        } catch (_e) { void _e; }
-        return '';
-      });
-    };
-    let token = __lastToken || await getLocalToken();
-    for (let i = 0; !token && i < 10; i++) {
-      await page.waitForTimeout(500);
-      token = await getLocalToken();
-    }
-    if (!token) throw new Error('Initialize team API failed: no Supabase token available');
+    const token = __lastToken;
+    if (!token) throw new Error('Initialize team API failed: no cached Supabase token (__lastToken missing)');
 
     const resp = await page.request.post('/api/auth/initialize-team', {
       headers: {
