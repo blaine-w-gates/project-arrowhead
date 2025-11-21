@@ -16,7 +16,7 @@ import { Calendar } from 'lucide-react';
 
 interface CompletionTrackerProps {
   projectId: string;
-  completionStatus: boolean | null;
+  completionStatus: boolean | 'not_started' | 'in_progress' | 'completed' | null;
   estimatedCompletionDate: string | null;
 }
 
@@ -27,7 +27,15 @@ export function CompletionTracker({
 }: CompletionTrackerProps) {
   const queryClient = useQueryClient();
   const { session } = useAuth();
-  const [isComplete, setIsComplete] = useState(completionStatus ?? false);
+
+  const initialIsComplete =
+    typeof completionStatus === 'boolean'
+      ? completionStatus
+      : completionStatus === 'completed'
+        ? true
+        : false;
+
+  const [isComplete, setIsComplete] = useState(initialIsComplete);
   const [estimatedDate, setEstimatedDate] = useState(
     estimatedCompletionDate ? estimatedCompletionDate.split('T')[0] : ''
   );

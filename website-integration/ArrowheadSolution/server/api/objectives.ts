@@ -243,21 +243,34 @@ router.get(
         .where(and(...conditions))
         .orderBy(objectives.createdAt);
 
-      // Add lock status to each objective
-      const objectivesWithLocks = objectivesList.map(objective => {
+      // Map to UI-facing shape with lock metadata
+      const mappedObjectives = objectivesList.map((objective) => {
         const lock = getLock(objective.id);
+        const journeyStatus = (objective.journeyStatus || '').toLowerCase();
+        const completed = journeyStatus === 'complete' || journeyStatus === 'completed';
+        const status =
+          journeyStatus === 'paused'
+            ? 'paused'
+            : completed
+            ? 'completed'
+            : 'active';
+
         return {
-          ...objective,
+          id: objective.id,
+          name: objective.name,
+          status,
+          completionStatus: completed,
+          estimatedCompletionDate: objective.targetCompletionDate,
+          actualCompletionDate: objective.actualCompletionDate ?? null,
+          createdAt: objective.createdAt,
+          updatedAt: objective.updatedAt,
           is_locked: !!lock,
           locked_by_current_user: lock?.teamMemberId === req.userContext?.teamMemberId,
           lock_expires_at: lock?.expiresAt,
         };
       });
 
-      return res.status(200).json({
-        objectives: objectivesWithLocks,
-        total: objectivesWithLocks.length,
-      });
+      return res.status(200).json(mappedObjectives);
     } catch (error) {
       console.error('Error listing objectives:', error);
       return res.status(500).json(

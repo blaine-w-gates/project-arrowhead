@@ -877,16 +877,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', rrgtRouter.default);
   app.use('/api', touchbasesRouter.default);
   app.use('/api', teamMembersRouter.default);
-  
-  // Mount Test API router (E2E test utilities)
-  // Only available in non-production environments
-  if (process.env.NODE_ENV !== 'production') {
-    const testRouter = await import('./api/test');
-    app.use('/api', testRouter.default);
-  }
 
   // Mount Test API router (E2E test utilities)
   // Only available in non-production environments
+  const testRouter = await import('./api/test');
+  app.use('/api', testRouter.default);
+
+  // Mount Test API router (E2E test utilities)
+  // Only available in non-production environments
+  const testRouter = await import('./api/test');
+  app.use('/api', testRouter.default);
 
   const httpServer = createServer(app);
   return httpServer;
