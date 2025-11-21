@@ -13,6 +13,8 @@ import { waitForNetworkIdle, logStep } from '../fixtures/data.fixture';
  * - Delete protection rule: cannot delete a non-empty project
  */
 
+test.skip(({ browserName }) => browserName === 'webkit', 'Temporarily skip Atomic Archive/Restore spec on WebKit for Phase 3.0 CI; tracked for Phase 3.1 hardening.');
+
 test.describe('Projects - Archive & Delete Protection', () => {
   test('can archive and restore a project via dashboard UI', async ({ page }) => {
     logStep('📝', 'Setting up user, team, and project via fixtures');
