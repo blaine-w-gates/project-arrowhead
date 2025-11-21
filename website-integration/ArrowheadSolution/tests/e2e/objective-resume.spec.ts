@@ -25,7 +25,7 @@ const TEST_USER = {
   password: 'TestPassword123!'
 };
 
-test.describe('Objective Resume Flow (Batch 2 Verification)', () => {
+test.describe('Objective Resume Flow (Batch 2 Verification) @heavy', () => {
   test('User can fetch objective resume data via GET /api/objectives/:id/resume', async ({ page }) => {
     const uniqueId = Date.now();
     const projectName = `Auto-Test-Resume-${uniqueId}`;
