@@ -28,6 +28,11 @@ interface Project {
   estimatedCompletionDate: string | null;
 }
 
+interface ProjectsResponse {
+  projects: Project[];
+  total: number;
+}
+
 export default function ObjectivesTab() {
   const { profile, session } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -35,7 +40,7 @@ export default function ObjectivesTab() {
   const [journeyObjectiveId, setJourneyObjectiveId] = useState<string | null>(null);
 
   // Fetch projects for dropdown
-  const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
+  const { data: projectsResponse, isLoading: projectsLoading } = useQuery<ProjectsResponse>({
     queryKey: ['projects', profile?.teamId],
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
@@ -56,7 +61,8 @@ export default function ObjectivesTab() {
     enabled: !!profile?.teamId,
   });
 
-  const activeProjects = projects?.filter(p => !p.isArchived) || [];
+  const projectList = projectsResponse?.projects ?? [];
+  const activeProjects = projectList.filter(p => !p.isArchived);
   const selectedProject = activeProjects.find(p => p.id === selectedProjectId);
 
   if (!profile) {

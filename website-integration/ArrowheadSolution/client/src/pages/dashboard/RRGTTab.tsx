@@ -37,6 +37,16 @@ interface TeamMember {
   role: string;
 }
 
+interface ProjectsResponse {
+  projects: Project[];
+  total: number;
+}
+
+interface ObjectivesResponse {
+  objectives: Objective[];
+  total: number;
+}
+
 export default function RRGTTab() {
   const { profile, session } = useAuth();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -46,7 +56,7 @@ export default function RRGTTab() {
   const isManager = profile?.role === 'Account Owner' || profile?.role === 'Account Manager';
 
   // Fetch projects
-  const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
+  const { data: projectsResponse, isLoading: projectsLoading } = useQuery<ProjectsResponse>({
     queryKey: ['projects', profile?.teamId],
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
@@ -67,8 +77,11 @@ export default function RRGTTab() {
     enabled: !!profile?.teamId,
   });
 
+  const projectList = projectsResponse?.projects ?? [];
+  const activeProjects = projectList.filter(p => !p.isArchived);
+
   // Fetch objectives for selected project
-  const { data: objectives, isLoading: objectivesLoading } = useQuery<Objective[]>({
+  const { data: objectivesResponse, isLoading: objectivesLoading } = useQuery<ObjectivesResponse>({
     queryKey: ['objectives', selectedProjectId],
     queryFn: async () => {
       if (!selectedProjectId) throw new Error('No project selected');
@@ -88,6 +101,8 @@ export default function RRGTTab() {
     },
     enabled: !!selectedProjectId,
   });
+
+  const objectiveList = objectivesResponse?.objectives ?? [];
 
   // Fetch team members (for Manager God-view)
   const { data: teamMembers } = useQuery<TeamMember[]>({
@@ -110,8 +125,6 @@ export default function RRGTTab() {
     },
     enabled: isManager && !!profile?.teamId,
   });
-
-  const activeProjects = projects?.filter(p => !p.isArchived) || [];
 
   // Fetch RRGT data for dial state
   const isGodView = selectedMemberIds.length > 0;
@@ -142,7 +155,7 @@ export default function RRGTTab() {
     },
   });
 
-  const handleProjectChange = (projectId: string) => {
+  const handleProjectChange = (projectId: string | null) => {
     setSelectedProjectId(projectId || null);
     setSelectedObjectiveId(null);
   };
@@ -192,8 +205,10 @@ export default function RRGTTab() {
             <div className="space-y-2">
               <Label>Project</Label>
               <Select
-                value={selectedProjectId || ''}
-                onValueChange={handleProjectChange}
+                value={selectedProjectId ?? 'all-projects'}
+                onValueChange={(value) =>
+                  handleProjectChange(value === 'all-projects' ? null : value)
+                }
                 disabled={projectsLoading || activeProjects.length === 0}
               >
                 <SelectTrigger>
@@ -206,7 +221,7 @@ export default function RRGTTab() {
                   } />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Projects</SelectItem>
+                  <SelectItem value="all-projects">All Projects</SelectItem>
                   {activeProjects.map((project) => (
                     <SelectItem key={project.id} value={project.id}>
                       {project.name}
@@ -220,9 +235,11 @@ export default function RRGTTab() {
             <div className="space-y-2">
               <Label>Objective</Label>
               <Select
-                value={selectedObjectiveId || ''}
-                onValueChange={(value) => setSelectedObjectiveId(value || null)}
-                disabled={!selectedProjectId || objectivesLoading || !objectives || objectives.length === 0}
+                value={selectedObjectiveId ?? 'all-objectives'}
+                onValueChange={(value) =>
+                  setSelectedObjectiveId(value === 'all-objectives' ? null : value)
+                }
+                disabled={!selectedProjectId || objectivesLoading || !objectiveList || objectiveList.length === 0}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={
@@ -230,14 +247,14 @@ export default function RRGTTab() {
                       ? 'Select a project first'
                       : objectivesLoading
                       ? 'Loading objectives...'
-                      : !objectives || objectives.length === 0
+                      : !objectiveList || objectiveList.length === 0
                       ? 'No objectives'
                       : 'All Objectives'
                   } />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Objectives</SelectItem>
-                  {objectives?.map((objective) => (
+                  <SelectItem value="all-objectives">All Objectives</SelectItem>
+                  {objectiveList?.map((objective) => (
                     <SelectItem key={objective.id} value={objective.id}>
                       {objective.name}
                     </SelectItem>
