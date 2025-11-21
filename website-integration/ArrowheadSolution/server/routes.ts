@@ -863,12 +863,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount Team MVP API routers
   // These are the new authenticated endpoints for the paid Team MVP product
   const authRouter = await import('./api/auth');
+  const projectsRouter = await import('./api/projects');
+  const objectivesRouter = await import('./api/objectives');
+  const tasksRouter = await import('./api/tasks');
+  const rrgtRouter = await import('./api/rrgt');
+  const touchbasesRouter = await import('./api/touchbases');
+  const teamMembersRouter = await import('./api/team-members');
+
   app.use('/api', authRouter.default);
+  app.use('/api', projectsRouter.default);
+  app.use('/api', objectivesRouter.default);
+  app.use('/api', tasksRouter.default);
+  app.use('/api', rrgtRouter.default);
+  app.use('/api', touchbasesRouter.default);
+  app.use('/api', teamMembersRouter.default);
+  
+  // Mount Test API router (E2E test utilities)
+  // Only available in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    const testRouter = await import('./api/test');
+    app.use('/api', testRouter.default);
+  }
 
   // Mount Test API router (E2E test utilities)
   // Only available in non-production environments
-  const testRouter = await import('./api/test');
-  app.use('/api', testRouter.default);
 
   const httpServer = createServer(app);
   return httpServer;

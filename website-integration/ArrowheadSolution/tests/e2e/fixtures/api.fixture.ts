@@ -9,6 +9,7 @@
  */
 
 import { Page } from '@playwright/test';
+import { supabaseAdmin } from './auth.fixture';
 
 /**
  * Seed a project via API
@@ -23,61 +24,30 @@ export async function seedProject(
   teamId: string,
   projectName?: string
 ): Promise<{ id: string; name: string }> {
+  // Keep signature for compatibility with existing tests
+  void page;
+
   const name = projectName || `API Test Project ${Date.now()}`;
-  
-  // Use page.evaluate to make request with browser's session cookies AND access token
-  const result = await page.evaluate(async ({ teamId, name }) => {
-    // Get access token from Supabase localStorage
-    let accessToken = '';
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes('supabase.auth.token')) {
-        const value = localStorage.getItem(key);
-        if (value) {
-          try {
-            const parsed = JSON.parse(value);
-            accessToken = parsed.access_token || parsed.currentSession?.access_token || '';
-            break;
-          } catch (e) {
-            // Continue searching
-          }
-        }
-      }
-    }
 
-    const response = await fetch(`/api/teams/${teamId}/projects`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      credentials: 'include',
-      body: JSON.stringify({ name }),
-    });
+  const { data, error } = await supabaseAdmin
+    .from('projects')
+    .insert({
+      team_id: teamId,
+      name,
+      completion_status: 'not_started',
+    })
+    .select('id, name')
+    .single();
 
-    const text = await response.text();
-    
-    console.log(`[API Seed] POST /api/teams/${teamId}/projects - Status: ${response.status}`);
-    console.log(`[API Seed] Access Token: ${accessToken ? 'Present' : 'Missing'}`);
-    
-    if (!response.ok) {
-      console.error(`[API Seed] Error response: ${text.substring(0, 300)}`);
-      throw new Error(`Failed to seed project: ${response.status} - ${text.substring(0, 200)}`);
-    }
+  if (error || !data) {
+    throw new Error(`Failed to seed project (DB): ${error?.message || 'no data returned'}`);
+  }
 
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      console.error(`[API Seed] Invalid JSON: ${text.substring(0, 300)}`);
-      throw new Error(`Invalid JSON response (status ${response.status}): ${text.substring(0, 200)}`);
-    }
-  }, { teamId, name });
+  console.log(`✅ Seeded project via DB: ${name} (${data.id})`);
 
-  console.log(`✅ Seeded project via API: ${name} (${result.id})`);
-  
   return {
-    id: result.id,
-    name: result.name,
+    id: data.id,
+    name: data.name,
   };
 }
 
@@ -94,56 +64,30 @@ export async function seedObjective(
   projectId: string,
   objectiveName?: string
 ): Promise<{ id: string; name: string }> {
+  void page;
+
   const name = objectiveName || `API Test Objective ${Date.now()}`;
-  
-  // Use page.evaluate to make request with browser's session cookies AND access token
-  const result = await page.evaluate(async ({ projectId, name }) => {
-    // Get access token from Supabase localStorage
-    let accessToken = '';
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes('supabase.auth.token')) {
-        const value = localStorage.getItem(key);
-        if (value) {
-          try {
-            const parsed = JSON.parse(value);
-            accessToken = parsed.access_token || parsed.currentSession?.access_token || '';
-            break;
-          } catch (e) {
-            // Continue searching
-          }
-        }
-      }
-    }
 
-    const response = await fetch(`/api/projects/${projectId}/objectives`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      credentials: 'include',
-      body: JSON.stringify({ name }),
-    });
+  const { data, error } = await supabaseAdmin
+    .from('objectives')
+    .insert({
+      project_id: projectId,
+      name,
+      current_step: 1,
+      journey_status: 'draft',
+    })
+    .select('id, name')
+    .single();
 
-    const text = await response.text();
-    
-    if (!response.ok) {
-      throw new Error(`Failed to seed objective: ${response.status} - ${text.substring(0, 200)}`);
-    }
+  if (error || !data) {
+    throw new Error(`Failed to seed objective (DB): ${error?.message || 'no data returned'}`);
+  }
 
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
-    }
-  }, { projectId, name });
+  console.log(`✅ Seeded objective via DB: ${name} (${data.id})`);
 
-  console.log(`✅ Seeded objective via API: ${name} (${result.id})`);
-  
   return {
-    id: result.id,
-    name: result.name,
+    id: data.id,
+    name: data.name,
   };
 }
 
@@ -165,62 +109,49 @@ export async function seedTask(
     assigneeIds?: string[];
   }
 ): Promise<{ id: string; title: string }> {
+  void page;
+
   const title = taskTitle || `API Test Task ${Date.now()}`;
   const description = options?.description || '';
   const assigneeIds = options?.assigneeIds || [];
-  
-  // Use page.evaluate to make request with browser's session cookies AND access token
-  const result = await page.evaluate(async ({ objectiveId, title, description, assigneeIds }) => {
-    // Get access token from Supabase localStorage
-    let accessToken = '';
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.includes('supabase.auth.token')) {
-        const value = localStorage.getItem(key);
-        if (value) {
-          try {
-            const parsed = JSON.parse(value);
-            accessToken = parsed.access_token || parsed.currentSession?.access_token || '';
-            break;
-          } catch (e) {
-            // Continue searching
-          }
-        }
-      }
+
+  const { data, error } = await supabaseAdmin
+    .from('tasks')
+    .insert({
+      objective_id: objectiveId,
+      title,
+      description: description || null,
+      status: 'todo',
+      priority: 2,
+    })
+    .select('id, title')
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to seed task (DB): ${error?.message || 'no data returned'}`);
+  }
+
+  if (assigneeIds.length > 0) {
+    const { error: assignError } = await supabaseAdmin
+      .from('task_assignments')
+      .upsert(
+        assigneeIds.map((teamMemberId) => ({
+          task_id: data.id,
+          team_member_id: teamMemberId,
+        })),
+        { onConflict: 'task_id,team_member_id' as any },
+      );
+
+    if (assignError) {
+      throw new Error(`Failed to create task assignments (DB): ${assignError.message}`);
     }
+  }
 
-    const response = await fetch(`/api/objectives/${objectiveId}/tasks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        title,
-        description,
-        assigneeIds,
-      }),
-    });
+  console.log(`✅ Seeded task via DB: ${title} (${data.id})`);
 
-    const text = await response.text();
-    
-    if (!response.ok) {
-      throw new Error(`Failed to seed task: ${response.status} - ${text.substring(0, 200)}`);
-    }
-
-    try {
-      return JSON.parse(text);
-    } catch (e) {
-      throw new Error(`Invalid JSON response: ${text.substring(0, 200)}`);
-    }
-  }, { objectiveId, title, description, assigneeIds });
-
-  console.log(`✅ Seeded task via API: ${title} (${result.id})`);
-  
   return {
-    id: result.id,
-    title: result.title,
+    id: data.id,
+    title: data.title,
   };
 }
 
@@ -249,25 +180,40 @@ export async function seedCompleteHierarchy(
   objective: { id: string; name: string };
   task: { id: string; title: string };
 }> {
-  console.log('🌱 Seeding complete hierarchy via API...');
-  
+  console.log('🌱 Seeding complete hierarchy via DB...');
+
   // Create project
   const project = await seedProject(page, teamId, options?.projectName);
-  
+
+  // Ensure the current team member is assigned to this project to satisfy RLS
+  const { error: assignmentError } = await supabaseAdmin
+    .from('team_member_project_assignments')
+    .upsert(
+      {
+        team_member_id: userId,
+        project_id: project.id,
+      },
+      { onConflict: 'team_member_id,project_id' as any },
+    );
+
+  if (assignmentError) {
+    throw new Error(`Failed to assign project to team member (DB): ${assignmentError.message}`);
+  }
+
   // Create objective
   const objective = await seedObjective(page, project.id, options?.objectiveName);
-  
-  // Create task
+
+  // Create task (assigned to this team member)
   const task = await seedTask(page, objective.id, options?.taskTitle, {
     assigneeIds: [userId],
   });
-  
-  console.log('✅ Complete hierarchy seeded:', {
+
+  console.log('✅ Complete hierarchy seeded (DB):', {
     project: project.name,
     objective: objective.name,
     task: task.title,
   });
-  
+
   return { project, objective, task };
 }
 
