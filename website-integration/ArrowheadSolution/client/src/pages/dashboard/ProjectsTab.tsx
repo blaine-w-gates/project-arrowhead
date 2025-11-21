@@ -23,16 +23,21 @@ interface Project {
   name: string;
   isArchived: boolean;
   visionData: {
-    question1?: string;
-    question2?: string;
-    question3?: string;
-    question4?: string;
-    question5?: string;
+    q1_purpose?: string;
+    q2_achieve?: string;
+    q3_market?: string;
+    q4_customers?: string;
+    q5_win?: string;
   } | null;
   completionStatus: boolean | null;
   estimatedCompletionDate: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface ProjectsResponse {
+  projects: Project[];
+  total: number;
 }
 
 export default function ProjectsTab() {
@@ -41,7 +46,7 @@ export default function ProjectsTab() {
   const [showArchived, setShowArchived] = useState(false);
 
   // Fetch projects
-  const { data: projects, isLoading, error } = useQuery<Project[]>({
+  const { data: projectsResponse, isLoading, error } = useQuery<ProjectsResponse>({
     queryKey: ['projects', profile?.teamId],
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
@@ -62,8 +67,9 @@ export default function ProjectsTab() {
     enabled: !!profile?.teamId,
   });
 
-  const activeProjects = projects?.filter(p => !p.isArchived) || [];
-  const archivedProjects = projects?.filter(p => p.isArchived) || [];
+  const projectList = projectsResponse?.projects ?? [];
+  const activeProjects = projectList.filter(p => !p.isArchived);
+  const archivedProjects = projectList.filter(p => p.isArchived);
 
   if (!profile) {
     return (

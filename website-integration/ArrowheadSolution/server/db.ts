@@ -31,29 +31,34 @@ export function getDb() {
   // Check if using Supabase (either pooler or direct)
   const isSupabase = u.hostname.includes('supabase.co') || u.hostname.includes('pooler.supabase.com');
   
+  // Decide SSL usage: disable for local dev, enable for remote
+  const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
+  const sslDisabled = process.env.DB_SSL_DISABLE === '1' || (process.env.NODE_ENV === 'development' && isLocalHost);
+
   // Add pgbouncer=true for Supabase connection pooler if not already present
   if (u.port === '6543' && u.hostname.includes('supabase.co') && !u.searchParams.has('pgbouncer')) {
     u.searchParams.set('pgbouncer', 'true');
   }
-  
-  // For non-Supabase connections, preserve sslmode=require
-  if (!isSupabase && !u.searchParams.has('sslmode')) {
+
+  // Manage sslmode in connection string based on environment
+  if (sslDisabled) {
+    // Local Docker Postgres does not use SSL; ensure we don't force it via sslmode
+    u.searchParams.delete('sslmode');
+  } else if (!isSupabase && !u.searchParams.has('sslmode')) {
+    // For non-Supabase remote connections, default to sslmode=require
     u.searchParams.set('sslmode', 'require');
   }
-  
-  effectiveConnectionString = u.toString();
 
-  // Decide SSL usage: disable for local dev, enable for remote
-  const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(u.hostname);
-  const sslDisabled = process.env.DB_SSL_DISABLE === '1' || (process.env.NODE_ENV === 'development' && isLocalHost);
+  effectiveConnectionString = u.toString();
 
   const poolConfig: pg.PoolConfig = {
     connectionString: effectiveConnectionString,
     ...(sslDisabled
       ? {}
-      : { ssl: isSupabase 
-          ? { rejectUnauthorized: false } // Supabase uses self-signed certs
-          : { rejectUnauthorized: true, servername }
+      : {
+          ssl: isSupabase
+            ? { rejectUnauthorized: false } // Supabase uses self-signed certs
+            : { rejectUnauthorized: true, servername },
         }
     ),
     connectionTimeoutMillis: 10000, // 10 second connection timeout

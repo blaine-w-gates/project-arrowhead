@@ -9,6 +9,7 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * GlobalSidebar Component - Simplified for E2E Test Compatibility
@@ -20,6 +21,8 @@ interface GlobalSidebarProps {
 
 const GlobalSidebar: React.FC<GlobalSidebarProps> = ({ className = '' }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const { session } = useAuth();
+  const isLoggedIn = !!session;
 
   // Simple toggle function - only manages state
   const toggleSidebar = () => {
@@ -108,6 +111,16 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({ className = '' }) => {
             <h6 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
               Main Navigation
             </h6>
+            {isLoggedIn && (
+              <Link
+                href="/dashboard/projects"
+                onClick={closeSidebar}
+                className="nav-link flex items-center p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors"
+              >
+                <Home className="mr-3" size={18} />
+                Dashboard
+              </Link>
+            )}
             <Link href="/journey" onClick={closeSidebar} className="nav-link flex items-center p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors">
               <Home className="mr-3" size={18} />
               Home
