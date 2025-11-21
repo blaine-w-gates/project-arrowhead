@@ -288,19 +288,27 @@ export async function setDatabaseSessionContext(req: AuthenticatedRequest): Prom
     return;
   }
 
+  // Allow local development to disable RLS session context via env flag
+  if (process.env.RLS_DISABLE_SESSION_CONTEXT === '1') {
+    return;
+  }
+
   const db = getDb() as { execute?: (query: unknown) => Promise<unknown> };
   const effectiveId = req.userContext?.effectiveTeamMemberId;
 
   if (db.execute) {
+    // Postgres does not allow parameter placeholders in SET LOCAL statements,
+    // so we must interpolate values into raw SQL. IDs are UUIDs controlled by
+    // the server, so this is safe for our usage here.
     if (effectiveId) {
       await db.execute(
-        sql`SET LOCAL app.current_team_member_id = ${effectiveId}`
+        sql.raw(`SET LOCAL app.current_team_member_id = '${effectiveId}'`)
       );
     }
 
     if (req.userContext?.userId) {
       await db.execute(
-        sql`SET LOCAL request.jwt.claim.sub = ${req.userContext.userId}`
+        sql.raw(`SET LOCAL request.jwt.claim.sub = '${req.userContext.userId}'`)
       );
     }
   }

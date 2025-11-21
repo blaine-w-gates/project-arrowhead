@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
 import { queryClient } from "./lib/queryClient";
@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AuthGate } from "@/components/AuthGate";
 import { TeamInitializationModal } from "@/components/TeamInitializationModal";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
@@ -51,32 +52,40 @@ function Router() {
       
       {/* Protected Dashboard Routes */}
       <Route path="/dashboard/projects">
-        <ProtectedRoute>
-          <DashboardLayout>
-            <ProjectsTab />
-          </DashboardLayout>
-        </ProtectedRoute>
+        <AuthGate>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ProjectsTab />
+            </DashboardLayout>
+          </ProtectedRoute>
+        </AuthGate>
       </Route>
       <Route path="/dashboard/objectives">
-        <ProtectedRoute>
-          <DashboardLayout>
-            <ObjectivesTab />
-          </DashboardLayout>
-        </ProtectedRoute>
+        <AuthGate>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ObjectivesTab />
+            </DashboardLayout>
+          </ProtectedRoute>
+        </AuthGate>
       </Route>
       <Route path="/dashboard/scoreboard">
-        <ProtectedRoute>
-          <DashboardLayout>
-            <ScoreboardTab />
-          </DashboardLayout>
-        </ProtectedRoute>
+        <AuthGate>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ScoreboardTab />
+            </DashboardLayout>
+          </ProtectedRoute>
+        </AuthGate>
       </Route>
       <Route path="/dashboard/rrgt">
-        <ProtectedRoute>
-          <DashboardLayout>
-            <RRGTTab />
-          </DashboardLayout>
-        </ProtectedRoute>
+        <AuthGate>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <RRGTTab />
+            </DashboardLayout>
+          </ProtectedRoute>
+        </AuthGate>
       </Route>
       
       <Route component={NotFound} />
@@ -85,16 +94,19 @@ function Router() {
 }
 
 function App() {
+  const [location] = useLocation();
+  const isDashboardRoute = location.startsWith("/dashboard");
+
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <TooltipProvider>
             <div className="min-h-screen bg-background">
-              <GlobalSidebar />
-              <Navigation />
+              {!isDashboardRoute && <GlobalSidebar />}
+              {!isDashboardRoute && <Navigation />}
               <Router />
-              <Footer />
+              {!isDashboardRoute && <Footer />}
               <Toaster />
               <TeamInitializationModal />
             </div>
