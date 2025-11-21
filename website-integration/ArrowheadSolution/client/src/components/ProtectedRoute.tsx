@@ -11,7 +11,6 @@
  */
 
 import { useAuth } from '@/contexts/AuthContext';
-import { Redirect } from 'wouter';
 import { TrialEndingBanner } from './TrialEndingBanner';
 import PaymentRequiredPage from '@/pages/PaymentRequiredPage';
 
@@ -20,26 +19,10 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth();
+  const { profile } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Not authenticated - redirect to signin
-  if (!user) {
-    return <Redirect to="/signin" />;
-  }
-
-  // Authenticated but no profile - this shouldn't happen, but allow access
-  // (User might be in the process of initializing their team)
+  // Authenticated but no profile - this can happen while team is being initialized.
+  // Allow access so that initialization flows and free features continue to work.
   if (!profile) {
     return <>{children}</>;
   }

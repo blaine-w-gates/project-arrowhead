@@ -76,17 +76,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize session on mount
   useEffect(() => {
-    // Get initial session
+    // Get initial session, including team profile, before clearing loading state
     supabase.auth.getSession()
-      .then(({ data: { session } }) => {
+      .then(async ({ data: { session } }) => {
         setSession(session);
         setUser(session?.user ?? null);
-        
+
         if (session?.user && session?.access_token) {
-          fetchProfile(session.user.id, session.access_token);
+          await fetchProfile(session.user.id, session.access_token);
+        } else {
+          setProfile(null);
         }
-        
-        setLoading(false);
       })
       .catch((error) => {
         // Supabase not configured or error - this is OK for free features
@@ -94,22 +94,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null);
         setUser(null);
         setProfile(null);
+      })
+      .finally(() => {
         setLoading(false);
       });
 
-    // Listen for auth changes
+    // Listen for auth changes (login/logout, token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user && session?.access_token) {
-        fetchProfile(session.user.id, session.access_token);
+        await fetchProfile(session.user.id, session.access_token);
       } else {
         setProfile(null);
       }
-      
+
       setLoading(false);
     });
 

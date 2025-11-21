@@ -1,0 +1,149 @@
+# Page snapshot
+
+```yaml
+- button "Toggle navigation menu":
+  - img
+- heading "Project Arrowhead" [level=4]:
+  - img
+  - text: Project Arrowhead
+- heading "Main Navigation" [level=6]
+- link "Home":
+  - /url: /journey
+  - img
+  - text: Home
+- heading "Brainstorm Module" [level=6]
+- 'link "Step 1: Imitate"':
+  - /url: /journey/brainstorm/step/1
+  - img
+  - text: "Step 1: Imitate"
+- 'link "Step 2: Ideate"':
+  - /url: /journey/brainstorm/step/2
+  - img
+  - text: "Step 2: Ideate"
+- 'link "Step 3: Ignore"':
+  - /url: /journey/brainstorm/step/3
+  - img
+  - text: "Step 3: Ignore"
+- 'link "Step 4: Integrate"':
+  - /url: /journey/brainstorm/step/4
+  - img
+  - text: "Step 4: Integrate"
+- 'link "Step 5: Interfere"':
+  - /url: /journey/brainstorm/step/5
+  - img
+  - text: "Step 5: Interfere"
+- heading "Choose Module" [level=6]
+- 'link "Step 1: Scenarios"':
+  - /url: /journey/choose/step/1
+  - img
+  - text: "Step 1: Scenarios"
+- 'link "Step 2: Compare"':
+  - /url: /journey/choose/step/2
+  - img
+  - text: "Step 2: Compare"
+- 'link "Step 3: Important Aspects"':
+  - /url: /journey/choose/step/3
+  - img
+  - text: "Step 3: Important Aspects"
+- 'link "Step 4: Evaluate"':
+  - /url: /journey/choose/step/4
+  - img
+  - text: "Step 4: Evaluate"
+- 'link "Step 5: Support Decision"':
+  - /url: /journey/choose/step/5
+  - img
+  - text: "Step 5: Support Decision"
+- heading "Objectives Module" [level=6]
+- 'link "Step 1: Objective"':
+  - /url: /journey/objectives/step/1
+  - img
+  - text: "Step 1: Objective"
+- 'link "Step 2: Delegation"':
+  - /url: /journey/objectives/step/2
+  - img
+  - text: "Step 2: Delegation"
+- 'link "Step 3: Business Services"':
+  - /url: /journey/objectives/step/3
+  - img
+  - text: "Step 3: Business Services"
+- 'link "Step 4: Skills"':
+  - /url: /journey/objectives/step/4
+  - img
+  - text: "Step 4: Skills"
+- 'link "Step 5: Tools"':
+  - /url: /journey/objectives/step/5
+  - img
+  - text: "Step 5: Tools"
+- 'link "Step 6: Contacts"':
+  - /url: /journey/objectives/step/6
+  - img
+  - text: "Step 6: Contacts"
+- 'link "Step 7: Cooperation"':
+  - /url: /journey/objectives/step/7
+  - img
+  - text: "Step 7: Cooperation"
+- heading "Task Management" [level=6]
+- link "Task List":
+  - /url: /tasks
+  - img
+  - text: Task List
+- navigation:
+  - link "Project Arrowhead":
+    - /url: /
+    - img
+    - text: Project Arrowhead
+  - link "Home":
+    - /url: /
+  - link "Journey":
+    - /url: /journey
+  - link "Pricing":
+    - /url: /pricing
+  - link "Blog":
+    - /url: /blog
+  - link "Get Our Free Course":
+    - /url: /lead-magnet
+  - link "Sign In":
+    - /url: /signin
+  - link "Get Started Free":
+    - /url: /signup
+- text: Sign In Sign in to your Team MVP account Email
+- textbox "Email"
+- text: Password
+- textbox "Password"
+- button "Sign In"
+- paragraph:
+  - text: Don't have an account?
+  - link "Sign up":
+    - /url: /signup
+- contentinfo:
+  - img
+  - text: Project Arrowhead
+  - paragraph: Strategic thinking tool for modern businesses
+  - heading "Quick Links" [level=4]
+  - list:
+    - listitem:
+      - link "Home":
+        - /url: /
+    - listitem:
+      - link "Pricing":
+        - /url: /pricing
+    - listitem:
+      - link "Blog":
+        - /url: /blog
+    - listitem:
+      - link "Privacy Policy":
+        - /url: /privacy
+    - listitem:
+      - link "Terms of Service":
+        - /url: /terms
+  - heading "Connect With Us" [level=4]
+  - link:
+    - /url: "#"
+    - img
+  - link:
+    - /url: "#"
+    - img
+  - paragraph: © 2025 Project Arrowhead. All rights reserved.
+- region "Notifications (F8)":
+  - list
+```

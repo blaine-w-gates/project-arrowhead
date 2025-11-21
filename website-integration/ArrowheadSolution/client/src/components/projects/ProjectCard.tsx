@@ -28,11 +28,11 @@ interface Project {
   name: string;
   isArchived: boolean;
   visionData: {
-    question1?: string;
-    question2?: string;
-    question3?: string;
-    question4?: string;
-    question5?: string;
+    q1_purpose?: string;
+    q2_achieve?: string;
+    q3_market?: string;
+    q4_customers?: string;
+    q5_win?: string;
   } | null;
   completionStatus: boolean | null;
   estimatedCompletionDate: string | null;

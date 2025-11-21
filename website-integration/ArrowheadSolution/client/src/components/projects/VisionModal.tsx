@@ -24,11 +24,11 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface VisionData {
-  question1?: string;
-  question2?: string;
-  question3?: string;
-  question4?: string;
-  question5?: string;
+  q1_purpose?: string;
+  q2_achieve?: string;
+  q3_market?: string;
+  q4_customers?: string;
+  q5_win?: string;
 }
 
 interface VisionModalProps {
@@ -42,29 +42,29 @@ interface VisionModalProps {
 
 const VISION_QUESTIONS = [
   {
-    key: 'question1' as keyof VisionData,
-    label: 'What problem are we solving?',
-    placeholder: 'Describe the core problem or opportunity this project addresses...',
+    key: 'q1_purpose' as keyof VisionData,
+    label: 'What is the purpose of the project?',
+    placeholder: 'Describe the core purpose of this project and why it exists...',
   },
   {
-    key: 'question2' as keyof VisionData,
-    label: 'Who is this for?',
-    placeholder: 'Identify the target users, customers, or stakeholders...',
+    key: 'q2_achieve' as keyof VisionData,
+    label: 'What do you hope to achieve?',
+    placeholder: 'Explain the concrete outcomes or goals you want this project to deliver...',
   },
   {
-    key: 'question3' as keyof VisionData,
-    label: 'What does success look like?',
-    placeholder: 'Define the desired outcome and how you\'ll measure it...',
+    key: 'q3_market' as keyof VisionData,
+    label: 'What market are you competing in?',
+    placeholder: 'Describe the market or competitive landscape this project operates in...',
   },
   {
-    key: 'question4' as keyof VisionData,
-    label: 'What are the key constraints?',
-    placeholder: 'List major limitations (time, budget, resources, technical, etc.)...',
+    key: 'q4_customers' as keyof VisionData,
+    label: 'What are some important characteristics of your customers?',
+    placeholder: 'Summarize key traits, needs, or segments of your customers...',
   },
   {
-    key: 'question5' as keyof VisionData,
-    label: 'Why is this important now?',
-    placeholder: 'Explain the urgency and strategic importance...',
+    key: 'q5_win' as keyof VisionData,
+    label: 'How are you going to win?',
+    placeholder: 'Explain your strategy or advantage for winning in this market...',
   },
 ];
 
@@ -93,7 +93,7 @@ export function VisionModal({ open, onClose, projectId, teamId, isNew, initialDa
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
-        body: JSON.stringify({ vision_data: data }),
+        body: JSON.stringify({ vision: data }),
       });
 
       if (!response.ok) {

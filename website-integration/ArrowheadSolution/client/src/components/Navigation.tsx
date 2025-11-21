@@ -2,10 +2,14 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Target } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [location] = useLocation();
+  const { session } = useAuth();
+
+  const isLoggedIn = !!session;
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -47,12 +51,26 @@ export default function Navigation() {
           </div>
           
           <div className="hidden md:flex items-center gap-3">
-            <Button asChild variant="ghost">
-              <Link href="/signin">Sign In</Link>
-            </Button>
-            <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Link href="/signup">Get Started Free</Link>
-            </Button>
+            {isLoggedIn ? (
+              <Button
+                asChild
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Link href="/dashboard/projects">Dashboard</Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="ghost">
+                  <Link href="/signin">Sign In</Link>
+                </Button>
+                <Button
+                  asChild
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Link href="/signup">Get Started Free</Link>
+                </Button>
+              </>
+            )}
           </div>
           
           <div className="md:hidden">
@@ -78,16 +96,41 @@ export default function Navigation() {
                 </Link>
               ))}
               <div className="flex flex-col gap-2 mt-4">
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/signin" onClick={() => setIsMenuOpen(false)}>
-                    Sign In
-                  </Link>
-                </Button>
-                <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Link href="/signup" onClick={() => setIsMenuOpen(false)}>
-                    Get Started Free
-                  </Link>
-                </Button>
+                {isLoggedIn ? (
+                  <Button
+                    asChild
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  >
+                    <Link
+                      href="/dashboard/projects"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button asChild variant="outline" className="w-full">
+                      <Link
+                        href="/signin"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Sign In
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      <Link
+                        href="/signup"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Get Started Free
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

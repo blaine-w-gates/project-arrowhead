@@ -30,15 +30,16 @@ import { Loader2 } from 'lucide-react';
 
 export function TeamInitializationModal() {
   const { session, profile, loading, refreshProfile } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [userName, setUserName] = useState('');
   const [teamName, setTeamName] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // Determine if modal should be open
-  // Show when: authenticated + not loading + no profile
-  const isOpen = !!session && !loading && !profile;
+  // Show when: authenticated + not loading + no profile, on dashboard routes only
+  const isDashboardRoute = location.startsWith('/dashboard');
+  const isOpen = isDashboardRoute && !!session && !loading && !profile;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,7 +1,7 @@
-# Project Arrowhead Documentation Index
+ # Project Arrowhead Documentation Index
 
-**Last Updated:** October 23, 2025  
-**Purpose:** This is the **primary navigation document** for all Project Arrowhead documentation. It uses a 3-tier system: Active (current work), Living Baselines (single source of truth), and Historical Archives (frozen in time).
+ **Last Updated:** November 20, 2025  
+ **Purpose:** This is the **primary navigation document** for all Project Arrowhead documentation. It uses a 3-tier system: Active (current work), Living Baselines (single source of truth), and Historical Archives (frozen in time). Root-level markdown files (except the repository `README.md`) have been archived into `/docs/archive/` so that only the current working set remains visible.
 
 ---
 
@@ -70,11 +70,11 @@ These documents describe the **current state** of the project and must be kept u
   - **Updated:** Oct 26, 2025 - Added Team MVP testing requirements (Section 11)
   - **New:** RLS tests, RBAC tests, real-time tests, completion trackers, invitation flow
   
-- **Production Environment Setup v2.0** (`PRODUCTION_ENV_SETUP_v2.0_Draft.md`)
-  - Environment variables and secrets for Team MVP
-  - Supabase, Stripe tiered billing, SendGrid, WebSocket config
-  - **Status:** Draft - For Sprint v9.0 implementation
-  - **Supersedes:** PRODUCTION_ENV_SETUP.md (Individual-User model, to be archived)
+ - **Production Environment Setup v2.0** (`PRODUCTION_ENV_SETUP_v2.0_Draft.md`)
+   - Environment variables and secrets for Team MVP
+   - Supabase, Stripe tiered billing, SendGrid, WebSocket config
+   - **Status:** Draft - For Sprint v9.0 implementation
+   - **Supersedes:** PRODUCTION_ENV_SETUP.md (Individual-User model, archived at `docs/archive/operations/PRODUCTION_ENV_SETUP.md`)
 
 ### Architecture Decision Records (ADRs)
 
@@ -199,8 +199,10 @@ When creating a new version of a core document (e.g., PRD v4.2 → v5.0):
 
 ### By Document Type
 
-- **Active Work:** Root level + this directory
-- **Baselines:** Root level + this directory + ADRs
+- **Strategic Docs:** `/docs/` and `/docs/adr`
+- **Component Docs:** `website-integration/ArrowheadSolution/docs/`
+- **Live Work:** This directory (`/docs/`) plus component docs
+- **Baselines:** This directory (`/docs/`) plus ADRs
 - **Runbooks:** This directory + `website-integration/ArrowheadSolution/docs/`
 - **Archives:** `/docs/archive/` subdirectories
 - **Content:** `website-integration/ArrowheadSolution/content/blog/`

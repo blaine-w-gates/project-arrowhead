@@ -42,7 +42,8 @@
     "lint:ci": "eslint . --ext .ts,.tsx --max-warnings=0",
     "db:up": "docker compose -f docker-compose.dev.yml up -d",
     "db:down": "docker compose -f docker-compose.dev.yml down -v",
-    "dev:local": "DB_SSL_DISABLE=1 DATABASE_URL=postgresql://postgres:postgres@localhost:54322/arrowhead_dev npm run dev"
+    "dev:local": "DB_SSL_DISABLE=1 DATABASE_URL=postgresql://postgres:postgres@localhost:54322/arrowhead_dev npm run dev",
+    "dev:stack": "npm run db:up && npm run dev:local"
   },
   "dependencies": {
     "@adminjs/express": "^6.1.1",

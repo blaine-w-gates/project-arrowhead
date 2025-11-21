@@ -143,10 +143,34 @@ router.post(
         .where(eq(teamMembers.userId, userId))
         .limit(1);
 
+      // If a membership already exists, treat this as idempotent success
       if (existingMembers.length > 0) {
-        return res.status(400).json(
-          createErrorResponse('Invalid Request', 'User already belongs to a team')
-        );
+        const existingMember = existingMembers[0];
+
+        const existingTeamRecords = await db
+          .select()
+          .from(teams)
+          .where(eq(teams.id, existingMember.teamId))
+          .limit(1);
+
+        const existingTeam = existingTeamRecords[0] ?? null;
+
+        return res.status(200).json({
+          message: 'Team already initialized',
+          team: existingTeam
+            ? {
+                id: existingTeam.id,
+                name: existingTeam.name,
+                subscriptionStatus: existingTeam.subscriptionStatus,
+                trialEndsAt: existingTeam.trialEndsAt,
+              }
+            : null,
+          member: {
+            id: existingMember.id,
+            name: existingMember.name,
+            role: existingMember.role,
+          },
+        });
       }
 
       // Calculate trial end date (14 days from now)

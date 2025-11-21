@@ -49,11 +49,8 @@ test.describe('RRGT & Touchbase', () => {
   // TEST 1: RRGT Item Lifecycle
   // ===================================================================
 
-  // TODO: Skipped due to Application Bug - API returns HTML/200 instead of JSON
-  // The test infrastructure is correct. The bug is in /api/teams/:teamId/projects endpoint
-  // which returns Vite's index.html instead of JSON response from Express backend.
-  // Hypothesis: Vite proxy misconfiguration or middleware crash causing 404 fallback.
-  test.skip('Can create, move, and persist RRGT items', async ({ page }) => {
+  // RRGT Item lifecycle test (was previously skipped due to HTML/JSON API bug)
+  test('Can create, move, and persist RRGT items', async ({ page }) => {
     logStep('🚀', 'Test 1: RRGT Item Lifecycle');
 
     // STEP 1: Setup - Sign up and create team

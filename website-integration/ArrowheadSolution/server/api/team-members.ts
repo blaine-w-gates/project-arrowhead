@@ -20,6 +20,79 @@ import {
 
 const router = Router();
 
+router.get(
+  '/teams/:teamId/members',
+  requireAuth,
+  setDbContext,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const db = getDb();
+      const requestedTeamId = req.params.teamId;
+      const userTeamId = req.userContext?.teamId;
+
+      if (!userTeamId || userTeamId !== requestedTeamId) {
+        return res.status(403).json(
+          createErrorResponse(
+            'Forbidden',
+            'You can only view team members in your own team'
+          )
+        );
+      }
+
+      const members = await db
+        .select()
+        .from(teamMembers)
+        .where(eq(teamMembers.teamId, requestedTeamId));
+
+      const result = members.map((m) => {
+        const roleMap: Record<string, string> = {
+          'Account Owner': 'account_manager',
+          'Account Manager': 'account_manager',
+          'Project Owner': 'project_owner',
+          'Objective Owner': 'objective_owner',
+          'Team Member': 'team_member',
+        };
+
+        const inviteMap = (status: string | null): 'pending' | 'accepted' | null => {
+          if (!status) return null;
+          if (status === 'invite_pending') return 'pending';
+          if (status === 'active') return 'accepted';
+          return null;
+        };
+
+        const createdAt =
+          m.createdAt instanceof Date
+            ? m.createdAt.toISOString()
+            : new Date().toISOString();
+
+        return {
+          id: m.id,
+          userId: m.userId,
+          teamId: m.teamId,
+          role: (roleMap[m.role] || 'team_member') as
+            | 'account_manager'
+            | 'project_owner'
+            | 'objective_owner'
+            | 'team_member',
+          name: m.name,
+          email: m.email,
+          isVirtual: m.isVirtual,
+          invitationStatus: inviteMap(m.inviteStatus || null),
+          projectAssignments: [] as string[],
+          createdAt,
+        };
+      });
+
+      return res.json(result);
+    } catch (error) {
+      console.error('Error listing team members (local):', error);
+      return res.status(500).json(
+        createErrorResponse('Internal Server Error', 'Failed to load team members')
+      );
+    }
+  }
+);
+
 /**
  * POST /api/team-members/:memberId/invite
  * Send invitation email to virtual team member

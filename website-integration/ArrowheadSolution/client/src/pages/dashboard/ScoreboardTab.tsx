@@ -26,6 +26,11 @@ interface Project {
   isArchived: boolean;
 }
 
+interface ProjectsResponse {
+  projects: Project[];
+  total: number;
+}
+
 interface Objective {
   id: string;
   name: string;
@@ -40,7 +45,7 @@ export default function ScoreboardTab() {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
 
   // Fetch projects
-  const { data: projects, isLoading: projectsLoading } = useQuery<Project[]>({
+  const { data: projectsResponse, isLoading: projectsLoading } = useQuery<ProjectsResponse>({
     queryKey: ['projects', profile?.teamId],
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
@@ -83,7 +88,8 @@ export default function ScoreboardTab() {
     enabled: !!selectedProjectId,
   });
 
-  const activeProjects = projects?.filter(p => !p.isArchived) || [];
+  const projectList = projectsResponse?.projects ?? [];
+  const activeProjects = projectList.filter(p => !p.isArchived);
   const selectedObjective = objectives?.find(o => o.id === selectedObjectiveId);
 
   // Reset objective selection when project changes

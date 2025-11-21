@@ -59,9 +59,11 @@ export function AddProjectModal({ open, onClose, teamId }: AddProjectModalProps)
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['projects', teamId] });
-      
-      if (fillVisionNow) {
-        setCreatedProjectId(String(data.id));
+
+      const projectId = (data && (data.project?.id ?? data.id)) ? String(data.project?.id ?? data.id) : null;
+
+      if (fillVisionNow && projectId) {
+        setCreatedProjectId(projectId);
         setShowVisionModal(true);
       } else {
         handleClose();

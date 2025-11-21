@@ -340,7 +340,7 @@ export async function signUpNewUser(
     
     const signInButton = page.getByRole('button', { name: /sign in/i });
     // Attempt 1: click and verify auth token exchange
-    const doLoginAttempt = async () => {
+    const doLoginAttempt = async (): Promise<boolean> => {
       await signInButton.click();
 
       // Detect Supabase session via localStorage (sb-*-auth-token)
@@ -375,12 +375,17 @@ export async function signUpNewUser(
         await page.waitForTimeout(1000);
       }
       console.log(`✅ Profile warmup: ${ok ? 'ready' : 'not ready'}`);
+
+      return authed;
     };
 
-    await doLoginAttempt();
+    const authed = await doLoginAttempt();
 
-    // If still on /signin after first attempt, try once more (handles known double-login bounce)
-    if (/\/signin(\b|\/)/.test(page.url())) {
+    // If we did not detect a session and are still on /signin after first attempt,
+    // try once more (handles known double-login bounce). If a session was already
+    // detected, rely on the existing token + profile warmup and avoid a second
+    // UI login click that can race with redirects.
+    if (!authed && /\/signin(\b|\/)/.test(page.url())) {
       console.warn('⚠ Login bounced back to /signin (attempt 1) - retrying');
       await page.getByLabel(/^email$/i).fill(email);
       await page.getByLabel(/^password$/i).fill(password);
