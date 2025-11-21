@@ -7,6 +7,8 @@ const accessHeaders = (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_
     }
   : undefined;
 
+const prodEnabled = !!process.env.E2E_SMOKE_PROD;
+
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 120_000,
@@ -34,14 +36,18 @@ export default defineConfig({
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
-    {
-      name: 'prod-chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: process.env.PLAYWRIGHT_PROD_BASE_URL || 'https://project-arrowhead.pages.dev',
-        extraHTTPHeaders: accessHeaders,
-      },
-    },
+    ...(prodEnabled
+      ? [
+          {
+            name: 'prod-chromium',
+            use: {
+              ...devices['Desktop Chrome'],
+              baseURL: process.env.PLAYWRIGHT_PROD_BASE_URL || 'https://project-arrowhead.pages.dev',
+              extraHTTPHeaders: accessHeaders,
+            },
+          },
+        ]
+      : []),
   ],
   webServer: process.env.PLAYWRIGHT_NO_WEBSERVER
     ? undefined
