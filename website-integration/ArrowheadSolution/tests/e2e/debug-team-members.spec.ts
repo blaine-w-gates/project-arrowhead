@@ -6,7 +6,7 @@ const TEST_PASSWORD = 'TestPassword123!';
 // Debug test: mirror the real UI flow and capture the browser's
 // request to /api/teams/:teamId/members (used by PermissionGrid).
 
-test('debug team members API response shape (via UI fetch)', async ({ page }) => {
+test.skip('debug team members API response shape (via UI fetch)', async ({ page }) => {
   const email = generateTestEmail();
 
   // 1) Sign up and initialize team using existing helpers

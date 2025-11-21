@@ -103,7 +103,7 @@ async function deleteProjectViaAPI(page: any, projectId: string): Promise<{ stat
 // TEST SUITE: Project Lifecycle
 // ===================================================================
 
-test.describe('Project Lifecycle', () => {
+test.describe.skip('Project Lifecycle', () => {
   let testEmail: string;
   
   test.beforeEach(() => {

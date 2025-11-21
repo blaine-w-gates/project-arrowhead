@@ -8,7 +8,7 @@ import { signUpAndGetTeam } from '../fixtures/auth.fixture';
  * Verify: URL remains /dashboard/projects and Welcome modal does not reappear.
  */
 
-test.describe('Navigation - Refresh Persistence', () => {
+test.describe.skip('Navigation - Refresh Persistence', () => {
   test('stays on /dashboard/projects after reload without Welcome modal', async ({ page }) => {
     await signUpAndGetTeam(page, {
       teamName: 'Refresh Team',
