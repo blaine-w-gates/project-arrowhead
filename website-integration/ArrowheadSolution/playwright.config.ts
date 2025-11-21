@@ -7,7 +7,8 @@ const accessHeaders = (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_
     }
   : undefined;
 
-const prodEnabled = !!process.env.E2E_SMOKE_PROD;
+const heavyEnabled = !!(process.env.E2E_HEAVY || process.env.E2E_SMOKE_PROD);
+const prodEnabled = !!(process.env.E2E_SMOKE_PROD || process.env.E2E_HEAVY);
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -23,6 +24,10 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     acceptDownloads: true,
   },
+  // By default, skip tests tagged @heavy. When heavy mode is enabled
+  // via E2E_HEAVY or E2E_SMOKE_PROD, run only @heavy tests.
+  grep: heavyEnabled ? /@heavy/ : undefined,
+  grepInvert: heavyEnabled ? undefined : /@heavy/,
   projects: [
     {
       name: 'chromium',

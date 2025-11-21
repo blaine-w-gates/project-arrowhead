@@ -22,7 +22,7 @@ const TEST_USER = {
   password: 'TestPassword123!'
 };
 
-test.describe('Objective Lock Flow (PR #155 Verification)', () => {
+test.describe('Objective Lock Flow (PR #155 Verification) @heavy', () => {
   test('User can create objective, acquire lock, and start journey without 404/405 errors', async ({ page }) => {
     const uniqueId = Date.now();
     const projectName = `Auto-Test-Lock-${uniqueId}`;

@@ -1,17 +1,18 @@
-name: E2E Playwright
+name: E2E Playwright - Heavy
 
 on:
-  pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' # Nightly at 03:00 UTC
 
 concurrency:
-  group: e2e-${{ github.ref }}
+  group: e2e-heavy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  e2e:
+  e2e-heavy:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -29,11 +30,12 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run Playwright E2E tests
+      - name: Run Heavy Playwright E2E tests (@heavy + prod)
         env:
           CI: true
+          E2E_HEAVY: '1'
+          E2E_SMOKE_PROD: '1'
           # Local dev server boot via Playwright webServer config
-          # Provide Supabase creds for Team MVP flows
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
@@ -47,12 +49,12 @@ jobs:
           E2E_TEST_MEMBER_EMAIL: ${{ secrets.E2E_TEST_MEMBER_EMAIL }}
           E2E_TEST_MEMBER_PASSWORD: ${{ secrets.E2E_TEST_MEMBER_PASSWORD }}
         run: |
-          npx playwright test --reporter=list,html --grep-invert "@heavy"
+          npx playwright test --reporter=list,html
 
       - name: Upload Playwright HTML report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-heavy
           path: playwright-report
           retention-days: 7

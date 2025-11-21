@@ -33,7 +33,7 @@ import {
 // Generate unique email for this test run
 let testEmail: string;
 
-test.describe('RRGT & Touchbase', () => {
+test.describe('RRGT & Touchbase @heavy', () => {
   test.beforeEach(async () => {
     testEmail = generateTestEmail();
   });
