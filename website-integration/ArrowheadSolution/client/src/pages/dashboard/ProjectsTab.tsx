@@ -51,7 +51,7 @@ export default function ProjectsTab() {
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
       
-      const response = await fetch(`/api/teams/${profile.teamId}/projects`, {
+      const response = await fetch(`/api/teams/${profile.teamId}/projects?include_archived=true`, {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${session?.access_token ?? ''}`,

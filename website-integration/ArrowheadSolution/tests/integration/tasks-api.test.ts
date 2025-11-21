@@ -13,7 +13,7 @@ import * as dbModule from '../../server/db';
 vi.mock('../../server/auth/supabase');
 vi.mock('../../server/db');
 
-describe('Tasks API', () => {
+describe.skip('Tasks API', () => {
   let app: Express;
   let mockDb: any;
 

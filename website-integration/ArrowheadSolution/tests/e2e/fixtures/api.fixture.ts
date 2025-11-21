@@ -9,7 +9,7 @@
  */
 
 import { Page } from '@playwright/test';
-import { supabaseAdmin } from './auth.fixture';
+import { supabaseAdmin, ensureAuthToken } from './auth.fixture';
 
 /**
  * Seed a project via API
@@ -24,30 +24,39 @@ export async function seedProject(
   teamId: string,
   projectName?: string
 ): Promise<{ id: string; name: string }> {
-  // Keep signature for compatibility with existing tests
-  void page;
-
   const name = projectName || `API Test Project ${Date.now()}`;
 
-  const { data, error } = await supabaseAdmin
-    .from('projects')
-    .insert({
-      team_id: teamId,
-      name,
-      completion_status: 'not_started',
-    })
-    .select('id, name')
-    .single();
+  // Use the authenticated Express API so data is created in the same
+  // database the app under test is using.
+  const token = await ensureAuthToken(page);
 
-  if (error || !data) {
-    throw new Error(`Failed to seed project (DB): ${error?.message || 'no data returned'}`);
+  const response = await page.request.post(`/api/teams/${teamId}/projects`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    data: { name },
+  });
+
+  if (!response.ok()) {
+    const body = await response.text();
+    throw new Error(
+      `Failed to seed project (API): HTTP ${response.status()}${body ? ` - ${body}` : ''}`
+    );
   }
 
-  console.log(`✅ Seeded project via DB: ${name} (${data.id})`);
+  const json = await response.json() as any;
+  const project = json.project ?? json;
+
+  if (!project?.id || !project?.name) {
+    throw new Error('Failed to seed project (API): invalid response shape');
+  }
+
+  console.log(`✅ Seeded project via API: ${project.name} (${project.id})`);
 
   return {
-    id: data.id,
-    name: data.name,
+    id: project.id,
+    name: project.name,
   };
 }
 

@@ -7,7 +7,7 @@
  * PRD v5.2 Section 3.1.3: Vision Questions
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import {

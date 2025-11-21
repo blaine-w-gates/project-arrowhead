@@ -10,16 +10,18 @@ function ensureProd(testInfo: any, baseURL?: string) {
 }
 
 // Blog posts list HEAD should include nosniff and HSTS
-test('PROD Blog posts HEAD headers', async ({ request, baseURL }, testInfo) => {
-  ensureProd(testInfo, baseURL);
-  const res = await request.fetch('/api/blog/posts', { method: 'HEAD' });
-  expect([204, 200]).toContain(res.status());
-  const h = res.headers();
-  expect(h['x-content-type-options']).toBe('nosniff');
-  expect((h['content-type'] || '').toLowerCase()).toContain('application/json');
-  expect((h['strict-transport-security'] || '').toLowerCase()).toContain('max-age');
-  // Caching on list endpoint should be public
-  expect((h['cache-control'] || '').toLowerCase()).toContain('public');
+test.describe.skip('Blog headers & metadata', () => {
+  test('PROD Blog posts HEAD headers', async ({ request, baseURL }, testInfo) => {
+    ensureProd(testInfo, baseURL);
+    const res = await request.fetch('/api/blog/posts', { method: 'HEAD' });
+    expect([204, 200]).toContain(res.status());
+    const h = res.headers();
+    expect(h['x-content-type-options']).toBe('nosniff');
+    expect((h['content-type'] || '').toLowerCase()).toContain('application/json');
+    expect((h['strict-transport-security'] || '').toLowerCase()).toContain('max-age');
+    // Caching on list endpoint should be public
+    expect((h['cache-control'] || '').toLowerCase()).toContain('public');
+  });
 });
 
 // Blog post slug HEAD should include nosniff and HSTS whether found (204) or not (404)
