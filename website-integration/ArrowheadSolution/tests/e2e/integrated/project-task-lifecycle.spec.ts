@@ -111,6 +111,9 @@ test.describe('Integrated Project→Objective→Task Lifecycle', () => {
     await expect(yesKnowObjectiveButton).toBeVisible({ timeout: 10_000 });
     await yesKnowObjectiveButton.click();
 
+    const objectiveDetailsTitle = page.getByRole('heading', { name: /create objective|start brainstorming/i });
+    await expect(objectiveDetailsTitle).toBeVisible({ timeout: 10_000 });
+
     const objectiveName = `Lifecycle Objective ${Date.now()}`;
 
     const objectiveNameInput = page.getByLabel(/objective name \*/i).first();
@@ -131,8 +134,8 @@ test.describe('Integrated Project→Objective→Task Lifecycle', () => {
     await expect(createObjectiveButton).toBeVisible({ timeout: 10_000 });
     await createObjectiveButton.click();
 
-    // Wait for modal to close and objective to appear in list
-    await expect(addObjectiveTitle).not.toBeVisible({ timeout: 15_000 });
+    // Wait for details modal to close and objective to appear in list
+    await expect(objectiveDetailsTitle).not.toBeVisible({ timeout: 15_000 });
 
     const objectiveTitleLocator = page.getByText(objectiveName).first();
     await expect(objectiveTitleLocator).toBeVisible({ timeout: 15_000 });
@@ -156,7 +159,8 @@ test.describe('Integrated Project→Objective→Task Lifecycle', () => {
       res.request().method() === 'POST' && /\/api\/objectives\/[^/]+\/lock$/.test(res.url())
     );
 
-    await objectiveCard.click();
+    // Use force to avoid dialog overlay intercepting pointer events; we still assert lock + wizard open
+    await objectiveCard.click({ force: true });
 
     const lockRequest = await lockRequestPromise;
     const lockResponse = await lockResponsePromise;
@@ -169,10 +173,85 @@ test.describe('Integrated Project→Objective→Task Lifecycle', () => {
       throw new Error(`Could not extract objectiveId from lock URL: ${lockRequest.url()}`);
     }
 
-    const journeyStepLabel = page.getByText(/step 1 of 17/i);
+    // For the "Yes, I know my objective" path, the journey should start at step 11 (Objectives module)
+    const journeyStepLabel = page.getByText(/step 11 of 17/i);
     await expect(journeyStepLabel).toBeVisible({ timeout: 10_000 });
 
-    logStep('✅', 'Objective Journey wizard opened and lock acquired');
+    // Click Next once and ensure the journey update payload is accepted (no validation crash)
+    const updateJourneyRequestPromise = page.waitForRequest((req) =>
+      req.method() === 'PUT' && req.url().includes(`/api/objectives/${lockedObjectiveId}`)
+    );
+    const updateJourneyResponsePromise = page.waitForResponse((res) =>
+      res.request().method() === 'PUT' && res.url().includes(`/api/objectives/${lockedObjectiveId}`)
+    );
+
+    const nextButton = page.getByRole('button', { name: /^next$/i });
+    await expect(nextButton).toBeVisible({ timeout: 10_000 });
+    await nextButton.click();
+
+    const updateJourneyRequest = await updateJourneyRequestPromise;
+    const updateJourneyResponse = await updateJourneyResponsePromise;
+
+    expect(updateJourneyResponse.ok()).toBeTruthy();
+    const updateJourneyBody = updateJourneyRequest.postDataJSON() as any;
+    expect(updateJourneyBody).toBeTruthy();
+    expect(updateJourneyBody.current_step).toBe(12);
+
+    const step12Label = page.getByText(/step 12 of 17/i);
+    await expect(step12Label).toBeVisible({ timeout: 10_000 });
+
+    logStep('✅', 'Objective Journey wizard opened at step 11 and advanced to step 12 with valid payload');
+
+    // =====================================================================
+    // STEP 3a: Add Task from within Journey Wizard (default Medium priority)
+    // =====================================================================
+
+    const wizardTaskTitle = `Wizard Task ${Date.now()}`;
+
+    const wizardCreateTaskRequestPromise = page.waitForRequest((req) =>
+      req.method() === 'POST' && req.url().includes(`/api/objectives/${lockedObjectiveId}/tasks`)
+    );
+    const wizardCreateTaskResponsePromise = page.waitForResponse((res) =>
+      res.request().method() === 'POST' && res.url().includes(`/api/objectives/${lockedObjectiveId}/tasks`)
+    );
+
+    const wizardAddTaskButton = page.getByRole('button', { name: /^add task$/i }).first();
+    await expect(wizardAddTaskButton).toBeVisible({ timeout: 10_000 });
+    await wizardAddTaskButton.click();
+
+    const wizardAddTaskHeading = page.getByRole('heading', { name: /create new task/i });
+    await expect(wizardAddTaskHeading).toBeVisible({ timeout: 10_000 });
+
+    const wizardTaskTitleInput = page
+      .getByLabel(/title \*/i)
+      .or(page.getByLabel(/task title/i))
+      .first();
+    await expect(wizardTaskTitleInput).toBeVisible({ timeout: 10_000 });
+    await wizardTaskTitleInput.fill(wizardTaskTitle);
+
+    const wizardDueDateInput = page.getByLabel(/due date/i).first();
+    if (await wizardDueDateInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      const wizardFutureDate = new Date();
+      wizardFutureDate.setDate(wizardFutureDate.getDate() + 7);
+      await wizardDueDateInput.fill(wizardFutureDate.toISOString().split('T')[0]);
+    }
+
+    const wizardCreateTaskButton = page.getByRole('button', { name: /create task/i }).first();
+    await expect(wizardCreateTaskButton).toBeVisible({ timeout: 10_000 });
+    await wizardCreateTaskButton.click();
+
+    const wizardCreateTaskRequest = await wizardCreateTaskRequestPromise;
+    const wizardCreateTaskResponse = await wizardCreateTaskResponsePromise;
+
+    expect(wizardCreateTaskResponse.ok()).toBeTruthy();
+
+    const wizardCreateTaskBody = wizardCreateTaskRequest.postDataJSON() as any;
+    expect(wizardCreateTaskBody).toBeTruthy();
+    expect(typeof wizardCreateTaskBody.priority).toBe('number');
+    // Default Medium priority should map to numeric 2
+    expect(wizardCreateTaskBody.priority).toBe(2);
+
+    logStep('✅', 'Task created from within Journey wizard with valid payload');
 
     // Close wizard and verify DELETE /lock is called
     const unlockRequestPromise = page.waitForRequest((req) =>

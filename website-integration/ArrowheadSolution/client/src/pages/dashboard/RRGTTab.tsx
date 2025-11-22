@@ -42,10 +42,8 @@ interface ProjectsResponse {
   total: number;
 }
 
-interface ObjectivesResponse {
-  objectives: Objective[];
-  total: number;
-}
+// Objectives endpoint returns a bare array (see server/api/objectives.ts)
+type ObjectivesResponse = Objective[];
 
 export default function RRGTTab() {
   const { profile, session } = useAuth();
@@ -85,24 +83,25 @@ export default function RRGTTab() {
     queryKey: ['objectives', selectedProjectId],
     queryFn: async () => {
       if (!selectedProjectId) throw new Error('No project selected');
-      
+
       const response = await fetch(`/api/projects/${selectedProjectId}/objectives`, {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch objectives');
       }
-      
+
+      // Endpoint returns Objective[] directly
       return response.json();
     },
     enabled: !!selectedProjectId,
   });
 
-  const objectiveList = objectivesResponse?.objectives ?? [];
+  const objectiveList = objectivesResponse ?? [];
 
   // Fetch team members (for Manager God-view)
   const { data: teamMembers } = useQuery<TeamMember[]>({

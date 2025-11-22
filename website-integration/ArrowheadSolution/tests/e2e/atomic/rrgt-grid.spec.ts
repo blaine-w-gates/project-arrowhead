@@ -100,10 +100,10 @@ test.describe('RRGT - Atomic Grid (My Work)', () => {
     const rrgtHeading = page.getByRole('heading', { name: /my work \(rrgt\)/i });
     await expect(rrgtHeading).toBeVisible({ timeout: 15_000 });
 
-    logStep('🎯', 'Ensuring seeded project is available in RRGT filters (optional)');
+    logStep('🎯', 'Ensuring seeded project and objective are available in RRGT filters');
 
-    // Project filter: select the seeded project (not strictly required for current API behavior,
-    // but aligns with user workflow and future-proofs filters).
+    // Project filter: select the seeded project (aligns with RRGT workflow and ensures
+    // downstream objective filter is scoped correctly).
     const projectFilterLabel = page.getByText(/^Project$/);
     const projectFilterSection = projectFilterLabel.locator(
       'xpath=ancestor::div[contains(@class,"space-y-2")][1]'
@@ -117,6 +117,22 @@ test.describe('RRGT - Atomic Grid (My Work)', () => {
     const projectOption = page.getByRole('option', { name: seededProjectName }).first();
     await expect(projectOption).toBeVisible({ timeout: 10_000 });
     await projectOption.click();
+
+    // Objective filter: after a project is selected, the Objective combobox should enable
+    // and list the seeded objective returned by /api/projects/:projectId/objectives.
+    const objectiveFilterLabel = page.getByText(/^Objective$/).first();
+    const objectiveFilterSection = objectiveFilterLabel.locator(
+      'xpath=ancestor::div[contains(@class,"space-y-2")][1]'
+    );
+
+    const objectiveSelectTrigger = objectiveFilterSection.getByRole('combobox').first();
+    await expect(objectiveSelectTrigger).toBeVisible({ timeout: 15_000 });
+    await expect(objectiveSelectTrigger).toBeEnabled({ timeout: 15_000 });
+    await objectiveSelectTrigger.click();
+
+    const objectiveOption = page.getByRole('option', { name: objectiveName }).first();
+    await expect(objectiveOption).toBeVisible({ timeout: 10_000 });
+    await objectiveOption.click();
 
     logStep('🔍', 'Locating assigned task in RRGT "Your Assigned Tasks" list');
 

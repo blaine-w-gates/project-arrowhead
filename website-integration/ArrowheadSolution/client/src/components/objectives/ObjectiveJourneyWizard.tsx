@@ -11,30 +11,24 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, Lock, ArrowLeft, ArrowRight, Save } from 'lucide-react';
 import { JourneyStep } from './journey/JourneyStep';
 import journeyContent from '@/data/journeyContent.json';
+import { AddTaskModal } from '@/components/scoreboard/AddTaskModal';
 
 interface ObjectiveData {
   id: string;
-  projectId: string;
   name: string;
-  targetDate: string | null;
   currentStep: number;
-  journeyStatus: 'draft' | 'in_progress' | 'complete';
+  journeyStatus: 'draft' | 'complete';
+  targetCompletionDate: string | null;
   brainstormData: Record<string, string> | null;
   chooseData: Record<string, string> | null;
   objectivesData: Record<string, string> | null;
-  startWithBrainstorm: boolean;
-  editLock: {
-    lockedBy: string | null;
-    lockedByName: string | null;
-    lockedAt: string | null;
-  } | null;
 }
 
 interface ObjectiveJourneyWizardProps {
@@ -58,6 +52,57 @@ const getModuleAndStep = (stepNumber: number): { module: JourneyModule; localSte
   }
 };
 
+// Mapping between global journey steps (1-17) and JSONB field names expected by the API
+const STEP_FIELD_MAP: Record<number, { module: JourneyModule; field: string }> = {
+  // Brainstorm (steps 1-5)
+  1: { module: 'brainstorm', field: 'step1_imitate' },
+  2: { module: 'brainstorm', field: 'step2_ideate' },
+  3: { module: 'brainstorm', field: 'step3_ignore' },
+  4: { module: 'brainstorm', field: 'step4_integrate' },
+  5: { module: 'brainstorm', field: 'step5_interfere' },
+  // Choose (steps 6-10)
+  6: { module: 'choose', field: 'step1_scenarios' },
+  7: { module: 'choose', field: 'step2_compare' },
+  8: { module: 'choose', field: 'step3_important' },
+  9: { module: 'choose', field: 'step4_evaluate' },
+  10: { module: 'choose', field: 'step5_support' },
+  // Objectives (steps 11-17)
+  11: { module: 'objectives', field: 'step1_objective' },
+  12: { module: 'objectives', field: 'step2_delegate' },
+  13: { module: 'objectives', field: 'step3_resources' },
+  14: { module: 'objectives', field: 'step4_obstacles' },
+  15: { module: 'objectives', field: 'step5_milestones' },
+  16: { module: 'objectives', field: 'step6_accountability' },
+  17: { module: 'objectives', field: 'step7_review' },
+};
+
+// Reverse mapping to hydrate local answers state from API JSONB fields
+const MODULE_FIELD_TO_STEP: Record<JourneyModule, Record<string, number>> = {
+  brainstorm: {
+    step1_imitate: 1,
+    step2_ideate: 2,
+    step3_ignore: 3,
+    step4_integrate: 4,
+    step5_interfere: 5,
+  },
+  choose: {
+    step1_scenarios: 6,
+    step2_compare: 7,
+    step3_important: 8,
+    step4_evaluate: 9,
+    step5_support: 10,
+  },
+  objectives: {
+    step1_objective: 11,
+    step2_delegate: 12,
+    step3_resources: 13,
+    step4_obstacles: 14,
+    step5_milestones: 15,
+    step6_accountability: 16,
+    step7_review: 17,
+  },
+};
+
 export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: ObjectiveJourneyWizardProps) {
   const queryClient = useQueryClient();
   const { session } = useAuth();
@@ -68,6 +113,7 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
   const [lockHeartbeatInterval, setLockHeartbeatInterval] = useState<NodeJS.Timeout | null>(null);
   const [autoSaveInterval, setAutoSaveInterval] = useState<NodeJS.Timeout | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
 
   // Fetch objective data with resume endpoint
   const { data: objective, isLoading, error } = useQuery<ObjectiveData>({
@@ -85,9 +131,27 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
       }
 
       const data = await response.json();
-      // Server returns wrapped response: { objective: {...}, is_locked, ... }
-      // Extract the nested objective data
-      return data.objective;
+      const apiObjective = data.objective as {
+        id: string;
+        name: string;
+        current_step?: number | null;
+        journey_status?: 'draft' | 'complete' | null;
+        brainstorm_data?: Record<string, string> | null;
+        choose_data?: Record<string, string> | null;
+        objectives_data?: Record<string, string> | null;
+        target_completion_date?: string | null;
+      };
+
+      return {
+        id: apiObjective.id,
+        name: apiObjective.name,
+        currentStep: apiObjective.current_step ?? 1,
+        journeyStatus: apiObjective.journey_status ?? 'draft',
+        targetCompletionDate: apiObjective.target_completion_date ?? null,
+        brainstormData: apiObjective.brainstorm_data ?? null,
+        chooseData: apiObjective.choose_data ?? null,
+        objectivesData: apiObjective.objectives_data ?? null,
+      } satisfies ObjectiveData;
     },
     enabled: open && !!objectiveId,
   });
@@ -160,27 +224,36 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
   useEffect(() => {
     if (!objective) return;
 
-    // Set current step from objective
+    // Set current step from objective (supports Yes/No branching via server current_step)
     setCurrentStep(objective.currentStep || 1);
 
-    // Load all answers from the three data fields
+    // Load all answers from the three JSONB data fields, mapping back to step_1..step_17 keys
     const allAnswers: Record<string, string> = {};
-    
+
     if (objective.brainstormData) {
-      Object.entries(objective.brainstormData).forEach(([key, value]) => {
-        allAnswers[key] = value;
+      Object.entries(objective.brainstormData).forEach(([field, value]) => {
+        const stepNumber = MODULE_FIELD_TO_STEP.brainstorm[field as keyof typeof MODULE_FIELD_TO_STEP.brainstorm];
+        if (stepNumber && typeof value === 'string' && value.length > 0) {
+          allAnswers[`step_${stepNumber}`] = value;
+        }
       });
     }
-    
+
     if (objective.chooseData) {
-      Object.entries(objective.chooseData).forEach(([key, value]) => {
-        allAnswers[key] = value;
+      Object.entries(objective.chooseData).forEach(([field, value]) => {
+        const stepNumber = MODULE_FIELD_TO_STEP.choose[field as keyof typeof MODULE_FIELD_TO_STEP.choose];
+        if (stepNumber && typeof value === 'string' && value.length > 0) {
+          allAnswers[`step_${stepNumber}`] = value;
+        }
       });
     }
-    
+
     if (objective.objectivesData) {
-      Object.entries(objective.objectivesData).forEach(([key, value]) => {
-        allAnswers[key] = value;
+      Object.entries(objective.objectivesData).forEach(([field, value]) => {
+        const stepNumber = MODULE_FIELD_TO_STEP.objectives[field as keyof typeof MODULE_FIELD_TO_STEP.objectives];
+        if (stepNumber && typeof value === 'string' && value.length > 0) {
+          allAnswers[`step_${stepNumber}`] = value;
+        }
       });
     }
 
@@ -189,13 +262,7 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
 
   // Update objective mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: {
-      currentStep?: number;
-      journeyStatus?: string;
-      brainstormData?: Record<string, string>;
-      chooseData?: Record<string, string>;
-      objectivesData?: Record<string, string>;
-    }) => {
+    mutationFn: async (payload: unknown) => {
       const response = await fetch(`/api/objectives/${objectiveId}`, {
         method: 'PUT',
         headers: {
@@ -203,7 +270,7 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -252,30 +319,44 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
 
   const saveProgress = async (newStep?: number) => {
     const stepToSave = newStep || currentStep;
-    
-    // Separate answers by module
-    const brainstormAnswers: Record<string, string> = {};
-    const chooseAnswers: Record<string, string> = {};
-    const objectivesAnswers: Record<string, string> = {};
+
+    const brainstormData: Record<string, string> = {};
+    const chooseData: Record<string, string> = {};
+    const objectivesData: Record<string, string> = {};
 
     Object.entries(answers).forEach(([key, value]: [string, string]) => {
-      const stepNum = parseInt(key.split('_')[1]);
-      if (stepNum <= 5) {
-        brainstormAnswers[key] = value;
-      } else if (stepNum <= 10) {
-        chooseAnswers[key] = value;
+      if (!value) return;
+      const stepNum = parseInt(key.split('_')[1], 10);
+      if (!stepNum || !STEP_FIELD_MAP[stepNum]) return;
+
+      const { module, field } = STEP_FIELD_MAP[stepNum];
+
+      if (module === 'brainstorm') {
+        brainstormData[field] = value;
+      } else if (module === 'choose') {
+        chooseData[field] = value;
       } else {
-        objectivesAnswers[key] = value;
+        objectivesData[field] = value;
       }
     });
 
-    await updateMutation.mutateAsync({
-      currentStep: stepToSave,
-      brainstormData: Object.keys(brainstormAnswers).length > 0 ? brainstormAnswers : undefined,
-      chooseData: Object.keys(chooseAnswers).length > 0 ? chooseAnswers : undefined,
-      objectivesData: Object.keys(objectivesAnswers).length > 0 ? objectivesAnswers : undefined,
-      journeyStatus: stepToSave === TOTAL_STEPS ? 'complete' : 'in_progress',
-    });
+    const payload: Record<string, unknown> = {
+      current_step: stepToSave,
+      // The schema allows only 'draft' or 'complete'. Use 'draft' for all in-progress states.
+      journey_status: stepToSave === TOTAL_STEPS ? 'complete' : 'draft',
+    };
+
+    if (Object.keys(brainstormData).length > 0) {
+      payload.brainstorm_data = brainstormData;
+    }
+    if (Object.keys(chooseData).length > 0) {
+      payload.choose_data = chooseData;
+    }
+    if (Object.keys(objectivesData).length > 0) {
+      payload.objectives_data = objectivesData;
+    }
+
+    await updateMutation.mutateAsync(payload);
   };
 
   const handleNext = async () => {
@@ -329,6 +410,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
     return (
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Loading Objective Journey</DialogTitle>
+          </DialogHeader>
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-3 text-muted-foreground">Loading journey...</span>
@@ -342,6 +426,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
     return (
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Objective Journey Error</DialogTitle>
+          </DialogHeader>
           <Alert variant="destructive">
             <AlertDescription>
               Failed to load objective journey. Please try again.
@@ -360,6 +447,9 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
     return (
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Objective is Locked</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-yellow-600">
               <Lock className="h-5 w-5" />
@@ -388,7 +478,7 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
         <div className="p-6 border-b space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">{objective.name}</h2>
+              <DialogTitle className="text-2xl font-bold">{objective.name}</DialogTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Step {currentStep} of {TOTAL_STEPS}: {stepContent.title}
               </p>
@@ -419,22 +509,64 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
           </div>
         </div>
 
-        {/* Step Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <JourneyStep
-            stepNumber={currentStep}
-            title={stepContent.title}
-            instructions={stepContent.instructions}
-            question={stepContent.question}
-            placeholder={stepContent.placeholder}
-            value={answers[`step_${currentStep}`] || ''}
-            onChange={(value: string) => handleAnswerChange(`step_${currentStep}`, value)}
-          />
+        {/* Body: Sidebar Navigation + Step Content */}
+        <div className="flex-1 min-h-0 flex">
+          {/* Sidebar Navigation */}
+          <aside className="w-64 border-r bg-muted/40 p-4 space-y-4 hidden md:flex md:flex-col overflow-hidden">
+            <h3 className="text-sm font-semibold mb-1">Journey Steps</h3>
+            <div className="space-y-1 text-sm h-[calc(100vh-260px)] overflow-y-auto pr-1">
+              {Array.from({ length: TOTAL_STEPS }, (_, index) => {
+                const stepNumber = index + 1;
+                const { module: itemModule, localStep: itemLocalStep } = getModuleAndStep(stepNumber);
+                const itemContent = journeyContent[itemModule][itemLocalStep - 1];
+                const isActive = stepNumber === currentStep;
+
+                return (
+                  <button
+                    key={stepNumber}
+                    type="button"
+                    onClick={() => {
+                      if (stepNumber !== currentStep && !updateMutation.isPending) {
+                        // Save progress for the current step before jumping
+                        saveProgress(stepNumber).then(() => setCurrentStep(stepNumber));
+                      }
+                    }}
+                    className={`w-full text-left px-2 py-1 rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground font-semibold'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <span className="block text-xs uppercase tracking-wide">
+                      Step {stepNumber}
+                      {itemModule === 'brainstorm' && ' · Brainstorm'}
+                      {itemModule === 'choose' && ' · Choose'}
+                      {itemModule === 'objectives' && ' · Objectives'}
+                    </span>
+                    <span className="block truncate">{itemContent.title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* Step Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <JourneyStep
+              stepNumber={currentStep}
+              title={stepContent.title}
+              instructions={stepContent.instructions}
+              question={stepContent.question}
+              placeholder={stepContent.placeholder}
+              value={answers[`step_${currentStep}`] || ''}
+              onChange={(value: string) => handleAnswerChange(`step_${currentStep}`, value)}
+            />
+          </div>
         </div>
 
-        {/* Footer Navigation */}
+        {/* Footer Navigation + Actions */}
         <div className="p-6 border-t bg-muted/50">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <Button
               variant="outline"
               onClick={handleBack}
@@ -444,14 +576,25 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
               Back
             </Button>
 
-            <Button
-              variant="outline"
-              onClick={handleSaveDraft}
-              disabled={updateMutation.isPending}
-            >
-              <Save className="mr-2 h-4 w-4" />
-              {updateMutation.isPending ? 'Saving...' : 'Save Draft'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={updateMutation.isPending}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                {updateMutation.isPending ? 'Saving...' : 'Save Draft'}
+              </Button>
+
+              <Button
+                type="button"
+                variant="default"
+                onClick={() => setIsAddTaskOpen(true)}
+                disabled={updateMutation.isPending}
+              >
+                Add Task
+              </Button>
+            </div>
 
             <Button
               onClick={handleNext}
@@ -468,6 +611,13 @@ export function ObjectiveJourneyWizard({ open, onClose, objectiveId }: Objective
             </Button>
           </div>
         </div>
+
+        {/* In-wizard Add Task Modal */}
+        <AddTaskModal
+          open={isAddTaskOpen}
+          onClose={() => setIsAddTaskOpen(false)}
+          objectiveId={objectiveId}
+        />
       </DialogContent>
     </Dialog>
   );
