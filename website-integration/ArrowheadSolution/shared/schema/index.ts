@@ -12,6 +12,7 @@
  * - tasks.ts: tasks, task_assignments, rrgt_items
  * - touchbases.ts: touchbases
  * - dial.ts: dial_states
+ * - rrgt.ts: rrgt_plans, rrgt_subtasks, rrgt_rabbits
  */
 
 // Tables and Relations
@@ -20,3 +21,4 @@ export * from "./projects";
 export * from "./tasks";
 export * from "./touchbases";
 export * from "./dial";
+export * from "./rrgt";

@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Target, Users } from 'lucide-react';
 import { RrgtGrid } from '@/components/rrgt/RrgtGrid';
 import { DialPlaceholder } from '@/components/rrgt/DialPlaceholder';
+import type { RrgtResponse } from '@/types';
 
 interface Project {
   id: string;
@@ -47,6 +48,7 @@ type ObjectivesResponse = Objective[];
 
 export default function RRGTTab() {
   const { profile, session } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -125,20 +127,15 @@ export default function RRGTTab() {
     enabled: isManager && !!profile?.teamId,
   });
 
-  // Fetch RRGT data for dial state
-  const isGodView = selectedMemberIds.length > 0;
-  const rrgtEndpoint = isGodView && selectedMemberIds.length === 1
-    ? `/api/rrgt/${selectedMemberIds[0]}`
-    : '/api/rrgt/mine';
-
-  const { data: rrgtData } = useQuery({
-    queryKey: ['rrgt', rrgtEndpoint, selectedProjectId, selectedObjectiveId],
+  // Fetch RRGT data (Matrix plans)
+  const { data: rrgtData } = useQuery<RrgtResponse>({
+    queryKey: ['rrgt-matrix', selectedProjectId, selectedObjectiveId],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (selectedProjectId) params.append('project_id', selectedProjectId);
       if (selectedObjectiveId) params.append('objective_id', selectedObjectiveId);
 
-      const url = `${rrgtEndpoint}${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `/api/rrgt/mine${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, {
         credentials: 'include',
         headers: {
@@ -153,6 +150,65 @@ export default function RRGTTab() {
       return response.json();
     },
   });
+
+  const plans = rrgtData?.plans ?? [];
+
+  const moveRabbitMutation = useMutation({
+    mutationFn: async (vars: { planId: string; columnIndex: number }) => {
+      const response = await fetch(`/api/rrgt/plans/${vars.planId}/rabbit`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ column_index: vars.columnIndex }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update RRGT rabbit');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rrgt-matrix'] });
+    },
+  });
+
+  const handleMoveRabbit = (planId: string, columnIndex: number) => {
+    moveRabbitMutation.mutate({ planId, columnIndex });
+  };
+
+  const saveSubtaskMutation = useMutation({
+    mutationFn: async (vars: { planId: string; columnIndex: number; text: string }) => {
+      const response = await fetch(`/api/rrgt/plans/${vars.planId}/subtasks`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({
+          column_index: vars.columnIndex,
+          text: vars.text,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save RRGT subtask');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rrgt-matrix'] });
+    },
+  });
+
+  const handleSaveSubtask = (planId: string, columnIndex: number, text: string) => {
+    saveSubtaskMutation.mutate({ planId, columnIndex, text });
+  };
 
   const handleProjectChange = (projectId: string | null) => {
     setSelectedProjectId(projectId || null);
@@ -297,9 +353,9 @@ export default function RRGTTab() {
 
       {/* Dial */}
       <DialPlaceholder 
-        dialState={rrgtData?.dial_state || null}
-        items={rrgtData?.items || []}
-        tasks={rrgtData?.tasks || []}
+        dialState={null}
+        items={[]}
+        tasks={[]}
       />
 
       {/* RRGT Grid */}
@@ -307,15 +363,14 @@ export default function RRGTTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            RRGT Grid (6 Priority Columns)
+            RRGT Matrix (Rabbit Race)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <RrgtGrid
-            projectId={selectedProjectId}
-            objectiveId={selectedObjectiveId}
-            memberIds={selectedMemberIds.length > 0 ? selectedMemberIds : undefined}
-            currentUserId={profile.id}
+            plans={plans}
+            onMoveRabbit={handleMoveRabbit}
+            onSaveSubtask={handleSaveSubtask}
           />
         </CardContent>
       </Card>
