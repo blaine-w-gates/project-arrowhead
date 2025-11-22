@@ -18,6 +18,7 @@ import { test, expect } from '@playwright/test';
 import { 
   signUpAndGetTeam, 
   generateTestEmail,
+  ensureAuthToken,
 } from './fixtures/auth.fixture';
 import { 
   cleanupTestData, 
@@ -27,13 +28,13 @@ import {
   logStep 
 } from './fixtures/data.fixture';
 import {
-  seedCompleteHierarchy,
+  seedProject,
 } from './fixtures/api.fixture';
 
 // Generate unique email for this test run
 let testEmail: string;
 
-test.describe.skip('RRGT & Touchbase', () => {
+test.describe('RRGT & Touchbase', () => {
   test.beforeEach(async () => {
     testEmail = generateTestEmail();
   });
@@ -70,11 +71,59 @@ test.describe.skip('RRGT & Touchbase', () => {
     // STEP 2: Seed test data via API (fast)
     logStep('🌱', 'Step 2: Seeding Project → Objective → Task via API...');
 
-    const { project, objective, task } = await seedCompleteHierarchy(page, teamId, teamMemberId, {
-      projectName: 'RRGT Test Project',
-      objectiveName: 'RRGT Test Objective',
-      taskTitle: 'RRGT Test Task',
+    const projectName = 'RRGT Test Project';
+    const objectiveName = 'RRGT Test Objective';
+    const taskTitle = 'RRGT Test Task';
+
+    const { id: projectId, name: seededProjectName } = await seedProject(page, teamId, projectName);
+
+    const token = await ensureAuthToken(page);
+
+    // Create objective via authenticated Express API
+    const objectiveResponse = await page.request.post(`/api/projects/${projectId}/objectives`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      data: {
+        name: objectiveName,
+        start_with_brainstorm: false,
+      },
     });
+
+    expect(objectiveResponse.ok()).toBeTruthy();
+    const objectiveJson = (await objectiveResponse.json()) as any;
+    const objectiveId: string | undefined = objectiveJson?.objective?.id;
+
+    if (!objectiveId) {
+      throw new Error('Failed to seed objective via /api/projects/:projectId/objectives for RRGT test');
+    }
+
+    // Create task assigned to current team member via Tasks API
+    const createTaskResponse = await page.request.post(`/api/objectives/${objectiveId}/tasks`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      data: {
+        title: taskTitle,
+        description: 'RRGT Test Task seeded via API',
+        priority: 2,
+        assigned_team_member_ids: [teamMemberId],
+      },
+    });
+
+    expect(createTaskResponse.ok()).toBeTruthy();
+    const taskJson = (await createTaskResponse.json()) as any;
+    const taskId: string | undefined = taskJson?.task?.id;
+
+    if (!taskId) {
+      throw new Error('Failed to seed task via /api/objectives/:objectiveId/tasks for RRGT test');
+    }
+
+    const project = { id: projectId, name: seededProjectName };
+    const objective = { id: objectiveId, name: objectiveName };
+    const task = { id: taskId, title: taskTitle };
 
     logStep('✅', `Test data seeded: ${project.name} → ${objective.name} → ${task.title}`);
 
@@ -136,194 +185,162 @@ test.describe.skip('RRGT & Touchbase', () => {
   // TEST 2: Touchbase Flow
   // ===================================================================
 
-  test.skip('Can create touchbase and view history', async ({ page }) => {
+  test('Can create touchbase and view history', async ({ page }) => {
     // TODO: Implement after RRGT test is stable
     // Requires: API seeding of Project → Objective → Task
     logStep('🚀', 'Test 2: Touchbase Flow');
 
     // STEP 1: Setup - Sign up and create team
     logStep('📝', 'Step 1: Setting up user and team...');
-    await signUpAndGetTeam(page, {
+    const { teamId } = await signUpAndGetTeam(page, {
       teamName: 'Touchbase Test Team',
       userName: 'Touchbase Tester',
     });
     logStep('✅', 'Team created successfully');
 
-    // STEP 2: Create an objective first (Touchbases are linked to objectives)
-    logStep('📊', 'Step 2: Creating objective for touchbase...');
+    if (!teamId) {
+      throw new Error('Missing teamId for Touchbase test');
+    }
+
+    // STEP 2: Create Project and Objective via API (Touchbases are linked to objectives)
+    logStep('📊', 'Step 2: Seeding project and objective for touchbase via API...');
     
-    // Navigate to Objectives tab
-    const objectivesTab = page.getByRole('link', { name: /objectives/i }).first();
-    await objectivesTab.click();
+    const projectName = `Touchbase Test Project ${Date.now()}`;
+    const objectiveName = DataGenerators.objectiveName('Touchbase Test Objective');
+
+    const { id: projectId, name: seededProjectName } = await seedProject(page, teamId, projectName);
+
+    const token = await ensureAuthToken(page);
+
+    const objectiveResponse = await page.request.post(`/api/projects/${projectId}/objectives`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      data: {
+        name: objectiveName,
+        start_with_brainstorm: false,
+      },
+    });
+
+    expect(objectiveResponse.ok()).toBeTruthy();
+    const objectiveJson = (await objectiveResponse.json()) as any;
+    const objectiveId: string | undefined = objectiveJson?.objective?.id;
+
+    if (!objectiveId) {
+      throw new Error('Failed to seed objective for Touchbase test');
+    }
+
+    logStep('✅', `Test data seeded: ${seededProjectName} → ${objectiveName}`);
+
+    // STEP 3: Navigate to Scoreboard and select project/objective
+    logStep('🧭', 'Step 3: Navigating to Scoreboard and selecting objective...');
+
+    await page.goto('/dashboard/scoreboard', { waitUntil: 'networkidle' });
     await waitForNetworkIdle(page);
 
-    // Create objective (adjust selectors based on actual UI)
-    const addObjectiveButton = page.getByRole('button', { name: /add objective/i }).first();
-    
-    if (await addObjectiveButton.isVisible().catch(() => false)) {
-      await addObjectiveButton.click();
-      
-      const objectiveName = DataGenerators.objectiveName('Touchbase Test Objective');
-      const objectiveNameInput = page.getByLabel(/objective name|title/i);
-      await objectiveNameInput.fill(objectiveName);
-      
-      const createButton = page.getByRole('button', { name: /create|save/i }).last();
-      await createButton.click();
-      
-      await expect(page.getByText(objectiveName)).toBeVisible({ timeout: 10000 });
-      logStep('✅', `Objective created: ${objectiveName}`);
-    } else {
-      logStep('⚠️', 'No objectives exist - touchbase requires objectives');
-      logStep('ℹ️', 'Skipping touchbase test (prerequisite not met)');
-      return;
-    }
+    const scoreboardHeading = page.getByRole('heading', { name: /scoreboard/i });
+    await expect(scoreboardHeading).toBeVisible({ timeout: 15_000 });
 
-    // STEP 3: Navigate to Touchbase section
-    logStep('📋', 'Step 3: Navigating to touchbase...');
-    
-    // Find touchbase button/link (may be in sidebar or within objective)
-    const touchbaseButton = page.getByRole('button', { name: /touchbase|check-?in/i }).first();
-    
-    if (await touchbaseButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await touchbaseButton.click();
-      logStep('✅', 'Touchbase form opened');
-    } else {
-      logStep('⚠️', 'Touchbase feature not found - may need UI navigation adjustment');
-      return;
-    }
+    // Select project in Scoreboard filters
+    const projectFilterSection = page
+      .getByText(/^Project$/)
+      .locator('xpath=ancestor::div[contains(@class,"space-y-2")][1]');
 
-    // STEP 4: Fill out touchbase (7 questions)
-    logStep('📝', 'Step 4: Filling touchbase responses...');
-    
-    const touchbaseResponses = {
-      wins: 'Completed database migration',
-      challenges: 'Some performance issues',
-      support: 'Need help with optimization',
-      progress: 'Making steady progress',
-      blockers: 'Waiting on API documentation',
-      nextSteps: 'Implement caching layer',
-      notes: 'Overall good week',
-    };
+    const projectSelectTrigger = projectFilterSection.getByRole('combobox').first();
+    await expect(projectSelectTrigger).toBeVisible({ timeout: 15_000 });
+    await expect(projectSelectTrigger).toBeEnabled({ timeout: 15_000 });
+    await projectSelectTrigger.click();
 
-    // Fill each question (adjust selectors based on actual form)
-    for (const [key, value] of Object.entries(touchbaseResponses)) {
-      const input = page.getByLabel(new RegExp(key, 'i')).or(
-        page.getByPlaceholder(new RegExp(key, 'i'))
-      );
-      
-      if (await input.isVisible().catch(() => false)) {
-        await input.fill(value);
-      }
-    }
+    const projectOption = page.getByRole('option', { name: seededProjectName }).first();
+    await expect(projectOption).toBeVisible({ timeout: 10_000 });
+    await projectOption.click();
+
+    // Select objective in Scoreboard filters
+    const objectiveFilterSection = page
+      .getByText(/^Objective$/)
+      .locator('xpath=ancestor::div[contains(@class,"space-y-2")][1]');
+
+    const objectiveSelectTrigger = objectiveFilterSection.getByRole('combobox').first();
+    await expect(objectiveSelectTrigger).toBeVisible({ timeout: 15_000 });
+    await expect(objectiveSelectTrigger).toBeEnabled({ timeout: 15_000 });
+    await objectiveSelectTrigger.click();
+
+    const objectiveOption = page.getByRole('option', { name: objectiveName }).first();
+    await expect(objectiveOption).toBeVisible({ timeout: 10_000 });
+    await objectiveOption.click();
+
+    // STEP 4: Open New Touchbase modal from Touchbases card
+    logStep('📋', 'Step 4: Opening New Touchbase modal...');
+
+    const touchbasesCard = page
+      .getByText(/^Touchbases/i)
+      .locator('xpath=ancestor::div[contains(@class,"rounded-lg") and contains(@class,"border")][1]');
+
+    await expect(touchbasesCard).toBeVisible({ timeout: 15_000 });
+
+    const newTouchbaseButton = touchbasesCard.getByRole('button', { name: /new touchbase/i });
+    await expect(newTouchbaseButton).toBeVisible({ timeout: 10_000 });
+    await newTouchbaseButton.click();
+
+    // New Touchbase modal
+    const touchbaseModalTitle = page.getByRole('heading', { name: /new touchbase \/ 1-on-1 meeting/i });
+    await expect(touchbaseModalTitle).toBeVisible({ timeout: 10_000 });
+
+    // Select team member
+    const memberSelect = page.getByRole('combobox', { name: /team member/i });
+    await expect(memberSelect).toBeVisible({ timeout: 10_000 });
+    await memberSelect.click();
+
+    const memberOption = page.getByRole('option', { name: /touchbase tester/i }).first();
+    await expect(memberOption).toBeVisible({ timeout: 10_000 });
+    await memberOption.click();
+
+    // Fill wins question (question 4) and leave others blank for brevity
+    logStep('📝', 'Step 5: Filling touchbase responses...');
+
+    const winsAnswer = 'Completed database migration';
+    const winsTextarea = page.getByLabel(/4\. What wins or accomplishments do you want to share\?/i);
+    await winsTextarea.fill(winsAnswer);
 
     // Submit touchbase
-    const submitButton = page.getByRole('button', { name: /submit|save touchbase/i });
-    await expect(submitButton).toBeEnabled({ timeout: 3000 });
-    await submitButton.click();
-    
-    logStep('✅', 'Touchbase submitted');
+    const createTouchbaseButton = page.getByRole('button', { name: /create touchbase/i });
+    await expect(createTouchbaseButton).toBeVisible({ timeout: 10_000 });
 
-    // STEP 5: Verify touchbase appears in history
-    logStep('📚', 'Step 5: Verifying touchbase history...');
-    
-    // Navigate to history view (may need to click a tab or button)
-    const historyButton = page.getByRole('button', { name: /history|past touchbases/i }).first();
-    
-    if (await historyButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await historyButton.click();
-      await waitForNetworkIdle(page);
+    const createTouchbaseResponsePromise = page.waitForResponse((response) => {
+      return response.url().includes(`/api/objectives/${objectiveId}/touchbases`) &&
+        response.request().method() === 'POST';
+    });
+
+    await createTouchbaseButton.click();
+
+    const createTouchbaseResponse = await createTouchbaseResponsePromise;
+    const responseOk = createTouchbaseResponse.ok();
+
+    if (!responseOk) {
+      const debugBody = await createTouchbaseResponse.text();
+      // eslint-disable-next-line no-console
+      console.error('Touchbase create failed:', createTouchbaseResponse.status(), debugBody);
     }
 
-    // Verify at least one response is visible in history
-    await expect(page.getByText(touchbaseResponses.wins)).toBeVisible({ timeout: 10000 });
+    expect(responseOk).toBeTruthy();
+
+    logStep('✅', 'Touchbase submitted');
+
+    // Wait for the New Touchbase modal to fully close before interacting with the underlying card
+    await expect(touchbaseModalTitle).toBeHidden({ timeout: 10_000 });
+
+    // STEP 6: Expand Touchbases history and verify preview
+    logStep('📚', 'Step 6: Verifying touchbase history...');
+
+    const showButton = touchbasesCard.getByRole('button', { name: /show/i }).first();
+    await expect(showButton).toBeVisible({ timeout: 10_000 });
+    await showButton.click();
+    await waitForNetworkIdle(page);
+
+    await expect(touchbasesCard.getByText(winsAnswer)).toBeVisible({ timeout: 10_000 });
     logStep('✅', 'Touchbase history verified (JSONB storage verified)');
 
     logStep('🎉', 'Test 2 complete: Touchbase Flow');
-  });
-
-  // ===================================================================
-  // TEST 3: The Dial Component
-  // ===================================================================
-
-  test.skip('Dial component renders selected RRGT items', async ({ page }) => {
-    // TODO: Implement after RRGT test is stable
-    // Requires: API seeding of Project → Objective → Task + RRGT items
-    logStep('🚀', 'Test 3: The Dial');
-
-    // STEP 1: Setup - Sign up and create team
-    logStep('📝', 'Step 1: Setting up user and team...');
-    await signUpAndGetTeam(page, {
-      teamName: 'Dial Test Team',
-      userName: 'Dial Tester',
-    });
-    logStep('✅', 'Team created successfully');
-
-    // STEP 2: Navigate to RRGT Tab
-    logStep('📂', 'Step 2: Navigating to RRGT tab...');
-    const rrgtTab = page.getByRole('link', { name: /rrgt/i }).first();
-    await rrgtTab.click();
-    await waitForNetworkIdle(page);
-
-    // STEP 3: Create two RRGT items
-    logStep('➕', 'Step 3: Creating two RRGT items for dial...');
-    
-    const item1Name = DataGenerators.rrgtItemName('Left Item');
-    const item2Name = DataGenerators.rrgtItemName('Right Item');
-
-    // Create first item
-    const addItemButton = page.getByRole('button', { name: /add item/i });
-    await expect(addItemButton).toBeVisible({ timeout: 10000 });
-    await addItemButton.click();
-
-    let itemInput = page.getByLabel(/item name|title/i);
-    await itemInput.fill(item1Name);
-    
-    let submitButton = page.getByRole('button', { name: /create|add|save/i }).last();
-    await submitButton.click();
-    await expect(page.getByText(item1Name)).toBeVisible({ timeout: 10000 });
-    logStep('✅', `Item 1 created: ${item1Name}`);
-
-    // Create second item
-    await addItemButton.click();
-    itemInput = page.getByLabel(/item name|title/i);
-    await itemInput.fill(item2Name);
-    submitButton = page.getByRole('button', { name: /create|add|save/i }).last();
-    await submitButton.click();
-    await expect(page.getByText(item2Name)).toBeVisible({ timeout: 10000 });
-    logStep('✅', `Item 2 created: ${item2Name}`);
-
-    // STEP 4: Select items for dial
-    logStep('🎯', 'Step 4: Selecting items for dial...');
-    
-    // Look for checkboxes or selection mechanism next to items
-    const item1Checkbox = page.locator(`text=${item1Name}`).locator('..').getByRole('checkbox').first();
-    const item2Checkbox = page.locator(`text=${item2Name}`).locator('..').getByRole('checkbox').first();
-    
-    if (await item1Checkbox.isVisible().catch(() => false)) {
-      await item1Checkbox.check();
-      await item2Checkbox.check();
-      logStep('✅', 'Items selected');
-    } else {
-      logStep('⚠️', 'Item selection mechanism not found');
-    }
-
-    // STEP 5: Verify dial component renders
-    logStep('🔍', 'Step 5: Verifying dial component...');
-    
-    // Look for dial component (may have specific test ID or aria-label)
-    const dialComponent = page.getByTestId('dial-component').or(
-      page.getByRole('region', { name: /dial/i })
-    );
-    
-    if (await dialComponent.isVisible({ timeout: 10000 }).catch(() => false)) {
-      // Verify both items appear in dial
-      await expect(dialComponent.getByText(item1Name)).toBeVisible();
-      await expect(dialComponent.getByText(item2Name)).toBeVisible();
-      logStep('✅', 'Dial component renders both items');
-    } else {
-      logStep('⚠️', 'Dial component not visible - may need UI implementation');
-    }
-
-    logStep('🎉', 'Test 3 complete: The Dial');
   });
 });

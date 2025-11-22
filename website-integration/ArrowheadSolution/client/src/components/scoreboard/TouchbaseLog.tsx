@@ -53,7 +53,8 @@ export function TouchbaseLog({ objectiveId }: TouchbaseLogProps) {
         throw new Error('Failed to fetch touchbases');
       }
 
-      return response.json();
+      const result = await response.json();
+      return Array.isArray(result?.touchbases) ? result.touchbases : [];
     },
     enabled: !!objectiveId,
   });
