@@ -14,7 +14,7 @@ const mockAuthState: any = {
   user: { id: 'user-1' },
 };
 
-vi.mock('@/contexts/AuthContext', () => ({
+vi.mock('../../../client/src/contexts/AuthContext', () => ({
   useAuth: () => mockAuthState,
 }));
 

@@ -47,7 +47,7 @@ jobs:
           E2E_TEST_MEMBER_EMAIL: ${{ secrets.E2E_TEST_MEMBER_EMAIL }}
           E2E_TEST_MEMBER_PASSWORD: ${{ secrets.E2E_TEST_MEMBER_PASSWORD }}
         run: |
-          npx playwright test --reporter=list,html --grep-invert "@heavy"
+          npx playwright test --reporter=list,html
 
       - name: Upload Playwright HTML report
         if: always()

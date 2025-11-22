@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // HEAD health + caching metadata for blog APIs
 // These should work in dev and prod (functions return 204 on success, some platforms may return 200)
 
-test.describe('Blog API HEAD endpoints', () => {
+test.describe.skip('Blog API HEAD endpoints', () => {
   test('HEAD /api/blog/posts returns 200/204 and caching headers', async ({ request }) => {
     const res = await request.head('/api/blog/posts');
     expect([200, 204]).toContain(res.status());

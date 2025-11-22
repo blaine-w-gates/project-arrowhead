@@ -101,9 +101,14 @@ router.post(
 
       const newProject = newProjects[0];
 
+      const uiProject = {
+        ...newProject,
+        completionStatus: newProject.completionStatus === 'completed',
+      };
+
       return res.status(201).json({
         message: 'Project created successfully',
-        project: newProject,
+        project: uiProject,
       });
     } catch (error) {
       console.error('Error creating project:', error);
@@ -196,8 +201,13 @@ router.get(
           
           const tasksCount = taskCounts[0]?.count || 0;
 
-          return {
+          const uiProject = {
             ...project,
+            completionStatus: project.completionStatus === 'completed',
+          };
+
+          return {
+            ...uiProject,
             stats: {
               objectives_count: objectivesCount,
               tasks_count: tasksCount,

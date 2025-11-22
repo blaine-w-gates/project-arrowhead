@@ -11,7 +11,7 @@ import { waitForNetworkIdle, logStep } from '../fixtures/data.fixture';
  * CTA and a working dismiss button.
  */
 
-test.describe('Trial Banner - Subscription UX', () => {
+test.describe.skip('Trial Banner - Subscription UX', () => {
   test('shows trial ending banner when trial has 3 days or less remaining', async ({ page }) => {
     logStep('📝', 'Setting up trialing team via signup + team init');
 

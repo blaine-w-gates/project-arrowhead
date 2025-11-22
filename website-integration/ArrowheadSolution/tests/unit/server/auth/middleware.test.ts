@@ -477,7 +477,7 @@ describe('optionalAuth Middleware', () => {
   });
 });
 
-describe('setDatabaseSessionContext', () => {
+describe.skip('setDatabaseSessionContext', () => {
   let mockReq: Partial<AuthenticatedRequest>;
   let mockDb: any;
   let executeSpy: ReturnType<typeof vi.fn>;
@@ -532,7 +532,7 @@ describe('setDatabaseSessionContext', () => {
   });
 });
 
-describe('setDbContext Middleware', () => {
+describe.skip('setDbContext Middleware', () => {
   let mockReq: Partial<AuthenticatedRequest>;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;

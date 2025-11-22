@@ -7,9 +7,6 @@ const accessHeaders = (process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_
     }
   : undefined;
 
-const heavyEnabled = !!(process.env.E2E_HEAVY || process.env.E2E_SMOKE_PROD);
-const prodEnabled = !!(process.env.E2E_SMOKE_PROD || process.env.E2E_HEAVY);
-
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 120_000,
@@ -24,10 +21,6 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     acceptDownloads: true,
   },
-  // By default, skip tests tagged @heavy. When heavy mode is enabled
-  // via E2E_HEAVY or E2E_SMOKE_PROD, run only @heavy tests.
-  grep: heavyEnabled ? /@heavy/ : undefined,
-  grepInvert: heavyEnabled ? undefined : /@heavy/,
   projects: [
     {
       name: 'chromium',
@@ -41,18 +34,14 @@ export default defineConfig({
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
-    ...(prodEnabled
-      ? [
-          {
-            name: 'prod-chromium',
-            use: {
-              ...devices['Desktop Chrome'],
-              baseURL: process.env.PLAYWRIGHT_PROD_BASE_URL || 'https://project-arrowhead.pages.dev',
-              extraHTTPHeaders: accessHeaders,
-            },
-          },
-        ]
-      : []),
+    {
+      name: 'prod-chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.PLAYWRIGHT_PROD_BASE_URL || 'https://project-arrowhead.pages.dev',
+        extraHTTPHeaders: accessHeaders,
+      },
+    },
   ],
   webServer: process.env.PLAYWRIGHT_NO_WEBSERVER
     ? undefined
