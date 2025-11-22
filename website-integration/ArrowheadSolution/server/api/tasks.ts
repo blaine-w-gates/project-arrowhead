@@ -382,8 +382,13 @@ router.put(
       });
     } catch (error) {
       console.error('Error updating task:', error);
+      const err = error as { message?: string; code?: string } | undefined;
+      const message = err?.message ?? 'Failed to update task';
       return res.status(500).json(
-        createErrorResponse('Internal Server Error', 'Failed to update task')
+        createErrorResponse('Internal Server Error', message, {
+          raw: String(error),
+          code: err?.code,
+        })
       );
     }
   }
