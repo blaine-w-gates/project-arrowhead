@@ -294,6 +294,15 @@ export const updateRrgtItemSchema = z.object({
     .trim(),
 }).strict();
 
+export const updateRrgtRabbitSchema = z.object({
+  column_index: z.number().int().min(0),
+}).strict();
+
+export const upsertRrgtSubtaskSchema = z.object({
+  column_index: z.number().int().min(0),
+  text: z.string().max(2000, 'Subtask text must be 2000 characters or less'),
+}).strict();
+
 /**
  * Update Dial State Request Schema
  * Includes privacy flags for incognito tasks

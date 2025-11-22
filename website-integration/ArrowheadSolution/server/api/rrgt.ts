@@ -9,12 +9,14 @@ import { Response, Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, setDbContext, AuthenticatedRequest } from '../auth/middleware';
 import { getDb } from '../db';
-import { tasks, taskAssignments, rrgtItems, dialStates } from '../../shared/schema/index';
+import { tasks, taskAssignments, rrgtItems, dialStates, rrgtPlans, rrgtSubtasks, rrgtRabbits, objectives } from '../../shared/schema/index';
 import { eq, and, inArray } from 'drizzle-orm';
 import {
   createRrgtItemSchema,
   updateRrgtItemSchema,
   updateDialSchema,
+  updateRrgtRabbitSchema,
+  upsertRrgtSubtaskSchema,
   uuidSchema,
   formatValidationError,
   createErrorResponse,
@@ -81,45 +83,196 @@ router.get(
       const db = getDb();
       const currentTeamMemberId = req.userContext?.teamMemberId || '';
 
-      // Fetch all tasks assigned to user
+      const projectIdFilter = typeof req.query.project_id === 'string'
+        ? req.query.project_id
+        : typeof req.query.projectId === 'string'
+        ? req.query.projectId
+        : undefined;
+
+      const objectiveIdFilter = typeof req.query.objective_id === 'string'
+        ? req.query.objective_id
+        : typeof req.query.objectiveId === 'string'
+        ? req.query.objectiveId
+        : undefined;
+
       const assignmentsRes = await db
         .select()
         .from(taskAssignments)
         .where(eq(taskAssignments.teamMemberId, currentTeamMemberId));
 
       const assignments = Array.isArray(assignmentsRes) ? assignmentsRes : [];
-      const taskIds = assignments.map(a => a.taskId);
+      const taskIds = assignments.map((a) => a.taskId);
 
-      let userTasks: typeof tasks.$inferSelect[] = [];
-      if (taskIds.length > 0) {
-        const userTasksRes = await db
-          .select()
-          .from(tasks)
-          .where(inArray(tasks.id, taskIds));
-        userTasks = Array.isArray(userTasksRes) ? userTasksRes : [];
+      if (taskIds.length === 0) {
+        return res.status(200).json({ plans: [], total: 0 });
       }
 
-      // Fetch all RRGT items belonging to user
-      const userItemsRes = await db
+      const userTasksRes = await db
         .select()
-        .from(rrgtItems)
-        .where(eq(rrgtItems.teamMemberId, currentTeamMemberId));
-      const userItems = Array.isArray(userItemsRes) ? userItemsRes : [];
+        .from(tasks)
+        .where(inArray(tasks.id, taskIds));
+      const userTasks = Array.isArray(userTasksRes) ? userTasksRes : [];
 
-      // Fetch user's dial state
-      const dialStateRow = await fetchOneSafe<DialStateRow>(
-        db,
-        db
+      const objectiveIds = userTasks.map((t) => t.objectiveId).filter(Boolean) as string[];
+
+      let objectiveRows: typeof objectives.$inferSelect[] = [];
+      if (objectiveIds.length > 0) {
+        const objectivesRes = await db
           .select()
-          .from(dialStates)
-          .where(eq(dialStates.teamMemberId, currentTeamMemberId))
-      );
-      const dialState = dialStateRow || null;
+          .from(objectives)
+          .where(inArray(objectives.id, objectiveIds));
+        objectiveRows = Array.isArray(objectivesRes) ? objectivesRes : [];
+      }
+
+      const objectivesById = new Map<string, typeof objectives.$inferSelect>();
+      for (const obj of objectiveRows) {
+        objectivesById.set(obj.id, obj);
+      }
+
+      const filteredTasks = userTasks.filter((task) => {
+        const obj = objectivesById.get(task.objectiveId);
+        if (!obj) return false;
+        if (projectIdFilter && obj.projectId !== projectIdFilter) return false;
+        if (objectiveIdFilter && obj.id !== objectiveIdFilter) return false;
+        return true;
+      });
+
+      if (filteredTasks.length === 0) {
+        return res.status(200).json({ plans: [], total: 0 });
+      }
+
+      const filteredTaskIds = filteredTasks.map((t) => t.id);
+
+      const existingPlansRes = await db
+        .select()
+        .from(rrgtPlans)
+        .where(
+          and(
+            eq(rrgtPlans.teamMemberId, currentTeamMemberId),
+            inArray(rrgtPlans.taskId, filteredTaskIds)
+          )
+        );
+      const existingPlans = Array.isArray(existingPlansRes) ? existingPlansRes : [];
+
+      const existingByTaskId = new Map<string, typeof rrgtPlans.$inferSelect>();
+      for (const plan of existingPlans) {
+        existingByTaskId.set(plan.taskId, plan);
+      }
+
+      for (const task of filteredTasks) {
+        if (existingByTaskId.has(task.id)) continue;
+        const obj = objectivesById.get(task.objectiveId);
+        if (!obj) continue;
+
+        const insertedPlans = await db
+          .insert(rrgtPlans)
+          .values({
+            taskId: task.id,
+            teamMemberId: currentTeamMemberId,
+            projectId: obj.projectId,
+            objectiveId: obj.id,
+            maxColumnIndex: 6,
+          })
+          .returning();
+
+        const plan = insertedPlans[0];
+
+        await db.insert(rrgtRabbits).values({
+          planId: plan.id,
+          currentColumnIndex: 0,
+        });
+
+        const defaultSubtasks = Array.from({ length: 5 }).map((_, idx) => ({
+          planId: plan.id,
+          columnIndex: idx + 1,
+          text: '',
+        }));
+
+        await db.insert(rrgtSubtasks).values(defaultSubtasks);
+      }
+
+      const plansWithJoinsRes = await db
+        .select({
+          plan: rrgtPlans,
+          task: tasks,
+          objective: objectives,
+          rabbit: rrgtRabbits,
+        })
+        .from(rrgtPlans)
+        .innerJoin(tasks, eq(rrgtPlans.taskId, tasks.id))
+        .innerJoin(objectives, eq(rrgtPlans.objectiveId, objectives.id))
+        .leftJoin(rrgtRabbits, eq(rrgtRabbits.planId, rrgtPlans.id))
+        .where(
+          and(
+            eq(rrgtPlans.teamMemberId, currentTeamMemberId),
+            inArray(rrgtPlans.taskId, filteredTaskIds)
+          )
+        );
+
+      const plansWithJoins = Array.isArray(plansWithJoinsRes) ? plansWithJoinsRes : [];
+
+      const planIds = plansWithJoins.map((row) => row.plan.id);
+
+      let subtaskRows: typeof rrgtSubtasks.$inferSelect[] = [];
+      if (planIds.length > 0) {
+        const subtasksRes = await db
+          .select()
+          .from(rrgtSubtasks)
+          .where(inArray(rrgtSubtasks.planId, planIds));
+        subtaskRows = Array.isArray(subtasksRes) ? subtasksRes : [];
+      }
+
+      const subtasksByPlanId = new Map<string, typeof rrgtSubtasks.$inferSelect[]>();
+      for (const sub of subtaskRows) {
+        const arr = subtasksByPlanId.get(sub.planId) || [];
+        arr.push(sub);
+        subtasksByPlanId.set(sub.planId, arr);
+      }
+
+      const enrichedPlans = plansWithJoins.map((row) => {
+        const subtasks = (subtasksByPlanId.get(row.plan.id) || []).slice().sort((a, b) => a.columnIndex - b.columnIndex);
+
+        return {
+          id: row.plan.id,
+          taskId: row.plan.taskId,
+          teamMemberId: row.plan.teamMemberId,
+          projectId: row.plan.projectId,
+          objectiveId: row.plan.objectiveId,
+          maxColumnIndex: row.plan.maxColumnIndex,
+          task: {
+            id: row.task.id,
+            objectiveId: row.task.objectiveId,
+            title: row.task.title,
+            status: row.task.status,
+            priority: row.task.priority,
+            dueDate: row.task.dueDate,
+          },
+          objective: {
+            id: row.objective.id,
+            projectId: row.objective.projectId,
+            name: row.objective.name,
+          },
+          rabbit: row.rabbit
+            ? {
+                planId: row.rabbit.planId,
+                currentColumnIndex: row.rabbit.currentColumnIndex,
+                updatedAt: row.rabbit.updatedAt,
+              }
+            : null,
+          subtasks: subtasks.map((s) => ({
+            id: s.id,
+            planId: s.planId,
+            columnIndex: s.columnIndex,
+            text: s.text,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
+          })),
+        };
+      });
 
       return res.status(200).json({
-        tasks: userTasks,
-        items: userItems,
-        dial_state: dialState,
+        plans: enrichedPlans,
+        total: enrichedPlans.length,
       });
     } catch (error) {
       console.error('Error fetching RRGT data:', error);
@@ -449,6 +602,174 @@ router.delete(
       console.error('Error deleting item:', error);
       return res.status(500).json(
         createErrorResponse('Internal Server Error', 'Failed to delete item')
+      );
+    }
+  }
+);
+
+router.put(
+  '/rrgt/plans/:planId/rabbit',
+  requireAuth,
+  setDbContext,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const db = getDb();
+      const currentTeamMemberId = req.userContext?.teamMemberId || '';
+
+      const planIdValidation = uuidSchema.safeParse(req.params.planId);
+      if (!planIdValidation.success) {
+        return res.status(400).json(formatValidationError(planIdValidation.error));
+      }
+      const planId = planIdValidation.data;
+
+      const bodyValidation = updateRrgtRabbitSchema.safeParse(req.body);
+      if (!bodyValidation.success) {
+        return res.status(400).json(formatValidationError(bodyValidation.error));
+      }
+      const { column_index } = bodyValidation.data;
+
+      const plansRes = await db
+        .select()
+        .from(rrgtPlans)
+        .where(
+          and(eq(rrgtPlans.id, planId), eq(rrgtPlans.teamMemberId, currentTeamMemberId))
+        )
+        .limit(1);
+
+      if (!Array.isArray(plansRes) || plansRes.length === 0) {
+        return res.status(404).json(
+          createErrorResponse('Not Found', 'RRGT plan not found or you do not have access')
+        );
+      }
+
+      const plan = plansRes[0];
+
+      if (column_index < 0 || column_index > plan.maxColumnIndex) {
+        return res.status(400).json(
+          createErrorResponse(
+            'Validation Error',
+            'column_index is out of range for this plan'
+          )
+        );
+      }
+
+      const updatedRabbits = await db
+        .update(rrgtRabbits)
+        .set({ currentColumnIndex: column_index })
+        .where(eq(rrgtRabbits.planId, planId))
+        .returning();
+
+      let rabbit = updatedRabbits[0];
+
+      if (!rabbit) {
+        const insertedRabbits = await db
+          .insert(rrgtRabbits)
+          .values({
+            planId,
+            currentColumnIndex: column_index,
+          })
+          .returning();
+        rabbit = insertedRabbits[0];
+      }
+
+      return res.status(200).json({ rabbit });
+    } catch (error) {
+      console.error('Error updating RRGT rabbit:', error);
+      return res.status(500).json(
+        createErrorResponse('Internal Server Error', 'Failed to update RRGT rabbit')
+      );
+    }
+  }
+);
+
+router.put(
+  '/rrgt/plans/:planId/subtasks',
+  requireAuth,
+  setDbContext,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const db = getDb();
+      const currentTeamMemberId = req.userContext?.teamMemberId || '';
+
+      const planIdValidation = uuidSchema.safeParse(req.params.planId);
+      if (!planIdValidation.success) {
+        return res.status(400).json(formatValidationError(planIdValidation.error));
+      }
+      const planId = planIdValidation.data;
+
+      const bodyValidation = upsertRrgtSubtaskSchema.safeParse(req.body);
+      if (!bodyValidation.success) {
+        return res.status(400).json(formatValidationError(bodyValidation.error));
+      }
+      const { column_index, text } = bodyValidation.data;
+
+      const plansRes = await db
+        .select()
+        .from(rrgtPlans)
+        .where(
+          and(eq(rrgtPlans.id, planId), eq(rrgtPlans.teamMemberId, currentTeamMemberId))
+        )
+        .limit(1);
+
+      if (!Array.isArray(plansRes) || plansRes.length === 0) {
+        return res.status(404).json(
+          createErrorResponse('Not Found', 'RRGT plan not found or you do not have access')
+        );
+      }
+
+      const plan = plansRes[0];
+
+      if (column_index < 0 || column_index > plan.maxColumnIndex) {
+        return res.status(400).json(
+          createErrorResponse(
+            'Validation Error',
+            'column_index is out of range for this plan'
+          )
+        );
+      }
+
+      const existingSubtasks = await db
+        .select()
+        .from(rrgtSubtasks)
+        .where(
+          and(
+            eq(rrgtSubtasks.planId, planId),
+            eq(rrgtSubtasks.columnIndex, column_index)
+          )
+        )
+        .limit(1);
+
+      let subtask;
+
+      if (Array.isArray(existingSubtasks) && existingSubtasks.length > 0) {
+        const updatedSubtasks = await db
+          .update(rrgtSubtasks)
+          .set({ text })
+          .where(
+            and(
+              eq(rrgtSubtasks.planId, planId),
+              eq(rrgtSubtasks.columnIndex, column_index)
+            )
+          )
+          .returning();
+        subtask = updatedSubtasks[0];
+      } else {
+        const insertedSubtasks = await db
+          .insert(rrgtSubtasks)
+          .values({
+            planId,
+            columnIndex: column_index,
+            text,
+          })
+          .returning();
+        subtask = insertedSubtasks[0];
+      }
+
+      return res.status(200).json({ subtask });
+    } catch (error) {
+      console.error('Error upserting RRGT subtask:', error);
+      return res.status(500).json(
+        createErrorResponse('Internal Server Error', 'Failed to upsert RRGT subtask')
       );
     }
   }
