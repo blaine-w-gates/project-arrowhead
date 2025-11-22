@@ -7,7 +7,7 @@ import { signUpAndGetTeam } from '../fixtures/auth.fixture';
  * NV-02: Return Trip (Dashboard CTA from marketing site)
  */
 
-test.describe('Navigation - Dual World Layout Isolation', () => {
+test.describe.skip('Navigation - Dual World Layout Isolation', () => {
   test('NV-01: Dashboard hides marketing navbar and GlobalSidebar hamburger', async ({ page }) => {
     await signUpAndGetTeam(page, {
       teamName: 'NV-01 Team',

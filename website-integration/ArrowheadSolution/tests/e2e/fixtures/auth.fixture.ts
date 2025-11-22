@@ -69,7 +69,7 @@ function getProjectRefFromSupabaseUrl(urlStr: string | undefined): string | null
   } catch { return null; }
 }
 
-async function ensureAuthToken(page: Page): Promise<string> {
+export async function ensureAuthToken(page: Page): Promise<string> {
   // In CI, avoid page.evaluate entirely. First try to read from storageState, then fallback to anon sign-in if available.
   if (process.env.CI) {
     if (__lastToken) return __lastToken;
@@ -602,53 +602,67 @@ export async function signUpAndGetTeam(
   // Wait for page to settle after team initialization
   await page.waitForLoadState('networkidle');
   
-  // Use Supabase Admin to query database directly (God Mode)
-  // This bypasses all HTTP/Cookie/Auth issues with the profile API
+  // Prefer using the authenticated profile API first to derive
+  // teamId and teamMemberId from the actual runtime environment.
   let teamId: string | null = null;
   let userId: string | null = null;
   let teamMemberId: string | null = null;
   
   try {
-    console.log('🔍 Querying database directly for team ID and member ID...');
-    
-    // Get user from Supabase Auth Admin (we need the user.id)
-    const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError) {
-      throw new Error(`Failed to list users: ${listError.message}`);
+    console.log('🔍 Resolving team context via /api/auth/profile...');
+
+    try {
+      const token = await ensureAuthToken(page);
+      for (let i = 0; i < 10 && (!teamId || !teamMemberId || !userId); i++) {
+        const res = await page.request.get('/api/auth/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok()) {
+          const p = await res.json() as any;
+          userId = (p.userId || p.user_id || userId) ?? userId;
+          teamId = (p.teamId || p.team_id || teamId) ?? teamId;
+          teamMemberId = (p.teamMemberId || p.team_member_id || teamMemberId) ?? teamMemberId;
+          if (teamId && teamMemberId && userId) break;
+        }
+        await page.waitForTimeout(500);
+      }
+    } catch (profileError) {
+      console.warn('⚠️ Failed to resolve team context via /api/auth/profile:', profileError);
     }
 
-    const user = users?.find(u => u.email === email);
-    if (!user) {
-      throw new Error(`Could not find user ${email} in Supabase.`);
-    }
-    
-    userId = user.id;
-    console.log(`✅ Found user ID: ${userId}`);
+    // Fallback: use Supabase Admin to query database directly (God Mode)
+    // This bypasses HTTP/Cookie/Auth issues but may not see local Postgres data.
+    if (!teamId || !teamMemberId || !userId) {
+      console.log('🔍 Falling back to Supabase Admin query for team ID and member ID...');
 
-    // Query team_members table directly using Service Role
-    // Get both team_id and the team_member id (which is the primary key)
-    const { data: member, error: memberError } = await supabaseAdmin
-      .from('team_members')
-      .select('id, team_id')
-      .eq('user_id', userId)
-      .single();
+      // Get user from Supabase Auth Admin (we need the user.id)
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      if (listError) {
+        throw new Error(`Failed to list users: ${listError.message}`);
+      }
 
-    if (memberError) {
-      console.warn(`⚠️ Error querying team_members: ${memberError.message}`);
-      // Try to query without .single() in case there are multiple records
-      const { data: members, error: multiError } = await supabaseAdmin
+      const user = users?.find(u => u.email === email);
+      if (!user) {
+        throw new Error(`Could not find user ${email} in Supabase.`);
+      }
+      
+      userId = user.id;
+      console.log(`✅ Found user ID (Supabase): ${userId}`);
+
+      // Query team_members table directly using Service Role
+      // Get both team_id and the team_member id (which is the primary key)
+      const { data: members, error: memberError } = await supabaseAdmin
         .from('team_members')
         .select('id, team_id')
         .eq('user_id', userId)
         .limit(1);
-      
-      if (!multiError && members && members.length > 0) {
+
+      if (memberError) {
+        console.warn(`⚠️ Error querying team_members: ${memberError.message}`);
+      } else if (members && members.length > 0) {
         teamId = members[0].team_id;
         teamMemberId = members[0].id;
       }
-    } else if (member) {
-      teamId = member.team_id;
-      teamMemberId = member.id;
     }
 
     if (teamId && teamMemberId) {
