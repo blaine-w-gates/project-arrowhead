@@ -45,6 +45,20 @@ export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated
 
   const createMutation = useMutation({
     mutationFn: async (data: { name: string; target_date?: string; start_with_brainstorm: boolean }) => {
+      // Map UI field names to backend schema: target_completion_date must be an ISO datetime string
+      const payload: {
+        name: string;
+        start_with_brainstorm: boolean;
+        target_completion_date?: string;
+      } = {
+        name: data.name,
+        start_with_brainstorm: data.start_with_brainstorm,
+      };
+
+      if (data.target_date) {
+        payload.target_completion_date = new Date(data.target_date).toISOString();
+      }
+
       const response = await fetch(`/api/projects/${projectId}/objectives`, {
         method: 'POST',
         headers: {
@@ -52,7 +66,7 @@ export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {

@@ -102,6 +102,39 @@ export function NewTouchbaseModal({ open, onClose, objectiveId, teamId }: NewTou
       touchbaseDate: string;
       responses: Record<string, string>;
     }) => {
+      // Map UI responses (question1-7) to backend JSONB schema (q1_working_on - q7_timeline_change)
+      const backendResponses: Record<string, string> = {};
+
+      const q1 = data.responses['question1'];
+      if (q1 && q1.trim()) backendResponses['q1_working_on'] = q1;
+
+      const q2 = data.responses['question2'];
+      if (q2 && q2.trim()) backendResponses['q2_help_needed'] = q2;
+
+      const q3 = data.responses['question3'];
+      if (q3 && q3.trim()) backendResponses['q3_blockers'] = q3;
+
+      const q4 = data.responses['question4'];
+      if (q4 && q4.trim()) backendResponses['q4_wins'] = q4;
+
+      const q5 = data.responses['question5'];
+      if (q5 && q5.trim()) backendResponses['q5_priorities'] = q5;
+
+      const q6 = data.responses['question6'];
+      if (q6 && q6.trim()) backendResponses['q6_resource_needs'] = q6;
+
+      const q7 = data.responses['question7'];
+      if (q7 && q7.trim()) backendResponses['q7_timeline_change'] = q7;
+
+      // Convert UI date (YYYY-MM-DD) to ISO 8601 datetime for API
+      const touchbaseDateIso = new Date(data.touchbaseDate).toISOString();
+
+      const payload = {
+        team_member_id: data.teamMemberId,
+        touchbase_date: touchbaseDateIso,
+        responses: backendResponses,
+      };
+
       const response = await fetch(`/api/objectives/${objectiveId}/touchbases`, {
         method: 'POST',
         headers: {
@@ -109,7 +142,7 @@ export function NewTouchbaseModal({ open, onClose, objectiveId, teamId }: NewTou
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
