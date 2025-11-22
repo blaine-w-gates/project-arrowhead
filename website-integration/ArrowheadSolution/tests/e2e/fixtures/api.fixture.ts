@@ -282,3 +282,80 @@ export async function getTeamMemberId(page: Page): Promise<string | null> {
   }
   return null;
 }
+
+export async function seedRrgtPlan(params: {
+  taskId: string;
+  teamMemberId: string;
+  projectId: string;
+  objectiveId: string;
+  subtasks?: string[];
+  rabbitColumn?: number;
+}): Promise<{ planId: string }> {
+  const {
+    taskId,
+    teamMemberId,
+    projectId,
+    objectiveId,
+    subtasks = [],
+    rabbitColumn = 0,
+  } = params;
+
+  const maxColumnIndex = subtasks.length > 0 ? Math.max(subtasks.length, 6) : 6;
+
+  const { data: plan, error: planError } = await supabaseAdmin
+    .from('rrgt_plans')
+    .insert({
+      task_id: taskId,
+      team_member_id: teamMemberId,
+      project_id: projectId,
+      objective_id: objectiveId,
+      max_column_index: maxColumnIndex,
+    })
+    .select('id')
+    .single();
+
+  if (planError || !plan?.id) {
+    throw new Error(`Failed to seed RRGT plan (DB): ${planError?.message || 'no data returned'}`);
+  }
+
+  const planId = plan.id as string;
+
+  const { error: rabbitError } = await supabaseAdmin
+    .from('rrgt_rabbits')
+    .insert({
+      plan_id: planId,
+      current_column_index: rabbitColumn,
+    });
+
+  if (rabbitError) {
+    throw new Error(`Failed to seed RRGT rabbit (DB): ${rabbitError.message}`);
+  }
+
+  if (subtasks.length > 0) {
+    const rows = subtasks.map((text, idx) => ({
+      plan_id: planId,
+      column_index: idx + 1,
+      text: text ?? '',
+    }));
+
+    const { error: subtasksError } = await supabaseAdmin
+      .from('rrgt_subtasks')
+      .insert(rows);
+
+    if (subtasksError) {
+      throw new Error(`Failed to seed RRGT subtasks (DB): ${subtasksError.message}`);
+    }
+  }
+
+  console.log('✅ Seeded RRGT plan via DB:', {
+    planId,
+    taskId,
+    teamMemberId,
+    projectId,
+    objectiveId,
+    subtasksCount: subtasks.length,
+    rabbitColumn,
+  });
+
+  return { planId };
+}
