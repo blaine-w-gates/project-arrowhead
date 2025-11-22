@@ -78,9 +78,9 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
     mutationFn: async (taskData: {
       title: string;
       description?: string;
-      priority: string;
+      priority: number;
       due_date?: string;
-      assigned_member_ids: string[];
+      assigned_team_member_ids: string[];
     }) => {
       const response = await fetch(`/api/objectives/${objectiveId}/tasks`, {
         method: 'POST',
@@ -117,12 +117,19 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
       return;
     }
 
+    const numericPriority =
+      priority === 'low'
+        ? 3
+        : priority === 'medium'
+        ? 2
+        : 1;
+
     createMutation.mutate({
       title: title.trim(),
       description: description.trim() || undefined,
-      priority,
+      priority: numericPriority,
       due_date: dueDate || undefined,
-      assigned_member_ids: selectedAssignees,
+      assigned_team_member_ids: selectedAssignees,
     });
   };
 

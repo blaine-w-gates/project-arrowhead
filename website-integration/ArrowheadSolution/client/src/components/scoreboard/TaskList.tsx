@@ -26,7 +26,7 @@ interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: 'not_started' | 'in_progress' | 'completed' | 'blocked';
+  status: 'todo' | 'in_progress' | 'complete';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   dueDate: string | null;
   assignedMembers: TaskAssignee[];
@@ -34,16 +34,30 @@ interface Task {
   updatedAt: string;
 }
 
+// Shape returned by GET /api/objectives/:objectiveId/tasks
+interface RawTask {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: number;
+  dueDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assigned_team_members?: string[];
+}
+
 interface TaskListProps {
   objectiveId: string;
 }
 
 export function TaskList({ objectiveId }: TaskListProps) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const { data: tasks, isLoading, error } = useQuery<Task[]>({
+  // Fetch raw tasks from API (includes assigned_team_members: string[])
+  const { data: rawTasks, isLoading, error } = useQuery<RawTask[]>({
     queryKey: ['tasks', objectiveId],
     queryFn: async () => {
       const response = await fetch(`/api/objectives/${objectiveId}/tasks`, {
@@ -57,9 +71,60 @@ export function TaskList({ objectiveId }: TaskListProps) {
         throw new Error('Failed to fetch tasks');
       }
 
-      return response.json();
+      const json = await response.json();
+      if (Array.isArray(json)) {
+        return json;
+      }
+      return json?.tasks ?? [];
     },
     enabled: !!objectiveId,
+  });
+
+  // Fetch team members so we can hydrate assignments with names/roles
+  interface TeamMember {
+    id: string;
+    name: string;
+    role: string;
+  }
+
+  const { data: teamMembers } = useQuery<TeamMember[]>({
+    queryKey: ['teamMembers', profile?.teamId],
+    queryFn: async () => {
+      if (!profile?.teamId) throw new Error('No team ID');
+
+      const response = await fetch(`/api/teams/${profile.teamId}/members`, {
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch team members');
+      }
+
+      return response.json();
+    },
+    enabled: !!profile?.teamId,
+  });
+
+  const tasks: Task[] = (rawTasks ?? []).map((task) => {
+    const assignedIds: string[] = Array.isArray(task.assigned_team_members)
+      ? task.assigned_team_members
+      : [];
+
+    const assignees: TaskAssignee[] = (teamMembers || [])
+      .filter((member) => assignedIds.includes(member.id))
+      .map((member) => ({
+        teamMemberId: member.id,
+        name: member.name,
+        role: member.role,
+      }));
+
+    return {
+      ...task,
+      assignedMembers: assignees,
+    } as Task;
   });
 
   if (isLoading) {
@@ -108,13 +173,11 @@ export function TaskList({ objectiveId }: TaskListProps) {
 
   const getStatusColor = (status: Task['status']) => {
     switch (status) {
-      case 'completed':
+      case 'complete':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'in_progress':
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'blocked':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'not_started':
+      case 'todo':
         return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';

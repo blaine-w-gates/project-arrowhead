@@ -43,7 +43,7 @@ interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: 'not_started' | 'in_progress' | 'completed' | 'blocked';
+  status: 'todo' | 'in_progress' | 'complete';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   dueDate: string | null;
   assignedMembers: TaskAssignee[];
@@ -67,7 +67,7 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<'not_started' | 'in_progress' | 'completed' | 'blocked'>('not_started');
+  const [status, setStatus] = useState<'todo' | 'in_progress' | 'complete'>('todo');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
   const [dueDate, setDueDate] = useState('');
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
@@ -112,10 +112,9 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
     mutationFn: async (taskData: {
       title: string;
       description?: string;
-      status: string;
-      priority: string;
+      status?: 'todo' | 'in_progress' | 'complete';
+      priority?: number;
       due_date?: string;
-      assigned_member_ids?: string[];
     }) => {
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
@@ -179,9 +178,7 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
       title: title.trim(),
       description: description.trim() || undefined,
       status,
-      priority,
       due_date: dueDate || undefined,
-      assigned_member_ids: selectedAssignees,
     });
   };
 
@@ -252,10 +249,9 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="not_started">Not Started</SelectItem>
+                <SelectItem value="todo">Not Started</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="blocked">Blocked</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -60,11 +60,11 @@ export function DialPlaceholder({ dialState, items }: DialProps) {
   // Mutation for updating dial state
   const updateDialMutation = useMutation({
     mutationFn: async (newState: {
-      leftItemId: string | null;
-      rightItemId: string | null;
-      selectedItemId: string | null;
-      isLeftPrivate: boolean;
-      isRightPrivate: boolean;
+      left_item_id: string | null;
+      right_item_id: string | null;
+      selected_item_id: string | null;
+      is_left_private: boolean;
+      is_right_private: boolean;
     }) => {
       const response = await fetch('/api/dial/mine', {
         method: 'PUT',
@@ -93,11 +93,11 @@ export function DialPlaceholder({ dialState, items }: DialProps) {
     if (!dialState) return;
 
     const newState = {
-      leftItemId: dialState.leftItemId,
-      rightItemId: dialState.rightItemId,
-      selectedItemId: itemId === dialState.selectedItemId ? null : itemId,
-      isLeftPrivate: dialState.isLeftPrivate,
-      isRightPrivate: dialState.isRightPrivate,
+      left_item_id: dialState.leftItemId,
+      right_item_id: dialState.rightItemId,
+      selected_item_id: itemId === dialState.selectedItemId ? null : itemId,
+      is_left_private: dialState.isLeftPrivate,
+      is_right_private: dialState.isRightPrivate,
     };
 
     updateDialMutation.mutate(newState);
@@ -108,15 +108,15 @@ export function DialPlaceholder({ dialState, items }: DialProps) {
     if (!dialState) return;
 
     const newState = {
-      leftItemId: slot === 'left' ? null : dialState.leftItemId,
-      rightItemId: slot === 'right' ? null : dialState.rightItemId,
-      selectedItemId: slot === 'left' && dialState.selectedItemId === dialState.leftItemId
-        ? null
-        : slot === 'right' && dialState.selectedItemId === dialState.rightItemId
-        ? null
-        : dialState.selectedItemId,
-      isLeftPrivate: slot === 'left' ? false : dialState.isLeftPrivate,
-      isRightPrivate: slot === 'right' ? false : dialState.isRightPrivate,
+      left_item_id: slot === 'left' ? null : dialState.leftItemId,
+      right_item_id: slot === 'right' ? null : dialState.rightItemId,
+      selected_item_id:
+        (slot === 'left' && dialState.selectedItemId === dialState.leftItemId) ||
+        (slot === 'right' && dialState.selectedItemId === dialState.rightItemId)
+          ? null
+          : dialState.selectedItemId,
+      is_left_private: slot === 'left' ? false : dialState.isLeftPrivate,
+      is_right_private: slot === 'right' ? false : dialState.isRightPrivate,
     };
 
     updateDialMutation.mutate(newState);

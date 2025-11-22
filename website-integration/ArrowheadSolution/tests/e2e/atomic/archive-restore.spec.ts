@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signUpAndGetTeam, ensureAuthToken } from '../fixtures/auth.fixture';
+import { signUpAndGetTeam } from '../fixtures/auth.fixture';
 import { seedProject } from '../fixtures/api.fixture';
 import { waitForNetworkIdle, logStep } from '../fixtures/data.fixture';
 
@@ -29,7 +29,7 @@ test.describe('Projects - Archive & Delete Protection', () => {
     }
 
     const projectName = `Archive Test Project ${Date.now()}`;
-    const { id: projectId, name: seededName } = await seedProject(page, teamId, projectName);
+    const { name: seededName } = await seedProject(page, teamId, projectName);
 
     logStep('📂', 'Navigating to Projects dashboard');
     await page.goto('/dashboard/projects', { waitUntil: 'networkidle' });
@@ -64,18 +64,28 @@ test.describe('Projects - Archive & Delete Protection', () => {
     // After archiving, project should no longer appear in Active view
     await expect(projectCard).not.toBeVisible({ timeout: 10_000 });
 
-    logStep('♻️', 'Restoring project via API');
+    logStep('♻️', 'Restoring project via UI');
 
-    const token = await ensureAuthToken(page);
-    const restoreResponse = await page.request.put(`/api/projects/${projectId}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      data: { is_archived: false },
-    });
+    // Expand Archived Projects section and locate the archived project card
+    const archivedToggle = page.getByRole('button', { name: /show archived projects/i });
+    await expect(archivedToggle).toBeVisible({ timeout: 10_000 });
+    await archivedToggle.click();
+    await waitForNetworkIdle(page);
 
-    expect(restoreResponse.ok()).toBeTruthy();
+    const archivedCard = page.getByText(seededName).first();
+    await expect(archivedCard).toBeVisible({ timeout: 10_000 });
+
+    const archivedRow = archivedCard.locator(
+      'xpath=ancestor::div[contains(@class,"project") or contains(@class,"card") or contains(@class,"grid")][1]'
+    );
+    const restoreEllipsis = archivedRow.getByRole('button').last();
+
+    await expect(restoreEllipsis).toBeVisible({ timeout: 10_000 });
+    await restoreEllipsis.click();
+
+    const restoreMenuItem = page.getByRole('menuitem', { name: /restore project/i });
+    await expect(restoreMenuItem).toBeVisible({ timeout: 5_000 });
+    await restoreMenuItem.click();
 
     // Reload Projects dashboard and verify project has returned to Active list
     await page.goto('/dashboard/projects', { waitUntil: 'networkidle' });

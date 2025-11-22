@@ -703,8 +703,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Task management routes
-  app.post("/api/tasks", async (req, res) => {
+  // Mount Team MVP API routers (Scoreboard & Team MVP product)
+  // These use the Postgres/Drizzle stack and must be registered before
+  // legacy /api/tasks routes so they handle task updates.
+  const authRouter = await import('./api/auth');
+  const projectsRouter = await import('./api/projects');
+  const objectivesRouter = await import('./api/objectives');
+  const tasksRouter = await import('./api/tasks');
+  const rrgtRouter = await import('./api/rrgt');
+  const touchbasesRouter = await import('./api/touchbases');
+  const teamMembersRouter = await import('./api/team-members');
+
+  app.use('/api', authRouter.default);
+  app.use('/api', projectsRouter.default);
+  app.use('/api', objectivesRouter.default);
+  app.use('/api', tasksRouter.default);
+  app.use('/api', rrgtRouter.default);
+  app.use('/api', touchbasesRouter.default);
+  app.use('/api', teamMembersRouter.default);
+
+  // Task management routes (legacy storage-backed APIs)
+  // Namespaced under /api/journey/tasks to avoid colliding with
+  // Team MVP /api/tasks routes (server/api/tasks.ts).
+  app.post("/api/journey/tasks", async (req, res) => {
     try {
       const taskData = insertTaskSchema.parse(req.body);
       const task = await storage.createTask(taskData);
@@ -718,7 +739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get tasks by session (alternative endpoint)
-  app.get("/api/tasks", async (req, res) => {
+  app.get("/api/journey/tasks", async (req, res) => {
     try {
       const sessionId = req.query.sessionId as string;
       if (sessionId) {
@@ -734,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tasks/session/:sessionId", async (req, res) => {
+  app.get("/api/journey/tasks/session/:sessionId", async (req, res) => {
     try {
       const tasks = await storage.getTasksBySession(req.params.sessionId);
       res.json(tasks);
@@ -743,7 +764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/tasks/:taskId", async (req, res) => {
+  app.put("/api/journey/tasks/:taskId", async (req, res) => {
     try {
       const taskData = updateTaskSchema.parse(req.body);
       const task = await storage.updateTask(req.params.taskId, taskData);
@@ -759,7 +780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/tasks/:taskId", async (req, res) => {
+  app.delete("/api/journey/tasks/:taskId", async (req, res) => {
     try {
       const deleted = await storage.deleteTask(req.params.taskId);
       if (!deleted) {
@@ -859,24 +880,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).send("<error>Failed to generate RSS feed</error>");
     }
   });
-
-  // Mount Team MVP API routers
-  // These are the new authenticated endpoints for the paid Team MVP product
-  const authRouter = await import('./api/auth');
-  const projectsRouter = await import('./api/projects');
-  const objectivesRouter = await import('./api/objectives');
-  const tasksRouter = await import('./api/tasks');
-  const rrgtRouter = await import('./api/rrgt');
-  const touchbasesRouter = await import('./api/touchbases');
-  const teamMembersRouter = await import('./api/team-members');
-
-  app.use('/api', authRouter.default);
-  app.use('/api', projectsRouter.default);
-  app.use('/api', objectivesRouter.default);
-  app.use('/api', tasksRouter.default);
-  app.use('/api', rrgtRouter.default);
-  app.use('/api', touchbasesRouter.default);
-  app.use('/api', teamMembersRouter.default);
 
   // Mount Test API router (E2E test utilities)
   // Only available in non-production environments
