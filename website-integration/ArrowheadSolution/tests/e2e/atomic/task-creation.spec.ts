@@ -113,11 +113,25 @@ test.describe('Tasks - Atomic Creation (Scoreboard)', () => {
     await addTaskButton.click();
 
     const taskTitle = `Atomic Task 1 ${Date.now()}`;
+    let dueDateFilled = false;
 
     // Fill in the task title field in the modal
     const titleInput = page.getByLabel(/title \*/i).or(page.getByLabel(/task title/i)).first();
     await expect(titleInput).toBeVisible({ timeout: 10_000 });
     await titleInput.fill(taskTitle);
+
+    // Optionally fill a Due Date to validate ISO datetime conversion in the payload
+    const dueDateInput = page.getByLabel(/due date/i).first();
+    try {
+      if (await dueDateInput.isVisible({ timeout: 2_000 })) {
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 7);
+        await dueDateInput.fill(futureDate.toISOString().split('T')[0]);
+        dueDateFilled = true;
+      }
+    } catch {
+      // If Due Date field is not present in this environment, skip due_date assertions gracefully
+    }
 
     // Submit the form and capture the POST request + response
     const createButton = page.getByRole('button', { name: /create task/i }).first();
@@ -147,6 +161,12 @@ test.describe('Tasks - Atomic Creation (Scoreboard)', () => {
     expect(requestBody.priority).toBeGreaterThanOrEqual(1);
     expect(requestBody.priority).toBeLessThanOrEqual(3);
     expect(Array.isArray(requestBody.assigned_team_member_ids)).toBe(true);
+
+    // When a Due Date is provided, the API should receive a full ISO datetime string
+    if (dueDateFilled) {
+      expect(typeof requestBody.due_date).toBe('string');
+      expect(requestBody.due_date).toMatch(/T\d{2}:\d{2}:\d{2}/);
+    }
 
     // Ensure the server responded successfully
     expect(response.status()).toBeGreaterThanOrEqual(200);

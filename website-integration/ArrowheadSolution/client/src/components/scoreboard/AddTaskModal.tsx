@@ -124,12 +124,23 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
         ? 2
         : 1;
 
+    // Convert date-only input (YYYY-MM-DD) to ISO datetime string for API validation
+    let dueDateIso: string | undefined;
+    if (dueDate) {
+      const parsed = new Date(dueDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        dueDateIso = parsed.toISOString();
+      }
+    }
+
+    const safeAssignees = Array.isArray(selectedAssignees) ? selectedAssignees : [];
+
     createMutation.mutate({
       title: title.trim(),
       description: description.trim() || undefined,
       priority: numericPriority,
-      due_date: dueDate || undefined,
-      assigned_team_member_ids: selectedAssignees,
+      due_date: dueDateIso,
+      assigned_team_member_ids: safeAssignees,
     });
   };
 

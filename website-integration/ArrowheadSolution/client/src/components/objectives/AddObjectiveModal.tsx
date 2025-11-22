@@ -79,9 +79,11 @@ export function AddObjectiveModal({ open, onClose, projectId, onObjectiveCreated
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['objectives', projectId] });
       handleClose();
-      // Transition to journey wizard after creation
-      if (onObjectiveCreated && data.id) {
-        onObjectiveCreated(data.id);
+
+      // API returns shape: { message, objective: { id, ... }, started_with_brainstorm }
+      const createdId: string | undefined = data?.objective?.id ?? data?.id;
+      if (onObjectiveCreated && createdId) {
+        onObjectiveCreated(createdId);
       }
     },
     onError: (err: Error) => {

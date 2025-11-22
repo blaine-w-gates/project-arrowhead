@@ -17,6 +17,8 @@ interface Objective {
   name: string;
   status: 'active' | 'completed' | 'paused';
   completionStatus: boolean | null;
+  // Indicates the 17-step planning journey is complete (journey_status === 'complete')
+  planComplete?: boolean;
   estimatedCompletionDate: string | null;
   actualCompletionDate?: string | null;
   createdAt: string;
@@ -81,48 +83,57 @@ export function ObjectivesList({ projectId, onObjectiveClick }: ObjectivesListPr
 
   return (
     <div className="space-y-3">
-      {objectives.map((objective) => (
-        <Card 
-          key={objective.id}
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => onObjectiveClick?.(objective.id)}
-        >
-          <CardContent className="py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {objective.completionStatus ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                ) : (
-                  <Circle className="h-5 w-5 text-muted-foreground" />
-                )}
-                <div>
-                  <h4 className="font-semibold">{objective.name}</h4>
-                  {objective.estimatedCompletionDate && (
-                    <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                      <Clock className="h-3 w-3" />
-                      Est. completion: {new Date(objective.estimatedCompletionDate).toLocaleDateString()}
-                    </p>
+      {objectives.map((objective) => {
+        const isCompleted = !!objective.completionStatus;
+        const isPlanComplete = !!objective.planComplete && !isCompleted;
+
+        let badgeLabel = 'active';
+        let badgeVariant: 'default' | 'secondary' | 'outline' = 'outline';
+
+        if (isCompleted) {
+          badgeLabel = 'completed';
+          badgeVariant = 'default';
+        } else if (isPlanComplete) {
+          badgeLabel = 'plan complete';
+          badgeVariant = 'secondary';
+        } else if (objective.status === 'paused') {
+          badgeLabel = 'paused';
+          badgeVariant = 'secondary';
+        }
+
+        return (
+          <Card 
+            key={objective.id}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => onObjectiveClick?.(objective.id)}
+          >
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {isCompleted ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-muted-foreground" />
                   )}
+                  <div>
+                    <h4 className="font-semibold">{objective.name}</h4>
+                    {objective.estimatedCompletionDate && (
+                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                        <Clock className="h-3 w-3" />
+                        Est. completion: {new Date(objective.estimatedCompletionDate).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Badge variant={badgeVariant}>{badgeLabel}</Badge>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <Badge
-                  variant={
-                    objective.status === 'completed'
-                      ? 'default'
-                      : objective.status === 'paused'
-                      ? 'secondary'
-                      : 'outline'
-                  }
-                >
-                  {objective.status}
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
 
       <div className="pt-4 text-sm text-muted-foreground text-center">
         {objectives.length} objective{objectives.length !== 1 ? 's' : ''} total

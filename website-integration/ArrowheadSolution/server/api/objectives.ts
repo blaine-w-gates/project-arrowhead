@@ -246,12 +246,17 @@ router.get(
       // Map to UI-facing shape with lock metadata
       const mappedObjectives = objectivesList.map((objective) => {
         const lock = getLock(objective.id);
+
         const journeyStatus = (objective.journeyStatus || '').toLowerCase();
-        const completed = journeyStatus === 'complete' || journeyStatus === 'completed';
+        // Journey completion = planning finished ("plan complete")
+        const planComplete = journeyStatus === 'complete' || journeyStatus === 'completed';
+        // Objective completion = all tasks done (driven by DB trigger)
+        const tasksComplete = !!objective.allTasksComplete;
+
         const status =
           journeyStatus === 'paused'
             ? 'paused'
-            : completed
+            : tasksComplete
             ? 'completed'
             : 'active';
 
@@ -259,7 +264,10 @@ router.get(
           id: objective.id,
           name: objective.name,
           status,
-          completionStatus: completed,
+          // completionStatus reflects true objective completion (all tasks complete)
+          completionStatus: tasksComplete,
+          // planComplete allows UI to distinguish "plan done" vs "execution done"
+          planComplete,
           estimatedCompletionDate: objective.targetCompletionDate,
           actualCompletionDate: objective.actualCompletionDate ?? null,
           createdAt: objective.createdAt,
@@ -588,10 +596,13 @@ router.delete(
 
       // Check if lock exists
       const existingLock = getLock(objectiveId);
+
+      // If no lock exists, treat as successful (idempotent unlock)
       if (!existingLock) {
-        return res.status(404).json(
-          createErrorResponse('Not Found', 'No lock found for this objective')
-        );
+        return res.status(200).json({
+          message: 'No active lock found; nothing to release',
+          objective_id: objectiveId,
+        });
       }
 
       // Check if user owns the lock
