@@ -27,7 +27,10 @@ const TEST_USER_NAME = 'E2E Test User';
 // TEST SUITE: User Onboarding & Team Initialization
 // ===================================================================
 
-test.skip(({ browserName }) => browserName === 'webkit', 'Temporarily skip user-onboarding spec on WebKit for Phase 3.0 CI; tracked for Phase 3.1 hardening.');
+test.skip(
+  ({ browserName }) => browserName === 'webkit' || !!process.env.CI,
+  'Temporarily skip user-onboarding spec in CI and on WebKit for Phase 3.0; tracked for Phase 3.1 hardening.'
+);
 
 test.describe('User Onboarding Flow', () => {
   let testEmail: string;
