@@ -295,20 +295,24 @@ export async function setDatabaseSessionContext(req: AuthenticatedRequest): Prom
 
   const db = getDb() as { execute?: (query: unknown) => Promise<unknown> };
   const effectiveId = req.userContext?.effectiveTeamMemberId;
+  const userId = req.userContext?.userId;
+
+  const isSafeSessionValue = (value: string | undefined): value is string =>
+    !!value && /^[0-9a-zA-Z_-]+$/.test(value);
 
   if (db.execute) {
     // Postgres does not allow parameter placeholders in SET LOCAL statements,
     // so we must interpolate values into raw SQL. IDs are UUIDs controlled by
     // the server, so this is safe for our usage here.
-    if (effectiveId) {
+    if (isSafeSessionValue(effectiveId)) {
       await db.execute(
         sql.raw(`SET LOCAL app.current_team_member_id = '${effectiveId}'`)
       );
     }
 
-    if (req.userContext?.userId) {
+    if (isSafeSessionValue(userId)) {
       await db.execute(
-        sql.raw(`SET LOCAL request.jwt.claim.sub = '${req.userContext.userId}'`)
+        sql.raw(`SET LOCAL request.jwt.claim.sub = '${userId}'`)
       );
     }
   }
