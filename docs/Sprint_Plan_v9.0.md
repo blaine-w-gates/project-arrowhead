@@ -310,3 +310,15 @@ Phase 4 (Scoreboard + RRGT) ───────┘
 **END OF SPRINT PLAN**
 
 *This plan becomes Final upon PRD v5.0 approval and PM sign-off on Phase 1 database schema.*
+
+## 13. Sprint 9 Phase 4 – Scoreboard & RRGT Tail-End Items
+
+- **Tail-End (Do Now)**
+  - Improve EditTaskModal error UX so server-side validation messages are surfaced clearly in the modal.
+  - Add focused API tests for `/api/tasks/:taskId` covering update/delete happy path and RBAC constraints.
+
+- **Parking Lot (Sprint 10+ and Beyond)**
+  - Introduce a Query Key Factory for React Query (typed helpers for tasks, Scoreboard, RRGT, Dial) to eliminate ad-hoc string keys and prevent cache fragmentation.
+  - Extract a dedicated RBAC Policy Layer for task updates (e.g., helper functions wrapping `updateTaskSchema` + role checks) with explicit unit tests.
+  - Plan deprecation or unification of the legacy localStorage-based Task Manager (TaskListPage/useTaskManager) with the Team MVP tasks table, or clearly document their separation.
+

@@ -222,9 +222,10 @@ if (ALL tasks.status === "Done") {
 - Compare: "3 days late" or "2 days early"
 
 #### Scoreboard Task List
-- Standard task list (title, assigned to, status, priority, due date)
-- "+ Add Task" button
-- Real-time sync with Tab 4 (RRGT)
+ - Standard task list (title, assigned to, status, priority, due date)
+ - Tasks are ordered by a per-objective position index; users can drag-and-drop rows to reorder, and the new order is persisted (backed by the `tasks.position` field in the data model).
+ - "+ Add Task" button
+ - Real-time sync with Tab 4 (RRGT) and Dial: status and assignment changes made here are reflected in the RRGT Matrix and available for Dial focus.
 
 #### Touchbase Module (NEW)
 
