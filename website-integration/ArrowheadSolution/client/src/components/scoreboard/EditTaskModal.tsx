@@ -110,11 +110,11 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
   // Update task mutation
   const updateMutation = useMutation({
     mutationFn: async (taskData: {
-      title: string;
-      description?: string;
+      title?: string;
+      description?: string | null;
       status?: 'todo' | 'in_progress' | 'complete';
       priority?: number;
-      due_date?: string;
+      due_date?: string | null;
     }) => {
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'PUT',
@@ -135,6 +135,9 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['rrgt-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['dial-state'] });
       handleClose();
     },
   });
@@ -159,6 +162,9 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['rrgt-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['dial-state'] });
       handleClose();
     },
   });
@@ -172,13 +178,39 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
   };
 
   const handleUpdate = () => {
-    if (!title.trim()) return;
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+
+    const numericPriority =
+      priority === 'low'
+        ? 3
+        : priority === 'medium'
+        ? 2
+        : 1;
+
+    let dueDateValue: string | null = null;
+    if (dueDate) {
+      const parsed = new Date(dueDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        dueDateValue = parsed.toISOString();
+      }
+    }
+
+    const isTeamMember = profile?.role === 'Team Member';
+
+    if (isTeamMember) {
+      updateMutation.mutate({
+        status,
+      });
+      return;
+    }
 
     updateMutation.mutate({
-      title: title.trim(),
-      description: description.trim() || undefined,
+      title: trimmedTitle,
+      description: description.trim() === '' ? null : description.trim(),
       status,
-      due_date: dueDate || undefined,
+      priority: numericPriority,
+      due_date: dueDateValue,
     });
   };
 
@@ -245,7 +277,7 @@ export function EditTaskModal({ open, onClose, task, objectiveId }: EditTaskModa
               onValueChange={(value: Task['status']) => setStatus(value)}
               disabled={updateMutation.isPending || deleteMutation.isPending}
             >
-              <SelectTrigger id="status">
+              <SelectTrigger id="status" data-testid="edit-task-status-trigger">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

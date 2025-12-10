@@ -7,7 +7,7 @@
  * PRD v5.2 Section 3.4: RRGT UI & Dial Component
  */
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,8 +18,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Target, Users } from 'lucide-react';
 import { RrgtGrid } from '@/components/rrgt/RrgtGrid';
-import { DialPlaceholder } from '@/components/rrgt/DialPlaceholder';
-import type { RrgtResponse } from '@/types';
+import { Dial, type DialApiState, type DialUpdatePayload } from '@/components/rrgt/Dial';
+import { Button } from '@/components/ui/button';
+import { LocalRrgtStore } from '@/lib/rrgt-local-store';
+import type { EnrichedPlan, RrgtResponse } from '@/types';
 
 interface Project {
   id: string;
@@ -52,8 +54,20 @@ export default function RRGTTab() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [incognitoPlans, setIncognitoPlans] = useState<EnrichedPlan[]>([]);
+  const [targetingSlot, setTargetingSlot] = useState<'left' | 'right' | null>(null);
+  const [localRightText, setLocalRightText] = useState<string | null>(null);
 
   const isManager = profile?.role === 'Account Owner' || profile?.role === 'Account Manager';
+
+  useEffect(() => {
+    try {
+      const plans = LocalRrgtStore.getPlans();
+      setIncognitoPlans(plans);
+    } catch (error) {
+      console.error('Failed to load incognito RRGT plans', error);
+    }
+  }, []);
 
   // Fetch projects
   const { data: projectsResponse, isLoading: projectsLoading } = useQuery<ProjectsResponse>({
@@ -151,7 +165,11 @@ export default function RRGTTab() {
     },
   });
 
-  const plans = rrgtData?.plans ?? [];
+  const serverPlans = rrgtData?.plans ?? [];
+  const allPlans = useMemo(
+    () => [...serverPlans, ...incognitoPlans],
+    [serverPlans, incognitoPlans]
+  );
 
   const moveRabbitMutation = useMutation({
     mutationFn: async (vars: { planId: string; columnIndex: number }) => {
@@ -177,6 +195,17 @@ export default function RRGTTab() {
   });
 
   const handleMoveRabbit = (planId: string, columnIndex: number) => {
+    if (planId.startsWith('incognito:')) {
+      LocalRrgtStore.moveRabbit(planId, columnIndex);
+      try {
+        const plans = LocalRrgtStore.getPlans();
+        setIncognitoPlans(plans);
+      } catch (error) {
+        console.error('Failed to update incognito RRGT rabbit', error);
+      }
+      return;
+    }
+
     moveRabbitMutation.mutate({ planId, columnIndex });
   };
 
@@ -207,7 +236,225 @@ export default function RRGTTab() {
   });
 
   const handleSaveSubtask = (planId: string, columnIndex: number, text: string) => {
+    if (planId.startsWith('incognito:')) {
+      LocalRrgtStore.updateSubtask(planId, columnIndex, text);
+      try {
+        const plans = LocalRrgtStore.getPlans();
+        setIncognitoPlans(plans);
+      } catch (error) {
+        console.error('Failed to update incognito RRGT subtask', error);
+      }
+      return;
+    }
+
     saveSubtaskMutation.mutate({ planId, columnIndex, text });
+  };
+
+  const handleAddPrivateTask = () => {
+    try {
+      const newPlan = LocalRrgtStore.createPlan('New Private Task');
+      setIncognitoPlans(prev => [...prev, newPlan]);
+    } catch (error) {
+      console.error('Failed to create incognito RRGT plan', error);
+    }
+  };
+
+  // Dial state
+  interface DialResponse {
+    dial_state: DialApiState | null;
+  }
+
+  const { data: dialResponse, isLoading: dialLoading } = useQuery<DialResponse>({
+    queryKey: ['dial-state'],
+    queryFn: async () => {
+      const response = await fetch('/api/dial/mine', {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch dial state');
+      }
+
+      return response.json();
+    },
+  });
+
+  const dialState = dialResponse?.dial_state ?? null;
+
+  const hydratedDialState: DialApiState | null = useMemo(
+    () => {
+      if (!dialState) return null;
+
+      return {
+        ...dialState,
+        right_text:
+          dialState.is_right_private && localRightText !== null
+            ? localRightText
+            : dialState.right_text,
+      };
+    },
+    [dialState, localRightText],
+  );
+
+  const updateDialMutation = useMutation({
+    mutationFn: async (payload: DialUpdatePayload) => {
+      const response = await fetch('/api/dial/mine', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update dial state');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dial-state'] });
+    },
+  });
+
+  const handleUpdateDial = (payload: DialUpdatePayload) => {
+    updateDialMutation.mutate(payload);
+  };
+
+  const handleCellClick = (
+    planId: string,
+    columnIndex: number,
+    text: string,
+    isPrivate: boolean,
+  ) => {
+    if (!targetingSlot) return;
+
+    const isIncognito = planId.startsWith('incognito:');
+
+    if (targetingSlot === 'left') {
+      if (isIncognito) {
+        handleUpdateDial({
+          left_plan_id: null,
+          left_column_index: null,
+          left_text: text,
+          is_left_private: true,
+        });
+      } else {
+        handleUpdateDial({
+          left_plan_id: planId,
+          left_column_index: columnIndex,
+          left_text: text,
+          is_left_private: isPrivate,
+        });
+      }
+    } else {
+      if (isIncognito) {
+        handleUpdateDial({
+          right_plan_id: null,
+          right_column_index: null,
+          right_text: text,
+          is_right_private: true,
+        });
+      } else {
+        handleUpdateDial({
+          right_plan_id: planId,
+          right_column_index: columnIndex,
+          right_text: text,
+          is_right_private: isPrivate,
+        });
+      }
+
+      if (isPrivate) {
+        setLocalRightText(text);
+      } else {
+        setLocalRightText(null);
+      }
+    }
+
+    setTargetingSlot(null);
+  };
+
+  const handleSlotClick = (slot: 'left' | 'right') => {
+    const state = hydratedDialState ?? dialState;
+
+    if (targetingSlot === slot) {
+      setTargetingSlot(null);
+      return;
+    }
+
+    const hasValue = slot === 'left'
+      ? !!(state?.left_plan_id || state?.left_text || state?.is_left_private)
+      : !!(state?.right_plan_id || state?.right_text || state?.is_right_private);
+
+    // Empty slot: enter targeting mode
+    if (!hasValue) {
+      setTargetingSlot(slot);
+      return;
+    }
+
+    // Filled slot: toggle primary focus
+    const current = state?.selected_slot;
+    const next = current === slot ? null : slot;
+    handleUpdateDial({ selected_slot: next });
+  };
+
+  const handleClearSlot = (slot: 'left' | 'right') => {
+    if (targetingSlot === slot) {
+      setTargetingSlot(null);
+    }
+
+    if (slot === 'left') {
+      handleUpdateDial({
+        left_plan_id: null,
+        left_column_index: null,
+        left_text: '',
+        is_left_private: false,
+        selected_slot: dialState?.selected_slot === 'left' ? null : dialState?.selected_slot ?? null,
+      });
+    } else {
+      setLocalRightText(null);
+      handleUpdateDial({
+        right_plan_id: null,
+        right_column_index: null,
+        right_text: '',
+        is_right_private: false,
+        selected_slot: dialState?.selected_slot === 'right' ? null : dialState?.selected_slot ?? null,
+      });
+    }
+  };
+
+  const handleResetDial = () => {
+    setTargetingSlot(null);
+    setLocalRightText(null);
+    handleUpdateDial({
+      left_plan_id: null,
+      left_column_index: null,
+      left_text: '',
+      is_left_private: false,
+      right_plan_id: null,
+      right_column_index: null,
+      right_text: '',
+      is_right_private: false,
+      selected_slot: null,
+    });
+  };
+
+  const handleRenamePlan = (planId: string, title: string) => {
+    if (!planId.startsWith('incognito:')) {
+      return;
+    }
+    try {
+      LocalRrgtStore.renamePlan(planId, title);
+      const plans = LocalRrgtStore.getPlans();
+      setIncognitoPlans(plans);
+    } catch (error) {
+      console.error('Failed to rename incognito RRGT plan', error);
+    }
   };
 
   const handleProjectChange = (projectId: string | null) => {
@@ -351,29 +598,44 @@ export default function RRGTTab() {
         </CardContent>
       </Card>
 
-      {/* Dial */}
-      <DialPlaceholder 
-        dialState={null}
-        items={[]}
-        tasks={[]}
-      />
-
       {/* RRGT Grid */}
-      <Card className="mt-6">
-        <CardHeader>
+      <Card className="mt-4">
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
             RRGT Matrix (Rabbit Race)
           </CardTitle>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddPrivateTask}
+          >
+            Add Private Task
+          </Button>
         </CardHeader>
         <CardContent>
           <RrgtGrid
-            plans={plans}
+            plans={allPlans}
             onMoveRabbit={handleMoveRabbit}
             onSaveSubtask={handleSaveSubtask}
+            onRenamePlan={handleRenamePlan}
+            targetingSlot={targetingSlot}
+            onCellClick={handleCellClick}
           />
         </CardContent>
       </Card>
+
+      {/* Dial (kept below matrix to prioritize RRGT visibility) */}
+      <Dial
+        dialState={hydratedDialState}
+        targetingSlot={targetingSlot}
+        onSlotClick={handleSlotClick}
+        onClearSlot={handleClearSlot}
+        onReset={handleResetDial}
+        onUpdate={handleUpdateDial}
+        isLoading={dialLoading || updateDialMutation.isPending}
+      />
     </div>
   );
 }

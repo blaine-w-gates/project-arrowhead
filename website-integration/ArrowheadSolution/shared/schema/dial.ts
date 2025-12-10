@@ -7,12 +7,12 @@
  * Based on: SLAD v6.0 Final, Section 3.0 Data Model
  */
 
-import { pgTable, uuid, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, boolean, timestamp, integer, text } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { teamMembers } from "./teams";
-import { rrgtItems } from "./tasks";
+import { rrgtPlans } from "./rrgt";
 
 /**
  * DIAL_STATES Table
@@ -20,22 +20,26 @@ import { rrgtItems } from "./tasks";
  * 
  * Key Fields:
  * - team_member_id: Owner of this dial state (PK)
- * - left_item_id: RRGT item on the left side
- * - right_item_id: RRGT item on the right side
- * - selected_item_id: Which item won the comparison (nullable during comparison)
+ * - left_plan_id / left_column_index: Coordinates for the left Matrix cell
+ * - right_plan_id / right_column_index: Coordinates for the right Matrix cell
+ * - left_text: Optional snapshot of the left cell label
+ * - selected_slot: Which side is the current primary focus (left/right, nullable during comparison)
  * - is_left_private: Whether left item is marked private
  * - is_right_private: Whether right item is marked private
  * 
  * Business Rules:
  * - Each team member has exactly one dial state (1:1 relationship)
- * - Both items must belong to the same team member
+ * - Both slots should reference plans for the same team member (enforced at application layer)
  * - Privacy flags control visibility in Manager God-view
  */
 export const dialStates = pgTable("dial_states", {
   teamMemberId: uuid("team_member_id").primaryKey().references(() => teamMembers.id, { onDelete: "cascade" }),
-  leftItemId: uuid("left_item_id").references(() => rrgtItems.id, { onDelete: "set null" }),
-  rightItemId: uuid("right_item_id").references(() => rrgtItems.id, { onDelete: "set null" }),
-  selectedItemId: uuid("selected_item_id").references(() => rrgtItems.id, { onDelete: "set null" }),
+  leftPlanId: uuid("left_plan_id").references(() => rrgtPlans.id, { onDelete: "set null" }),
+  leftColumnIndex: integer("left_column_index"),
+  leftText: text("left_text"),
+  rightPlanId: uuid("right_plan_id").references(() => rrgtPlans.id, { onDelete: "set null" }),
+  rightColumnIndex: integer("right_column_index"),
+  selectedSlot: text("selected_slot"),
   isLeftPrivate: boolean("is_left_private").default(false).notNull(),
   isRightPrivate: boolean("is_right_private").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -48,17 +52,13 @@ export const dialStatesRelations = relations(dialStates, ({ one }) => ({
     fields: [dialStates.teamMemberId],
     references: [teamMembers.id],
   }),
-  leftItem: one(rrgtItems, {
-    fields: [dialStates.leftItemId],
-    references: [rrgtItems.id],
+  leftPlan: one(rrgtPlans, {
+    fields: [dialStates.leftPlanId],
+    references: [rrgtPlans.id],
   }),
-  rightItem: one(rrgtItems, {
-    fields: [dialStates.rightItemId],
-    references: [rrgtItems.id],
-  }),
-  selectedItem: one(rrgtItems, {
-    fields: [dialStates.selectedItemId],
-    references: [rrgtItems.id],
+  rightPlan: one(rrgtPlans, {
+    fields: [dialStates.rightPlanId],
+    references: [rrgtPlans.id],
   }),
 }));
 

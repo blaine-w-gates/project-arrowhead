@@ -101,6 +101,9 @@ export function AddTaskModal({ open, onClose, objectiveId }: AddTaskModalProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', objectiveId] });
+      queryClient.invalidateQueries({ queryKey: ['project-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['rrgt-matrix'] });
+      queryClient.invalidateQueries({ queryKey: ['dial-state'] });
       handleClose();
     },
     onError: (err: Error) => {

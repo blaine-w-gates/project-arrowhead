@@ -226,6 +226,10 @@ export const taskAssignmentsSchema = z.object({
     .max(20, 'Too many assignees'),
 }).strict();
 
+export const reorderTasksSchema = z.object({
+  task_ids: z.array(z.string().uuid()).min(0),
+}).strict();
+
 // ========================================
 // TOUCHBASES VALIDATION SCHEMAS
 // ========================================
@@ -308,11 +312,15 @@ export const upsertRrgtSubtaskSchema = z.object({
  * Includes privacy flags for incognito tasks
  */
 export const updateDialSchema = z.object({
-  left_item_id: z.string().uuid().nullable().optional(),
-  right_item_id: z.string().uuid().nullable().optional(),
-  selected_item_id: z.string().uuid().nullable().optional(),
+  left_plan_id: z.string().uuid().nullable().optional(),
+  left_column_index: z.number().int().min(0).nullable().optional(),
+  left_text: z.string().max(2000, 'Left text must be 2000 characters or less').optional(),
   is_left_private: z.boolean().optional(),
+  right_plan_id: z.string().uuid().nullable().optional(),
+  right_column_index: z.number().int().min(0).nullable().optional(),
+  right_text: z.string().max(2000, 'Right text must be 2000 characters or less').optional(),
   is_right_private: z.boolean().optional(),
+  selected_slot: z.enum(['left', 'right']).nullable().optional(),
 }).strict();
 
 // ========================================

@@ -121,10 +121,32 @@ export function TaskList({ objectiveId }: TaskListProps) {
         role: member.role,
       }));
 
-    return {
-      ...task,
+    const priorityMap: Record<number, Task['priority']> = {
+      1: 'high',
+      2: 'medium',
+      3: 'low',
+    };
+
+    const mappedPriority: Task['priority'] = priorityMap[task.priority] ?? 'medium';
+
+    const mappedStatus: Task['status'] =
+      task.status === 'todo' || task.status === 'in_progress' || task.status === 'complete'
+        ? task.status
+        : 'todo';
+
+    const mappedTask: Task = {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: mappedStatus,
+      priority: mappedPriority,
+      dueDate: task.dueDate,
       assignedMembers: assignees,
-    } as Task;
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+    };
+
+    return mappedTask;
   });
 
   if (isLoading) {

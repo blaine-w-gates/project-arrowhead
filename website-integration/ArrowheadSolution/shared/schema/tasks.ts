@@ -34,6 +34,7 @@ export const tasks = pgTable("tasks", {
   status: text("status").default("todo").notNull().$type<TaskStatus>(),
   priority: integer("priority").default(2).notNull(), // 1=high, 2=medium, 3=low
   dueDate: timestamp("due_date"),
+  position: integer("position").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({

@@ -9,11 +9,12 @@ import { Response, Router } from 'express';
 import { requireAuth, setDbContext, AuthenticatedRequest } from '../auth/middleware';
 import { getDb } from '../db';
 import { objectives, tasks, taskAssignments } from '../../shared/schema/index';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import {
   createTaskSchema,
   updateTaskSchema,
   taskAssignmentsSchema,
+  reorderTasksSchema,
   uuidSchema,
   formatValidationError,
   createErrorResponse,
@@ -116,7 +117,13 @@ router.post(
 
       // Create task and assignments in transaction for data integrity
       const result = await db.transaction(async (tx) => {
-        // Create task
+        const [{ maxPosition }] = await tx
+          .select({ maxPosition: sql<number>`COALESCE(max(${tasks.position}), -1)` })
+          .from(tasks)
+          .where(eq(tasks.objectiveId, objectiveId));
+
+        const nextPosition = (maxPosition ?? -1) + 1;
+
         const newTasks = await tx
           .insert(tasks)
           .values({
@@ -126,6 +133,7 @@ router.post(
             status: 'todo',
             priority: priority || 2,
             dueDate: due_date ? new Date(due_date) : null,
+            position: nextPosition,
           })
           .returning();
 
@@ -165,6 +173,96 @@ router.post(
       console.error('Error creating task:', error);
       return res.status(500).json(
         createErrorResponse('Internal Server Error', 'Failed to create task')
+      );
+    }
+  }
+);
+
+router.put(
+  '/objectives/:objectiveId/tasks/reorder',
+  requireAuth,
+  setDbContext,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const db = getDb();
+
+      const objectiveIdValidation = uuidSchema.safeParse(req.params.objectiveId);
+      if (!objectiveIdValidation.success) {
+        return res.status(400).json(formatValidationError(objectiveIdValidation.error));
+      }
+      const objectiveId = objectiveIdValidation.data;
+
+      const bodyValidation = reorderTasksSchema.safeParse(req.body);
+      if (!bodyValidation.success) {
+        return res.status(400).json(formatValidationError(bodyValidation.error));
+      }
+      const { task_ids } = bodyValidation.data;
+
+      const existingObjectives = await db
+        .select({ id: objectives.id, projectId: objectives.projectId })
+        .from(objectives)
+        .where(eq(objectives.id, objectiveId))
+        .limit(1);
+
+      if (existingObjectives.length === 0) {
+        return res.status(404).json(
+          createErrorResponse('Not Found', 'Objective not found or you don\'t have access')
+        );
+      }
+
+      if (task_ids.length === 0) {
+        return res.status(200).json({
+          message: 'No tasks to reorder',
+          objective_id: objectiveId,
+        });
+      }
+
+      const tasksForObjective = await db
+        .select({ id: tasks.id, objectiveId: tasks.objectiveId })
+        .from(tasks)
+        .where(inArray(tasks.id, task_ids));
+
+      if (tasksForObjective.length !== task_ids.length) {
+        return res.status(400).json(
+          createErrorResponse('Validation Error', 'One or more tasks were not found or you do not have access')
+        );
+      }
+
+      const invalidTasks = tasksForObjective.filter((t) => t.objectiveId !== objectiveId);
+      if (invalidTasks.length > 0) {
+        return res.status(400).json(
+          createErrorResponse('Validation Error', 'All tasks must belong to the specified objective')
+        );
+      }
+
+      const teamMemberId = req.userContext?.teamMemberId || '';
+      const canReorder = canEditProject(req.userContext) ||
+                         await isObjectiveOwner(db, objectiveId, teamMemberId);
+
+      if (!canReorder) {
+        return res.status(403).json(
+          createPermissionError('reorder tasks', req.userContext)
+        );
+      }
+
+      await db.transaction(async (tx) => {
+        for (let index = 0; index < task_ids.length; index += 1) {
+          const taskId = task_ids[index];
+          await tx
+            .update(tasks)
+            .set({ position: index })
+            .where(eq(tasks.id, taskId));
+        }
+      });
+
+      return res.status(200).json({
+        message: 'Tasks reordered successfully',
+        objective_id: objectiveId,
+      });
+    } catch (error) {
+      console.error('Error reordering tasks:', error);
+      return res.status(500).json(
+        createErrorResponse('Internal Server Error', 'Failed to reorder tasks')
       );
     }
   }
@@ -211,7 +309,7 @@ router.get(
         .select()
         .from(tasks)
         .where(eq(tasks.objectiveId, objectiveId))
-        .orderBy(tasks.createdAt);
+        .orderBy(tasks.position, tasks.createdAt);
 
       // Fetch all assignments for these tasks
       const taskIds = tasksList.map(t => t.id);
