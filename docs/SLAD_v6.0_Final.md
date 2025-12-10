@@ -58,15 +58,23 @@ Defines technical architecture for Project Arrowhead Team MVP: multi-tenant plat
 
 **objectives:** id (UUID PK), project_id (FK), name, current_step (1-17), journey_status, brainstorm_data (JSONB), choose_data (JSONB), objectives_data (JSONB), all_tasks_complete (auto), target_completion_date, actual_completion_date, is_archived
 
-**tasks:** id (UUID PK), objective_id (FK), title, description, status, priority, due_date
+**tasks:** id (UUID PK), objective_id (FK), title, description, status, priority, due_date, **position** (INTEGER, 0-based per-objective ordering for Scoreboard drag-and-drop)
 
 **task_assignments:** task_id + team_member_id (composite PK)
 
 **rrgt_items:** id (UUID PK), task_id (FK), team_member_id (FK), column_index (1-6), title
 
-**dial_states:** team_member_id (PK), left_item_id (FK), right_item_id (FK), selected_item_id (FK), is_left_private, is_right_private
+**dial_states:** team_member_id (PK), left_plan_id (FK rrgt_plans.id, ON DELETE SET NULL), left_column_index, left_text, right_plan_id (FK rrgt_plans.id, ON DELETE SET NULL), right_column_index, selected_slot, is_left_private, is_right_private
 
-**touchbases:** id (UUID PK), objective_id (FK), team_member_id (FK), created_by (FK), touchbase_date, responses (JSONB - 7 questions), editable (24hr window)
+**touchbases:** id (UUID PK), objective_id (FK), team_member_id (FK), created_by (FK), touchbase_date, responses (JSONB - 7 questions), editable (24hr window), version (INTEGER, optimistic locking)
+
+> **Scoreboard View Logic (Tab 3 - Tasks):**
+> - **Project View:** When only a project is selected, the UI shows an aggregate task table across all objectives in that project (no drag-and-drop; high-level overview).
+> - **Objective View:** When a specific objective is selected, the UI shows a focused task table for that objective with drag-and-drop ordering backed by `tasks.position`, plus completion tracking and touchbase log for that objective.
+
+> **Touchbases Migration Note:**
+> - Touchbases are stored in a single JSONB `responses` blob for the 7 questions today.
+> - Future migrations may introduce additional, more granular “focus” fields/columns derived from these responses; for now, the schema in this SLAD reflects the current implementation.
 
 ---
 
