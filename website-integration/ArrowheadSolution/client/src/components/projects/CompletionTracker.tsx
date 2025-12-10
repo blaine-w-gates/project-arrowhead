@@ -18,12 +18,14 @@ interface CompletionTrackerProps {
   projectId: string;
   completionStatus: boolean | 'not_started' | 'in_progress' | 'completed' | null;
   estimatedCompletionDate: string | null;
+  variant?: 'default' | 'compact';
 }
 
 export function CompletionTracker({
   projectId,
   completionStatus,
   estimatedCompletionDate,
+  variant = 'default',
 }: CompletionTrackerProps) {
   const queryClient = useQueryClient();
   const { session } = useAuth();
@@ -81,6 +83,49 @@ export function CompletionTracker({
   const handleSave = () => {
     updateMutation.mutate();
   };
+
+  if (variant === 'compact') {
+    return (
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
+        <div className="flex items-center gap-2">
+          <Switch
+            id={`complete-${projectId}`}
+            checked={isComplete}
+            onCheckedChange={handleStatusChange}
+            disabled={updateMutation.isPending}
+          />
+          <Label htmlFor={`complete-${projectId}`} className="text-sm">
+            Mark as complete
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Label htmlFor={`date-${projectId}`} className="text-xs text-muted-foreground">
+            Est. completion
+          </Label>
+          <div className="relative">
+            <Input
+              id={`date-${projectId}`}
+              type="date"
+              value={estimatedDate}
+              onChange={handleDateChange}
+              disabled={updateMutation.isPending}
+              className="h-9 w-40"
+            />
+            <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          </div>
+        </div>
+        {hasChanges && (
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={updateMutation.isPending}
+          >
+            {updateMutation.isPending ? 'Saving...' : 'Save'}
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 p-4 bg-muted/50 rounded-lg">

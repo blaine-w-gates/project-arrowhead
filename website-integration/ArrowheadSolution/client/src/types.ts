@@ -41,6 +41,10 @@ export interface EnrichedPlan {
   objective: EnrichedPlanObjective;
   rabbit: RrgtRabbit | null;
   subtasks: RrgtSubtask[];
+  // Local-only (Incognito) flags
+  isIncognito?: boolean;
+  localId?: string;
+  localOrderIndex?: number;
 }
 
 export interface RrgtResponse {

@@ -63,6 +63,51 @@ async function fetchOneSafe<T>(db: unknown, q: unknown): Promise<T | undefined> 
   return undefined;
 }
 
+async function getDialTaskTitlesForPlans(
+  db: ReturnType<typeof getDb>,
+  dialState: DialStateRow,
+  teamMemberId: string,
+): Promise<{ leftTaskTitle: string | null; rightTaskTitle: string | null }> {
+  const planIds: string[] = [];
+
+  if (dialState.leftPlanId) {
+    planIds.push(dialState.leftPlanId);
+  }
+  if (dialState.rightPlanId && !planIds.includes(dialState.rightPlanId)) {
+    planIds.push(dialState.rightPlanId);
+  }
+
+  if (planIds.length === 0) {
+    return { leftTaskTitle: null, rightTaskTitle: null };
+  }
+
+  const plansWithTasks = await db
+    .select({
+      planId: rrgtPlans.id,
+      taskTitle: tasks.title,
+    })
+    .from(rrgtPlans)
+    .innerJoin(tasks, eq(rrgtPlans.taskId, tasks.id))
+    .where(
+      and(
+        inArray(rrgtPlans.id, planIds),
+        eq(rrgtPlans.teamMemberId, teamMemberId),
+      ),
+    );
+
+  const titleByPlanId = new Map<string, string>();
+  for (const row of plansWithTasks) {
+    if (row.planId && row.taskTitle) {
+      titleByPlanId.set(row.planId, row.taskTitle);
+    }
+  }
+
+  const leftTaskTitle = dialState.leftPlanId ? titleByPlanId.get(dialState.leftPlanId) ?? null : null;
+  const rightTaskTitle = dialState.rightPlanId ? titleByPlanId.get(dialState.rightPlanId) ?? null : null;
+
+  return { leftTaskTitle, rightTaskTitle };
+}
+
 /**
  * GET /api/rrgt/mine
  * Get the current authenticated user's RRGT data
@@ -775,6 +820,62 @@ router.put(
   }
 );
 
+router.get(
+  '/dial/mine',
+  requireAuth,
+  setDbContext,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const db = getDb();
+      const currentTeamMemberId = req.userContext?.teamMemberId || '';
+
+      if (!currentTeamMemberId) {
+        return res.status(401).json(
+          createErrorResponse('Unauthorized', 'Missing team member context'),
+        );
+      }
+
+      const existingDialStates = await db
+        .select()
+        .from(dialStates)
+        .where(eq(dialStates.teamMemberId, currentTeamMemberId))
+        .limit(1);
+
+      if (!Array.isArray(existingDialStates) || existingDialStates.length === 0) {
+        return res.status(200).json({ dial_state: null });
+      }
+
+      const dialState = existingDialStates[0];
+      const { leftTaskTitle, rightTaskTitle } = await getDialTaskTitlesForPlans(
+        db,
+        dialState,
+        currentTeamMemberId,
+      );
+
+      return res.status(200).json({
+        dial_state: {
+          team_member_id: dialState.teamMemberId,
+          left_plan_id: dialState.leftPlanId,
+          left_column_index: dialState.leftColumnIndex,
+          left_text: dialState.leftText,
+          right_plan_id: dialState.rightPlanId,
+          right_column_index: dialState.rightColumnIndex,
+          selected_slot: dialState.selectedSlot,
+          is_left_private: dialState.isLeftPrivate,
+          is_right_private: dialState.isRightPrivate,
+          leftTaskTitle,
+          rightTaskTitle,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching dial state:', error);
+      return res.status(500).json(
+        createErrorResponse('Internal Server Error', 'Failed to fetch dial state'),
+      );
+    }
+  },
+);
+
 /**
  * PUT /api/dial/mine
  * Update the current user's Dial state
@@ -799,45 +900,55 @@ router.put(
       if (!bodyValidation.success) {
         return res.status(400).json(formatValidationError(bodyValidation.error));
       }
-      const { left_item_id, right_item_id, selected_item_id, is_left_private, is_right_private } = bodyValidation.data;
+      const {
+        left_plan_id,
+        left_column_index,
+        left_text,
+        is_left_private,
+        right_plan_id,
+        right_column_index,
+        right_text: _rightText, // reserved for future use
+        is_right_private,
+        selected_slot,
+      } = bodyValidation.data;
 
       const currentTeamMemberId = req.userContext?.teamMemberId || '';
 
-      // If item IDs provided, verify they belong to current user
-      if (left_item_id) {
-        const leftItemCheck = await db
+      // If plan IDs provided, verify they belong to current user (Matrix model)
+      if (left_plan_id) {
+        const leftPlanCheck = await db
           .select()
-          .from(rrgtItems)
+          .from(rrgtPlans)
           .where(
             and(
-              eq(rrgtItems.id, left_item_id),
-              eq(rrgtItems.teamMemberId, currentTeamMemberId)
-            )
+              eq(rrgtPlans.id, left_plan_id),
+              eq(rrgtPlans.teamMemberId, currentTeamMemberId),
+            ),
           )
           .limit(1);
 
-        if (leftItemCheck.length === 0) {
+        if (!Array.isArray(leftPlanCheck) || leftPlanCheck.length === 0) {
           return res.status(400).json(
-            createErrorResponse('Validation Error', 'Left item does not belong to you')
+            createErrorResponse('Validation Error', 'Left plan does not belong to you'),
           );
         }
       }
 
-      if (right_item_id) {
-        const rightItemCheck = await db
+      if (right_plan_id) {
+        const rightPlanCheck = await db
           .select()
-          .from(rrgtItems)
+          .from(rrgtPlans)
           .where(
             and(
-              eq(rrgtItems.id, right_item_id),
-              eq(rrgtItems.teamMemberId, currentTeamMemberId)
-            )
+              eq(rrgtPlans.id, right_plan_id),
+              eq(rrgtPlans.teamMemberId, currentTeamMemberId),
+            ),
           )
           .limit(1);
 
-        if (rightItemCheck.length === 0) {
+        if (!Array.isArray(rightPlanCheck) || rightPlanCheck.length === 0) {
           return res.status(400).json(
-            createErrorResponse('Validation Error', 'Right item does not belong to you')
+            createErrorResponse('Validation Error', 'Right plan does not belong to you'),
           );
         }
       }
@@ -849,35 +960,47 @@ router.put(
         .where(eq(dialStates.teamMemberId, currentTeamMemberId))
         .limit(1);
 
-      let dialState;
+      let dialState: DialStateRow;
 
-      if (existingDialStates.length === 0) {
+      if (!Array.isArray(existingDialStates) || existingDialStates.length === 0) {
         // Create new dial state
         const newDialStates = await db
           .insert(dialStates)
           .values({
             teamMemberId: currentTeamMemberId,
-            leftItemId: left_item_id || null,
-            rightItemId: right_item_id || null,
-            selectedItemId: selected_item_id || null,
-            isLeftPrivate: is_left_private || false,
-            isRightPrivate: is_right_private || false,
+            leftPlanId: left_plan_id ?? null,
+            leftColumnIndex: left_column_index ?? null,
+            leftText: left_text ?? null,
+            rightPlanId: right_plan_id ?? null,
+            rightColumnIndex: right_column_index ?? null,
+            selectedSlot: selected_slot ?? null,
+            isLeftPrivate: is_left_private ?? false,
+            isRightPrivate: is_right_private ?? false,
           })
           .returning();
 
-        dialState = newDialStates[0];
+        dialState = newDialStates[0] as DialStateRow;
       } else {
         // Update existing dial state
-        const updateData: Record<string, unknown> = {};
-        
-        if (left_item_id !== undefined) {
-          updateData.leftItemId = left_item_id;
+        const updateData: Partial<DialStateRow> = {};
+
+        if (left_plan_id !== undefined) {
+          updateData.leftPlanId = left_plan_id;
         }
-        if (right_item_id !== undefined) {
-          updateData.rightItemId = right_item_id;
+        if (left_column_index !== undefined) {
+          updateData.leftColumnIndex = left_column_index;
         }
-        if (selected_item_id !== undefined) {
-          updateData.selectedItemId = selected_item_id;
+        if (left_text !== undefined) {
+          updateData.leftText = left_text;
+        }
+        if (right_plan_id !== undefined) {
+          updateData.rightPlanId = right_plan_id;
+        }
+        if (right_column_index !== undefined) {
+          updateData.rightColumnIndex = right_column_index;
+        }
+        if (selected_slot !== undefined) {
+          updateData.selectedSlot = selected_slot;
         }
         if (is_left_private !== undefined) {
           updateData.isLeftPrivate = is_left_private;
@@ -888,16 +1011,34 @@ router.put(
 
         const updatedDialStates = await db
           .update(dialStates)
-          .set(updateData)
+          .set(updateData as Record<string, unknown>)
           .where(eq(dialStates.teamMemberId, currentTeamMemberId))
           .returning();
 
-        dialState = updatedDialStates[0];
+        dialState = updatedDialStates[0] as DialStateRow;
       }
+
+      const { leftTaskTitle, rightTaskTitle } = await getDialTaskTitlesForPlans(
+        db,
+        dialState,
+        currentTeamMemberId,
+      );
 
       return res.status(200).json({
         message: 'Dial state updated successfully',
-        dial_state: dialState,
+        dial_state: {
+          team_member_id: dialState.teamMemberId,
+          left_plan_id: dialState.leftPlanId,
+          left_column_index: dialState.leftColumnIndex,
+          left_text: dialState.leftText,
+          right_plan_id: dialState.rightPlanId,
+          right_column_index: dialState.rightColumnIndex,
+          selected_slot: dialState.selectedSlot,
+          is_left_private: dialState.isLeftPrivate,
+          is_right_private: dialState.isRightPrivate,
+          leftTaskTitle,
+          rightTaskTitle,
+        },
       });
     } catch (error) {
       console.error('Error updating dial state:', error);

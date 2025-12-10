@@ -13,9 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Plus, ClipboardList } from 'lucide-react';
-import { TaskList } from '@/components/scoreboard/TaskList';
+import { ClipboardList } from 'lucide-react';
+import { ProjectTaskTable } from '@/components/scoreboard/ProjectTaskTable';
 import { TouchbaseLog } from '@/components/scoreboard/TouchbaseLog';
 import { AddTaskModal } from '@/components/scoreboard/AddTaskModal';
 import { CompletionTracker } from '@/components/projects/CompletionTracker';
@@ -91,6 +90,7 @@ export default function ScoreboardTab() {
   const projectList = projectsResponse?.projects ?? [];
   const activeProjects = projectList.filter(p => !p.isArchived);
   const selectedObjective = objectives?.find(o => o.id === selectedObjectiveId);
+  const selectedProject = activeProjects.find(p => p.id === selectedProjectId) || null;
 
   // Reset objective selection when project changes
   const handleProjectChange = (projectId: string) => {
@@ -184,46 +184,65 @@ export default function ScoreboardTab() {
       {/* Content Area */}
       {selectedObjective ? (
         <div className="space-y-6">
-          {/* Objective Completion Tracker */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Objective: {selectedObjective.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
+          {/* Objective Header - compact row */}
+          <div className="bg-white border border-gray-200 rounded-md px-4 py-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-muted-foreground uppercase">Objective</span>
+              <span className="font-semibold text-sm md:text-base">
+                {selectedObjective.name}
+              </span>
+            </div>
+            <div className="flex-1 md:ml-6">
               <CompletionTracker
                 projectId={selectedProjectId!}
                 completionStatus={selectedObjective.completionStatus}
                 estimatedCompletionDate={selectedObjective.estimatedCompletionDate}
+                variant="compact"
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Touchbase Log */}
+          {/* Unified Task Table (Objective-focused) */}
+          <ProjectTaskTable
+            projectId={selectedProjectId!}
+            projectName={selectedProject?.name}
+            objectives={objectives ?? []}
+            filterObjectiveId={selectedObjective.id}
+            onAddTaskClick={() => setShowAddTaskModal(true)}
+          />
+
+          {/* Touchbase Log (below tasks) */}
           <TouchbaseLog objectiveId={selectedObjective.id} />
-
-          {/* Task List */}
+        </div>
+      ) : selectedProjectId ? (
+        <div className="space-y-6">
+          {/* Project summary */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5" />
-                Tasks
+            <CardHeader>
+              <CardTitle>
+                Project: {selectedProject?.name ?? 'Selected project'}
               </CardTitle>
-              <Button onClick={() => setShowAddTaskModal(true)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Task
-              </Button>
             </CardHeader>
             <CardContent>
-              <TaskList objectiveId={selectedObjective.id} />
+              <p className="text-sm text-muted-foreground">
+                Viewing tasks across all objectives in this project. Select a specific objective above for a focused view with completion tracking and touchbases.
+              </p>
             </CardContent>
           </Card>
+
+          {/* Project-level Task Table */}
+          <ProjectTaskTable
+            projectId={selectedProjectId}
+            projectName={selectedProject?.name}
+            objectives={objectives ?? []}
+          />
         </div>
       ) : (
         <Card>
           <CardContent className="py-12 text-center">
             <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground">
-              Select a project and objective above to view tasks and touchbases
+              Select a project above to view tasks, or choose a specific objective for detailed status and touchbases
             </p>
           </CardContent>
         </Card>
