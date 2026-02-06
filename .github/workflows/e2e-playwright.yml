@@ -65,7 +65,9 @@ jobs:
           E2E_SKIP_ADMIN: '1'
           # Skip billing tests in CI until Stripe secrets are configured
           E2E_SKIP_BILLING: '1'
-          ADMIN_SESSION_SECRET: ci-secret-key
+          ADMIN_SESSION_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ADMIN_COOKIE_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          FLASK_DEBUG: '1'
 
       - name: Upload Playwright report
         if: always()
@@ -129,7 +131,9 @@ jobs:
           PLAYWRIGHT_NO_WEBSERVER: ''
           E2E_SKIP_ADMIN: '1'
           E2E_SKIP_BILLING: '1'
-          ADMIN_SESSION_SECRET: ci-secret-key
+          ADMIN_SESSION_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ADMIN_COOKIE_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          FLASK_DEBUG: '1'
 
       - name: Upload Playwright report (${{ matrix.browser }})
         if: always()
@@ -189,7 +193,9 @@ jobs:
           PLAYWRIGHT_NO_WEBSERVER: ''
           E2E_SKIP_ADMIN: '1'
           E2E_SKIP_BILLING: '1'
-          ADMIN_SESSION_SECRET: ci-secret-key
+          ADMIN_SESSION_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ADMIN_COOKIE_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          FLASK_DEBUG: '1'
 
       - name: Upload Playwright report (webkit)
         if: always()
@@ -253,7 +259,9 @@ jobs:
           PLAYWRIGHT_NO_WEBSERVER: ''
           E2E_SKIP_ADMIN: '1'
           E2E_SKIP_BILLING: '1'
-          ADMIN_SESSION_SECRET: ci-secret-key
+          ADMIN_SESSION_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          ADMIN_COOKIE_SECRET: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          FLASK_DEBUG: '1'
 
       - name: Upload Playwright report (${{ matrix.browser }})
         if: always()
