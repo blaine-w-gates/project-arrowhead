@@ -12,9 +12,16 @@ from backend.github_client import GitHubClient
 
 # Create the app
 app = Flask(__name__, static_folder=None)
-
 # Configure the app
-app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+_flask_debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true")
+_admin_secret = os.environ.get("ADMIN_SESSION_SECRET")
+
+if _admin_secret:
+    app.secret_key = _admin_secret
+elif _flask_debug:
+    app.secret_key = "dev-secret-key-change-in-production"
+else:
+    raise ValueError("ADMIN_SESSION_SECRET must be set in production.")
 
 # --- Sprint 2: Control Panel (Workflows) ---
 # Hardcoded whitelist of admin workflows
