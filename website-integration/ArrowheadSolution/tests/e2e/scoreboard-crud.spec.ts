@@ -25,7 +25,7 @@ test.describe('Scoreboard - CRUD cache invalidation', () => {
 
     logStep('📝', 'Signing up user and initializing team for Scoreboard CRUD test');
 
-    const { teamId } = await signUpAndGetTeam(page, {
+    const { teamId, email } = await signUpAndGetTeam(page, {
       teamName: 'Scoreboard CRUD Team',
       userName: 'Scoreboard CRUD User',
     });
@@ -33,6 +33,18 @@ test.describe('Scoreboard - CRUD cache invalidation', () => {
     if (!teamId) {
       throw new Error('Missing teamId for Scoreboard CRUD test');
     }
+    if (process.env.CI) {
+      logStep('🔐', 'CI: Performing explicit UI login to verify session persistence');
+      await page.goto('/signin', { waitUntil: 'networkidle' });
+      // Check if already logged in (redirected to dashboard)
+      if (!page.url().includes('/dashboard')) {
+        await page.getByLabel(/email/i).fill(email);
+        await page.getByLabel(/password/i).fill('TestPassword123!');
+        await page.getByRole('button', { name: /sign in/i }).click();
+        await expect(page).toHaveURL(/\/dashboard/, { timeout: 30000 });
+      }
+    }
+
 
     logStep('🌱', 'Seeding project and objective via API');
 
