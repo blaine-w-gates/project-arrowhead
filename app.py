@@ -1,6 +1,7 @@
 import os
 import io
 import json
+from werkzeug.exceptions import NotFound
 import zipfile
 from flask import Flask, send_from_directory, request, jsonify, make_response
 from pathlib import Path
@@ -10,7 +11,7 @@ from backend.security import require_admin, issue_csrf, verify_csrf
 from backend.github_client import GitHubClient
 
 # Create the app
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder=None)
 
 # Configure the app
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
@@ -93,10 +94,25 @@ def index():
     response.headers['Expires'] = '0'
     return response
 
+ALLOWED_EXTENSIONS = {".html", ".css", ".js", ".png", ".jpg", ".jpeg", ".ico", ".svg", ".txt", ".xml"}
+
+
 @app.route('/<path:filename>')
 def serve_static(filename):
     """Serve static files (HTML, CSS, JS, etc.)"""
     # Security check - prevent directory traversal
+    # Security check - allowlist extensions
+    if filename.lower() == "requirements.txt":
+        return "Access denied", 403
+    file_ext = Path(filename).suffix.lower()
+    if file_ext and file_ext not in ALLOWED_EXTENSIONS:
+        return "Access denied", 403
+
+    # Block files without extension if they exist (prevents downloading files like Dockerfile)
+    # But allow them to fall through to 404 handler for SPA routing if they dont exist
+    if not file_ext and os.path.isfile(filename):
+        return "Access denied", 403
+
     if '..' in filename or filename.startswith('/'):
         return "Invalid file path", 400
     
@@ -107,7 +123,7 @@ def serve_static(filename):
         response.headers['Pragma'] = 'no-cache'
         response.headers['Expires'] = '0'
         return response
-    except FileNotFoundError:
+    except NotFound:
         # For SPA-like behavior, serve index.html for non-existent routes
         # that don't have file extensions
         if '.' not in Path(filename).name:
