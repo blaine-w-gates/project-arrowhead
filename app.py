@@ -15,12 +15,15 @@ from backend.github_client import GitHubClient
 app = Flask(__name__, static_folder=None)
 # Configure the app
 # Configure the app
+# Configure the app
 _flask_debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true")
+_ci_env = os.environ.get("CI", "").lower() in ("true", "1")
 _admin_secret = os.environ.get("ADMIN_SESSION_SECRET")
 
 if _admin_secret:
     app.secret_key = _admin_secret
-elif _flask_debug:
+elif _flask_debug or _ci_env:
+    # Use stable key in Dev or CI environments to support multi-worker setups
     app.secret_key = "dev-secret-key-change-in-production"
 else:
     # Fail-safe: Generate a random key. This invalidates existing sessions on restart
