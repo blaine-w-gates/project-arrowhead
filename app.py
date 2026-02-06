@@ -1,5 +1,4 @@
 import os
-import secrets
 import io
 import json
 from werkzeug.exceptions import NotFound
@@ -16,20 +15,7 @@ app = Flask(__name__, static_folder=None)
 # Configure the app
 # Configure the app
 # Configure the app
-_flask_debug = os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true")
-_ci_env = os.environ.get("CI", "").lower() in ("true", "1")
-_admin_secret = os.environ.get("ADMIN_SESSION_SECRET")
-
-if _admin_secret:
-    app.secret_key = _admin_secret
-elif _flask_debug or _ci_env:
-    # Use stable key in Dev or CI environments to support multi-worker setups
-    app.secret_key = "dev-secret-key-change-in-production"
-else:
-    # Fail-safe: Generate a random key. This invalidates existing sessions on restart
-    # but prevents session forgery and allows the app to start.
-    print("WARNING: ADMIN_SESSION_SECRET not set in production. Using ephemeral random key.")
-    app.secret_key = secrets.token_urlsafe(48)
+app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
 # --- Sprint 2: Control Panel (Workflows) ---
 # Hardcoded whitelist of admin workflows
