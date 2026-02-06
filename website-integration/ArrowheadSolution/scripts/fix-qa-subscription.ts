@@ -30,7 +30,7 @@ async function main() {
       subscription_status: 'active',
       trial_ends_at: trialEndsAt,
     })
-    .eq('id', (team as any).id)
+    .eq('id', (team as { id: string }).id)
     .select('id, name, subscription_status, trial_ends_at');
 
   if (updateError) {
@@ -39,11 +39,11 @@ async function main() {
   }
 
   if (!updatedTeams || updatedTeams.length === 0) {
-    console.error(`No team rows updated for team_id ${(team as any).id}`);
+    console.error(`No team rows updated for team_id ${(team as { id: string }).id}`);
     process.exit(1);
   }
 
-  const updatedTeam = updatedTeams[0] as any;
+  const updatedTeam = updatedTeams[0] as { subscription_status: string; trial_ends_at: string };
   console.log(
     `QA Test Team subscription renewed. Status=${updatedTeam.subscription_status}, trial_ends_at=${updatedTeam.trial_ends_at}.`
   );
