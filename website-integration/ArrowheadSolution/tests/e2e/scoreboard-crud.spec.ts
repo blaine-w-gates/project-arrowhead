@@ -73,7 +73,7 @@ test.describe('Scoreboard - CRUD cache invalidation', () => {
 
     // Basic smoke: Scoreboard heading should be visible
     const scoreboardHeading = page.getByRole('heading', { name: /scoreboard/i });
-    await expect(page).toHaveURL(/.*/dashboard/scoreboard/, { timeout: 30_000 });
+    await expect(page).toHaveURL(new RegExp('/dashboard/scoreboard'), { timeout: 30_000 });
     await expect(scoreboardHeading).toBeVisible({ timeout: 30_000 });
 
     logStep('🎯', 'Selecting seeded project and objective in Scoreboard filters');
