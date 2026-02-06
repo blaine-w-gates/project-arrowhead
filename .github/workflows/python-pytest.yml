@@ -47,5 +47,6 @@ jobs:
       - name: Run pytest
         env:
           ADMIN_API_KEY: ci-admin-key
+          ADMIN_SESSION_SECRET: ci-secret-key
           PYTHONUNBUFFERED: '1'
         run: pytest -q
