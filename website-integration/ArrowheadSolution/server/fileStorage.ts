@@ -118,12 +118,15 @@ export class FileBlogStorage {
       const entries = await fs.readdir(this.blogDir, { withFileTypes: true });
       const mdFiles = entries.filter(e => e.isFile() && /\.(md|markdown)$/i.test(e.name));
 
-      const posts: BlogPost[] = [];
-      for (const file of mdFiles) {
-        const full = path.join(this.blogDir, file.name);
-        const post = await this.readOneMarkdown(full, file.name);
-        if (post && post.published) posts.push(post);
-      }
+      const rawPosts = await Promise.all(
+        mdFiles.map((file) =>
+          this.readOneMarkdown(path.join(this.blogDir, file.name), file.name)
+        )
+      );
+
+      const posts = rawPosts.filter(
+        (post): post is BlogPost => post !== null && (post.published ?? false)
+      );
 
       // Sort newest first by publishedAt
       posts.sort((a, b) => (b.publishedAt?.getTime() || 0) - (a.publishedAt?.getTime() || 0));
