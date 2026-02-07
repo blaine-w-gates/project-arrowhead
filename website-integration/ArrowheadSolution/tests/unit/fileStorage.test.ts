@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { FileBlogStorage } from '../../server/fileStorage';
 import fs from 'fs/promises';
-import path from 'path';
 
 // Mock fs/promises
 vi.mock('fs/promises');
@@ -43,7 +42,7 @@ describe('FileBlogStorage', () => {
     } as any);
 
     // Mock readFile content
-    vi.mocked(fs.readFile).mockImplementation(async (filePath: string | Buffer | URL, options?: any) => {
+    vi.mocked(fs.readFile).mockImplementation(async (filePath: string | Buffer | URL, _options?: any) => {
       const strPath = filePath.toString();
       if (strPath.endsWith('older.md')) {
         return `---
