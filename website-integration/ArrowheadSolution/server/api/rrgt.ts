@@ -204,36 +204,53 @@ router.get(
         existingByTaskId.set(plan.taskId, plan);
       }
 
+      const plansToInsert: (typeof rrgtPlans.$inferInsert)[] = [];
+
       for (const task of filteredTasks) {
         if (existingByTaskId.has(task.id)) continue;
         const obj = objectivesById.get(task.objectiveId);
         if (!obj) continue;
 
+        plansToInsert.push({
+          taskId: task.id,
+          teamMemberId: currentTeamMemberId,
+          projectId: obj.projectId,
+          objectiveId: obj.id,
+          maxColumnIndex: 6,
+        });
+      }
+
+      if (plansToInsert.length > 0) {
         const insertedPlans = await db
           .insert(rrgtPlans)
-          .values({
-            taskId: task.id,
-            teamMemberId: currentTeamMemberId,
-            projectId: obj.projectId,
-            objectiveId: obj.id,
-            maxColumnIndex: 6,
-          })
+          .values(plansToInsert)
           .returning();
 
-        const plan = insertedPlans[0];
+        const rabbitsToInsert: (typeof rrgtRabbits.$inferInsert)[] = [];
+        const subtasksToInsert: (typeof rrgtSubtasks.$inferInsert)[] = [];
 
-        await db.insert(rrgtRabbits).values({
-          planId: plan.id,
-          currentColumnIndex: 0,
-        });
+        for (const plan of insertedPlans) {
+          rabbitsToInsert.push({
+            planId: plan.id,
+            currentColumnIndex: 0,
+          });
 
-        const defaultSubtasks = Array.from({ length: 5 }).map((_, idx) => ({
-          planId: plan.id,
-          columnIndex: idx + 1,
-          text: '',
-        }));
+          for (let i = 1; i <= 5; i++) {
+            subtasksToInsert.push({
+              planId: plan.id,
+              columnIndex: i,
+              text: '',
+            });
+          }
+        }
 
-        await db.insert(rrgtSubtasks).values(defaultSubtasks);
+        if (rabbitsToInsert.length > 0) {
+          await db.insert(rrgtRabbits).values(rabbitsToInsert);
+        }
+
+        if (subtasksToInsert.length > 0) {
+          await db.insert(rrgtSubtasks).values(subtasksToInsert);
+        }
       }
 
       const plansWithJoinsRes = await db
