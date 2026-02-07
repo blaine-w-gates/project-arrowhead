@@ -136,13 +136,22 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast align-items-center text-white bg-${type} border-0`;
     toast.setAttribute('role', 'alert');
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">${message}</div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    `;
-    
+    // Create inner structure safely
+    const dFlex = document.createElement("div");
+    dFlex.className = "d-flex";
+
+    const toastBody = document.createElement("div");
+    toastBody.className = "toast-body";
+    toastBody.textContent = message;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "btn-close btn-close-white me-2 m-auto";
+    closeBtn.setAttribute("data-bs-dismiss", "toast");
+
+    dFlex.appendChild(toastBody);
+    dFlex.appendChild(closeBtn);
+    toast.appendChild(dFlex);
     // Add to page
     let toastContainer = document.querySelector('.toast-container');
     if (!toastContainer) {
