@@ -245,14 +245,18 @@ router.put(
         );
       }
 
+      // Optimized batch update using CASE
       await db.transaction(async (tx) => {
-        for (let index = 0; index < task_ids.length; index += 1) {
-          const taskId = task_ids[index];
-          await tx
-            .update(tasks)
-            .set({ position: index })
-            .where(eq(tasks.id, taskId));
-        }
+        const positionCase = sql`(CASE`;
+        task_ids.forEach((id, index) => {
+          positionCase.append(sql` WHEN ${tasks.id} = ${id} THEN ${index}`);
+        });
+        positionCase.append(sql` ELSE ${tasks.position} END)`);
+
+        await tx
+          .update(tasks)
+          .set({ position: positionCase })
+          .where(inArray(tasks.id, task_ids));
       });
 
       return res.status(200).json({
