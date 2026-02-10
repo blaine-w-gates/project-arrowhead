@@ -5,7 +5,7 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import { setupAdminPanel } from "./admin/index";
+// import { setupAdminPanel } from "./admin/index";
 
 const app = express();
 
