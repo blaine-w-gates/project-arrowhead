@@ -1,10 +1,11 @@
+import requests
 import os
 import secrets
 import io
 import json
 from werkzeug.exceptions import NotFound
 import zipfile
-from flask import Flask, send_from_directory, request, jsonify, make_response
+from flask import Flask, send_from_directory, request, jsonify, make_response, Response, stream_with_context
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -391,6 +392,63 @@ def api_admin_workflow_status(name):
 def not_found(error):
     """Handle 404 errors by serving index.html for SPA behavior"""
     return send_from_directory('.', 'index.html')
+
+
+# --- Reverse Proxy to Node.js ---
+NODE_SERVER = os.environ.get('NODE_SERVER', 'http://localhost:5001')
+
+def proxy_to_node(subpath=None):
+    # Construct target URL
+    # request.full_path includes the leading slash and query string (e.g., /journey?foo=bar)
+    target_url = f"{NODE_SERVER}{request.full_path}"
+
+    try:
+        # Forward request
+        resp = requests.request(
+            method=request.method,
+            url=target_url,
+            headers={k: v for k, v in request.headers if k.lower() != 'host'},
+            data=request.get_data(),
+            cookies=request.cookies,
+            allow_redirects=False,
+            stream=True
+        )
+
+        # Exclude some headers
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        headers = [(name, value) for (name, value) in resp.raw.headers.items()
+                   if name.lower() not in excluded_headers]
+
+        return Response(stream_with_context(resp.iter_content(chunk_size=1024)),
+                        status=resp.status_code,
+                        headers=headers)
+    except Exception as e:
+        app.logger.error(f"Proxy error: {str(e)}")
+        return jsonify({"error": "Failed to connect to backend application"}), 502
+
+# Proxy Routes
+# We use add_url_rule instead of decorators to avoid cluttering the global scope and ensure cleaner organization
+proxy_paths = [
+    '/journey',
+    '/journey/<path:subpath>',
+    '/login',
+    '/login/<path:subpath>',
+    '/admin',
+    '/admin/<path:subpath>',
+    '/api/<path:subpath>',
+    '/assets/<path:subpath>',
+    '/src/<path:subpath>',
+    '/node_modules/<path:subpath>',
+    '/@vite/<path:subpath>',
+    '/@react-refresh'
+]
+
+for route in proxy_paths:
+    # Use a unique endpoint name for each route to avoid conflicts
+    endpoint = f"proxy_to_node_{route.replace('/', '_').replace('<', '').replace('>', '').replace(':', '_')}"
+    # check if endpoint exists to avoid overwrite warning/error if loop runs multiple times (though here it runs once)
+    app.add_url_rule(route, endpoint=endpoint, view_func=proxy_to_node, methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])
+
 
 if __name__ == '__main__':
     # For local development
