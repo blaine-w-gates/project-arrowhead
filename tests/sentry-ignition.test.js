@@ -10,29 +10,29 @@ describe('Sentry Protocol: Operation Ignition', () => {
 
     beforeAll(async () => {
         browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             slowMo: 100,
             args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-    });
+        }, 60000);
+    }, 60000);
 
     beforeEach(async () => {
         page = await browser.newPage();
         await page.setViewport({ width: 1280, height: 720 });
         page.setDefaultTimeout(30000);
-    });
+    }, 60000);
 
     afterEach(async () => {
         if (page) {
             await page.close();
         }
-    });
+    }, 60000);
 
     afterAll(async () => {
         if (browser) {
             await browser.close();
         }
-    });
+    }, 60000);
 
     describe('Homepage CTA Integration Bug', () => {
         test('VERIFICATION: Main "Use the Free Tool Now" button should now route to /journey correctly', async () => {
@@ -84,7 +84,7 @@ describe('Sentry Protocol: Operation Ignition', () => {
             await page.evaluate(() => {
                 const finalCta = document.querySelector('section:last-of-type');
                 if (finalCta) finalCta.scrollIntoView();
-            });
+            }, 60000);
             
             // Step 3: Find and click the secondary "Get Started for Free" button
             const secondaryCtaSelector = 'section:last-of-type a[href="/journey"]';
@@ -114,5 +114,5 @@ describe('Sentry Protocol: Operation Ignition', () => {
             
             console.log('✅ VERIFICATION TEST PASSED: Secondary CTA button now correctly routes to /journey');
         }, 60000);
-    });
+    }, 60000);
 });
