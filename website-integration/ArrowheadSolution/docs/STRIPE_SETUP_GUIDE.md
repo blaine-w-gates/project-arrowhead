@@ -111,7 +111,7 @@ Select the following events (click "Select events" button):
 
 **Example Signing Secret:**
 ```
-whsec_1234567890abcdefghijklmnopqrstuvwxyz
+whsec_********************************
 ```
 
 ---

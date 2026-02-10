@@ -240,7 +240,7 @@ await page.goto('/signin');
 ```bash
 # Supabase Backend Configuration
 SUPABASE_URL=https://jzjkaxildffxhudeocvp.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...[REDACTED]
 SUPABASE_JWT_SECRET=AcZbnMo+mwdZSp8I5VxLRxQC3MJGOJ5tGzKumTKiq/z+...
 
 # Supabase Frontend Configuration
