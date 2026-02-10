@@ -440,7 +440,13 @@ proxy_paths = [
     '/src/<path:subpath>',
     '/node_modules/<path:subpath>',
     '/@vite/<path:subpath>',
-    '/@react-refresh'
+    '/@react-refresh',
+    '/@fs/<path:subpath>',
+    '/@id/<path:subpath>',
+    '/free-tool',
+    '/free-tool/<path:subpath>',
+    '/tasks',
+    '/tasks/<path:subpath>'
 ]
 
 for route in proxy_paths:
