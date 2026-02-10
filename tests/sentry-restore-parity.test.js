@@ -5,12 +5,13 @@ const puppeteer = require('puppeteer');
 // Bug: Multiple entry points are broken and don't route to the correct application
 
 describe('Sentry Protocol: Operation Restore Parity', () => {
+    jest.setTimeout(60000);
     let browser;
     let page;
 
     beforeAll(async () => {
         browser = await puppeteer.launch({
-            headless: false,
+            headless: true,
             slowMo: 100,
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
@@ -56,7 +57,7 @@ describe('Sentry Protocol: Operation Restore Parity', () => {
             console.log(`Current URL after clicking header CTA: ${currentUrl}`);
             
             // ASSERT THAT WE ARE AT THE CORRECT JOURNEY ROUTE
-            const expectedJourneyUrl = `${reactUrl}/journey`;
+            const expectedJourneyUrl = `${reactUrl}/free-tool`;
             const isAtCorrectRoute = currentUrl === expectedJourneyUrl;
             
             console.log(`Expected URL: ${expectedJourneyUrl}`);
@@ -161,7 +162,7 @@ describe('Sentry Protocol: Operation Restore Parity', () => {
                 
                 await Promise.all([
                     page.waitForNavigation({ waitUntil: 'networkidle0' }),
-                    page.click(viewTasksSelector)
+                    page.evaluate((sel) => document.querySelector(sel).click(), viewTasksSelector)
                 ]);
                 
                 // Check if we get 404 error

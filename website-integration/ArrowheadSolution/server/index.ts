@@ -58,7 +58,7 @@ app.use((req, res, next) => {
 
 (async () => {
   // Setup AdminJS before routes
-  await setupAdminPanel(app);
+  // await setupAdminPanel(app);
 
   // IMPORTANT: Apply body parsers AFTER AdminJS router to be compatible with @adminjs/express
   app.use(cookieParser());

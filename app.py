@@ -430,6 +430,8 @@ def proxy_to_node(subpath=None):
 # We use add_url_rule instead of decorators to avoid cluttering the global scope and ensure cleaner organization
 proxy_paths = [
     '/journey',
+    '/tasks',
+    '/free-tool',
     '/journey/<path:subpath>',
     '/login',
     '/login/<path:subpath>',
@@ -440,6 +442,8 @@ proxy_paths = [
     '/src/<path:subpath>',
     '/node_modules/<path:subpath>',
     '/@vite/<path:subpath>',
+    '/@fs/<path:subpath>',
+    '/@id/<path:subpath>',
     '/@react-refresh'
 ]
 

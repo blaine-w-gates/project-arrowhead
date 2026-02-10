@@ -21,9 +21,10 @@
   "description": "",
   "devDependencies": {
     "husky": "^9.1.6",
-    "lint-staged": "^15.2.10"
+    "jest": "^30.2.0",
+    "lint-staged": "^15.2.10",
+    "puppeteer": "^24.37.2"
   },
-  "dependencies": {},
   "lint-staged": {
     "website-integration/ArrowheadSolution/**/*.{ts,tsx}": [
       "npx eslint --ext .ts,.tsx --max-warnings=0 --cache"
