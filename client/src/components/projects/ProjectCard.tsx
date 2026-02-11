@@ -112,7 +112,7 @@ export function ProjectCard({ project, teamId }: ProjectCardProps) {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" data-testid="project-menu-trigger">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>

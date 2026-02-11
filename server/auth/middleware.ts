@@ -77,18 +77,21 @@ export interface AuthenticatedRequest extends Request {
  * app.use('/api/teams', requireAuth, teamsRouter);
  * ```
  */
+import { debugLog } from "../debug";
+
 export async function requireAuth(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
+    debugLog(`DEBUG: requireAuth entered: ${req.method} ${req.path}`);
     // Extract JWT from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ 
-        error: 'Unauthorized', 
-        message: 'Missing or invalid Authorization header' 
+      res.status(401).json({
+        error: 'Unauthorized',
+        message: 'Missing or invalid Authorization header'
       });
       return;
     }
@@ -115,14 +118,8 @@ export async function requireAuth(
 
     // Look up team membership in database
     const db = getDb();
-    const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST || !!process.env.VITEST_WORKER_ID;
     let membership: TeamMemberRow | undefined;
-    if (isTestEnv && hasLimit(db)) {
-      try {
-        const rowsUnknown = await (db as Limitable).limit(1);
-        membership = Array.isArray(rowsUnknown) ? (rowsUnknown[0] as TeamMemberRow) : undefined;
-      } catch (_err) { void 0; }
-    }
+
     if (!membership) {
       const membershipQuery = db
         .select()
@@ -160,7 +157,7 @@ export async function requireAuth(
 
         if (virtualPersonaRecords.length > 0) {
           const virtualPersona = virtualPersonaRecords[0] as TeamMemberRow;
-          
+
           // Ensure virtual persona is in the same team
           if (virtualPersona.teamId === userContext.teamId) {
             userContext.virtualPersonaId = virtualPersonaHeader;

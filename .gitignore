@@ -11,3 +11,9 @@ test-results/
 .env.local
 .env.*.local
 .env
+
+# Debug artifacts
+server-debug.log
+test-output.txt
+/tmp/
+.env.local.bak

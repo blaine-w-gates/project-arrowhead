@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { debugLog } from "./debug";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import {
@@ -707,8 +708,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount Team MVP API routers (Scoreboard & Team MVP product)
   // These use the Postgres/Drizzle stack and must be registered before
   // legacy /api/tasks routes so they handle task updates.
+  debugLog('DEBUG: Attempting to import authRouter...');
   const authRouter = await import('./api/auth');
-  // console.log('DEBUG: authRouter import:', Object.keys(authRouter), 'default:', !!authRouter.default);
+  debugLog(`DEBUG: authRouter import success: ${Object.keys(authRouter).join(', ')}`);
   const routerToUse = (authRouter as any).default || authRouter;
   app.use('/api', routerToUse as any);
 

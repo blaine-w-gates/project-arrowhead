@@ -70,8 +70,9 @@ function getProjectRefFromSupabaseUrl(urlStr: string | undefined): string | null
 }
 
 export async function ensureAuthToken(page: Page): Promise<string> {
-  // In CI, avoid page.evaluate entirely. First try to read from storageState, then fallback to anon sign-in if available.
-  if (process.env.CI) {
+  // In CI or explicit bypass, avoid page.evaluate entirely. First try to read from storageState, then fallback to anon sign-in if available.
+  if (process.env.CI || process.env.E2E_BYPASS_UI_SIGNUP === '1') {
+    console.log('   [ensureAuthToken] CI/Force path...');
     if (__lastToken) return __lastToken;
     try {
       const state = await page.context().storageState();
@@ -148,6 +149,7 @@ export async function ensureAuthToken(page: Page): Promise<string> {
     });
   };
   for (let i = 0; i < 30; i++) {
+    console.log(`   [ensureAuthToken] Manual grab attempt ${i + 1}`);
     const t = await grab();
     if (t) return t;
     await page.waitForTimeout(1000);
@@ -326,6 +328,7 @@ export async function signUpNewUser(
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok()) { ok = true; break; }
+      console.log(`   Warmup attempt ${i + 1}: ${res.status()} ${res.statusText()}`);
       await page.waitForTimeout(500);
     }
     console.log(`✅ Profile warmup: ${ok ? 'ready' : 'not ready'}`);

@@ -11,6 +11,7 @@ import { supabaseAdmin } from '../auth/supabase';
 import { teamMembers, teams } from '../../shared/schema/index';
 import { eq } from 'drizzle-orm';
 import { createErrorResponse } from './validation';
+import { debugLog } from "../debug";
 
 const router = Router();
 
@@ -35,16 +36,37 @@ router.get(
   requireAuth,
   setDbContext,
   async (req: AuthenticatedRequest, res: Response) => {
+
     try {
+      debugLog('DEBUG: ENTERING /api/auth/profile handler');
+      debugLog(`DEBUG: userContext: ${JSON.stringify(req.userContext)}`);
+
       const db = getDb();
       const userId = req.userContext?.userId;
       const teamMemberId = req.userContext?.teamMemberId;
       const teamId = req.userContext?.teamId;
 
-      if (!userId || !teamMemberId || !teamId) {
+      if (!userId) {
         return res.status(401).json(
           createErrorResponse('Unauthorized', 'Invalid or missing authentication context')
         );
+      }
+
+      if (!teamMemberId || !teamId) {
+        // User is authenticated but has no team membership yet
+        return res.status(200).json({
+          userId,
+          email: req.userContext?.email || '',
+          teamMemberId: null,
+          teamId: null,
+          teamName: '',
+          role: null,
+          name: '',
+          isVirtual: false,
+          subscriptionStatus: 'inactive',
+          trialEndsAt: null,
+          daysLeftInTrial: 0,
+        });
       }
 
       // Fetch team member details
@@ -55,9 +77,21 @@ router.get(
         .limit(1);
 
       if (memberRecords.length === 0) {
-        return res.status(404).json(
-          createErrorResponse('Not Found', 'Team member not found')
-        );
+        // User is authenticated but has no team membership yet
+        // Return 200 with null team details so frontend knows to show "Create Team" flow
+        return res.status(200).json({
+          userId,
+          email: req.userContext?.email || '',
+          teamMemberId: null,
+          teamId: null,
+          teamName: '',
+          role: null,
+          name: '',
+          isVirtual: false,
+          subscriptionStatus: 'inactive',
+          trialEndsAt: null,
+          daysLeftInTrial: 0,
+        });
       }
 
       const member = memberRecords[0];
@@ -83,7 +117,7 @@ router.get(
 
       return res.status(200).json({
         userId,
-        email: member.email || '',
+        email: member.email || req.userContext?.email || '',
         teamMemberId: member.id,
         teamId: member.teamId,
         teamName: team?.name || '',

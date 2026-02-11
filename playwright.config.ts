@@ -15,7 +15,7 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5000',
     trace: 'on',
     video: 'on',
     screenshot: 'only-on-failure',
@@ -34,14 +34,15 @@ export default defineConfig({
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
-    {
+    // Only include prod-chromium when explicitly targeting production via PLAYWRIGHT_PROD_BASE_URL
+    ...(process.env.PLAYWRIGHT_PROD_BASE_URL ? [{
       name: 'prod-chromium',
       use: {
         ...devices['Desktop Chrome'],
-        baseURL: process.env.PLAYWRIGHT_PROD_BASE_URL || 'https://project-arrowhead.pages.dev',
+        baseURL: process.env.PLAYWRIGHT_PROD_BASE_URL,
         extraHTTPHeaders: accessHeaders,
       },
-    },
+    }] : []),
   ],
   webServer: process.env.PLAYWRIGHT_NO_WEBSERVER
     ? undefined
@@ -49,7 +50,7 @@ export default defineConfig({
       // Ensure the Node dev server proxies to the Python backend on 5050 during tests
       // Expose E2E_EXPOSE_OTP=1 so /api/auth/request returns { devCode } for the test environment
       command: 'AUTH_JWT_SECRET=testsecret E2E_EXPOSE_OTP=1 PY_BACKEND_PORT=5050 npm run dev',
-      url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5000',
+      url: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5000',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       // Pass Supabase credentials to dev server environment so it can use real admin client
