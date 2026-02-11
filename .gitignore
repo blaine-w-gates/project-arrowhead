@@ -1,18 +1,13 @@
 node_modules
-
-.venv
-
-# Supabase CLI temp/cache (avoid committing transient files)
-website-integration/ArrowheadSolution/supabase/.temp/
-
-# Local dev env (do not commit)
-website-integration/ArrowheadSolution/server/.env.local
-website-integration/ArrowheadSolution/.dev.vars
-
-# Generated AdminJS bundles, coverage, and build output
-website-integration/ArrowheadSolution/.adminjs/
-website-integration/ArrowheadSolution/coverage/
-website-integration/ArrowheadSolution/dist/
-
-# Prevent committing stray git worktrees folder
-.worktrees/
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+# Ignore test artifacts
+playwright-report/
+test-results/
+# Environment files with secrets
+.env.local
+.env.*.local
+.env

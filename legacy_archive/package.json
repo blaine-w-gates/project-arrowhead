@@ -1,0 +1,32 @@
+{
+  "name": "projectarrowhead",
+  "version": "1.0.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"No tests at repo root. Use Playwright: cd website-integration/ArrowheadSolution && npm run test:e2e\" && exit 0",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blaine-w-gates/project-arrowhead.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/blaine-w-gates/project-arrowhead/issues"
+  },
+  "homepage": "https://github.com/blaine-w-gates/project-arrowhead#readme",
+  "description": "",
+  "devDependencies": {
+    "husky": "^9.1.6",
+    "lint-staged": "^15.2.10"
+  },
+  "dependencies": {},
+  "lint-staged": {
+    "website-integration/ArrowheadSolution/**/*.{ts,tsx}": [
+      "npx eslint --ext .ts,.tsx --max-warnings=0 --cache"
+    ]
+  }
+}

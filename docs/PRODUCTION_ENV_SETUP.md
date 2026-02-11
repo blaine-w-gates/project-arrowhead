@@ -1,400 +1,374 @@
-# Production Environment Variables Setup
-**Project Arrowhead - Admin Panel Deployment**
+# Production Environment Setup Guide
+
+**Version:** 2.0  
+**Last Updated:** October 28, 2025  
+**Platform:** Cloudflare Pages  
+
+---
 
 ## Overview
 
-This document provides the complete environment configuration needed for deploying the admin panel to production.
+This document specifies all environment variables required for production deployment of Project Arrowhead on Cloudflare Pages.
+
+**Related Documentation:**
+- [Stripe Setup Guide](./STRIPE_SETUP_GUIDE.md) - Detailed Stripe configuration
+- [Cloudflare Access Runbook](./cloudflare-access-runbook.md) - Admin route protection
 
 ---
 
 ## Required Environment Variables
 
-### 1. Database Configuration
+### Supabase Configuration
 
-```bash
-# PostgreSQL Connection String (Supabase)
-DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/postgres?sslmode=require"
+**SUPABASE_URL**
+- **Description:** Supabase project URL
+- **Format:** `https://xxxxxxxxxxxxx.supabase.co`
+- **Required:** Yes
+- **Example:** `https://abcdefghijklmnop.supabase.co`
+- **Where to find:** Supabase Dashboard > Project Settings > API
 
-# Optional: IPv4 override for DNS issues
-# PGHOSTADDR="xxx.xxx.xxx.xxx"
-# DB_HOST_IPV4="xxx.xxx.xxx.xxx"
-```
+**SUPABASE_ANON_KEY**
+- **Description:** Supabase anonymous/public API key
+- **Format:** Long JWT token starting with `eyJ`
+- **Required:** Yes (for frontend)
+- **Security:** Safe to expose in frontend code
+- **Where to find:** Supabase Dashboard > Project Settings > API
 
-**Security Notes:**
-- ✅ Use connection pooling in production
-- ✅ Enable SSL/TLS (sslmode=require)
-- ✅ Rotate passwords quarterly
-- ✅ Use read-only replicas for analytics
+**SUPABASE_SERVICE_ROLE_KEY**
+- **Description:** Supabase service role key (admin privileges)
+- **Format:** Long JWT token starting with `eyJ`
+- **Required:** Yes (for backend/Functions)
+- **Security:** ⚠️ **NEVER expose in frontend** - backend only
+- **Where to find:** Supabase Dashboard > Project Settings > API
+- **Cloudflare:** Mark as **Encrypted** in environment variables
 
-**Supabase Specific:**
-```bash
-# Get from Supabase Dashboard > Project Settings > Database
-# Format: postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
-DATABASE_URL="postgresql://postgres.xxxxx:yyyyy@aws-0-us-east-1.pooler.supabase.com:6543/postgres?sslmode=require"
-```
-
----
-
-### 2. Admin Panel Security
-
-```bash
-# Session Secret (CRITICAL - Generate unique random string)
-ADMIN_SESSION_SECRET="[GENERATE-64-CHARACTER-RANDOM-STRING]"
-
-# Cookie Secret (CRITICAL - Generate unique random string)
-ADMIN_COOKIE_SECRET="[GENERATE-64-CHARACTER-RANDOM-STRING]"
-```
-
-**Generate Secure Secrets:**
-```bash
-# Method 1: OpenSSL
-openssl rand -base64 48
-
-# Method 2: Node.js
-node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
-
-# Method 3: Python
-python3 -c "import secrets; print(secrets.token_urlsafe(48))"
-```
-
-**Security Requirements:**
-- ⚠️ NEVER use the example values in production
-- ⚠️ Each secret must be unique (don't reuse)
-- ⚠️ Minimum 32 characters, recommend 48-64
-- ⚠️ Store in secure vault (AWS Secrets Manager, 1Password, etc.)
-- ⚠️ Rotate every 90 days
-- ⚠️ Never commit to version control
+**SUPABASE_JWT_SECRET**
+- **Description:** Secret for verifying Supabase JWTs
+- **Format:** Random string (256+ bits recommended)
+- **Required:** Yes
+- **Security:** Keep confidential
+- **Where to find:** Supabase Dashboard > Project Settings > API
+- **Cloudflare:** Mark as **Encrypted**
 
 ---
 
-### 3. Default Admin User (Initial Setup Only)
+### Stripe Configuration
 
-```bash
-# Initial admin account credentials
-ADMIN_EMAIL="admin@yourcompany.com"
-ADMIN_PASSWORD="[TEMPORARY-STRONG-PASSWORD]"
-ADMIN_ROLE="super_admin"
-```
+**STRIPE_SECRET_KEY**
+- **Description:** Stripe secret API key for backend operations
+- **Format:** `sk_live_...` (production) or `sk_test_...` (testing)
+- **Required:** Yes
+- **Security:** ⚠️ **CRITICAL** - Never expose, mark as encrypted
+- **Where to find:** Stripe Dashboard > Developers > API keys
+- **See:** [STRIPE_SETUP_GUIDE.md](./STRIPE_SETUP_GUIDE.md)
+- **Cloudflare:** Mark as **Encrypted**
 
-**Important:**
-- ⚠️ Only used during initial `npm run admin:create` setup
-- ⚠️ Change password immediately after first login
-- ⚠️ Remove these from environment after setup
-- ✅ Use company email domain
-- ✅ Password must meet: 12+ chars, uppercase, lowercase, number, symbol
+**STRIPE_PUBLISHABLE_KEY**
+- **Description:** Stripe publishable API key for frontend
+- **Format:** `pk_live_...` (production) or `pk_test_...` (testing)
+- **Required:** Yes
+- **Security:** Safe to expose in frontend
+- **Where to find:** Stripe Dashboard > Developers > API keys
+- **Prefix:** Must have `VITE_` for Vite access if used in client
 
----
+**STRIPE_WEBHOOK_SECRET**
+- **Description:** Secret for verifying Stripe webhook signatures
+- **Format:** `whsec_...`
+- **Required:** Yes
+- **Security:** Keep confidential, mark as encrypted
+- **Where to find:** Stripe Dashboard > Developers > Webhooks > [Your endpoint] > Signing secret
+- **See:** [STRIPE_SETUP_GUIDE.md](./STRIPE_SETUP_GUIDE.md) Step 2
+- **Cloudflare:** Mark as **Encrypted**
 
-### 4. Node.js Environment
-
-```bash
-# Environment mode
-NODE_ENV="production"
-
-# Server port (Cloudflare Pages uses 5000)
-PORT="5000"
-
-# Python backend integration
-PY_BACKEND_URL="http://localhost:5050"
-# OR
-PY_BACKEND_PORT="5050"
-```
-
----
-
-### 5. External Services (Optional)
-
-```bash
-# Cloudflare Access (if using)
-CF_ACCESS_CLIENT_ID="[CLIENT_ID]"
-CF_ACCESS_CLIENT_SECRET="[CLIENT_SECRET]"
-
-# Email service (future)
-# SMTP_HOST="smtp.sendgrid.net"
-# SMTP_PORT="587"
-# SMTP_USER="apikey"
-# SMTP_PASS="[SENDGRID_API_KEY]"
-
-# Stripe (Sprint 3)
-# STRIPE_SECRET_KEY="sk_live_..."
-# STRIPE_WEBHOOK_SECRET="whsec_..."
-```
+**STRIPE_PRICE_ID_TEAM_PLAN**
+- **Description:** Stripe Price ID for Team Edition ($49/month)
+- **Format:** `price_...`
+- **Required:** Yes
+- **Where to find:** Stripe Dashboard > Products > Project Arrowhead Teams > Pricing
+- **See:** [STRIPE_SETUP_GUIDE.md](./STRIPE_SETUP_GUIDE.md) Step 1
 
 ---
 
-## Complete Production .env Template
+### Database Configuration
+
+**DATABASE_URL**
+- **Description:** PostgreSQL connection string for Drizzle ORM
+- **Format:** `postgresql://user:password@host:port/database`
+- **Required:** Yes (if using direct database access)
+- **Security:** ⚠️ Contains credentials - mark as encrypted
+- **Note:** For Supabase, can be constructed from Supabase credentials
+- **Cloudflare:** Mark as **Encrypted**
+
+---
+
+### Application Configuration
+
+**PUBLIC_SITE_URL**
+- **Description:** Base URL of the deployed site
+- **Format:** `https://your-domain.com` (no trailing slash)
+- **Required:** Yes
+- **Example:** `https://project-arrowhead.pages.dev`
+- **Used for:** Stripe checkout redirects, email links, CORS
+
+**ALLOWED_ORIGINS**
+- **Description:** Comma-separated list of allowed CORS origins
+- **Format:** `https://domain1.com,https://domain2.com`
+- **Required:** No (defaults to PUBLIC_SITE_URL)
+- **Example:** `https://project-arrowhead.pages.dev,https://arrowhead.com`
+
+**NODE_ENV**
+- **Description:** Node environment
+- **Format:** `production` | `development` | `test`
+- **Required:** No (defaults to `production` on Cloudflare)
+- **Note:** Cloudflare Pages sets this automatically
+
+---
+
+### Security & Monitoring
+
+**SENTRY_DSN**
+- **Description:** Sentry Data Source Name for error tracking
+- **Format:** `https://xxxxx@o000000.ingest.sentry.io/0000000`
+- **Required:** No (optional but recommended)
+- **Where to find:** Sentry.io > Project Settings > Client Keys
+- **Purpose:** Error monitoring and alerting
+
+**SENTRY_RELEASE**
+- **Description:** Release version for Sentry tracking
+- **Format:** Semantic version or git SHA
+- **Required:** No (auto-detected from package.json)
+- **Example:** `1.0.0` or `abc123def`
+
+**SENTRY_FORCE_ENABLE**
+- **Description:** Force enable Sentry in non-production environments
+- **Format:** `0` | `1`
+- **Required:** No (defaults to `0`)
+- **Note:** Sentry disabled in dev by default
+
+---
+
+### Cloudflare Turnstile (CAPTCHA)
+
+**VITE_TURNSTILE_SITE_KEY**
+- **Description:** Cloudflare Turnstile public site key
+- **Format:** `0x4AAAAAAA...`
+- **Required:** No (optional for bot protection)
+- **Where to find:** Cloudflare Dashboard > Turnstile
+- **Prefix:** `VITE_` for frontend access
+
+**TURNSTILE_SECRET_KEY**
+- **Description:** Cloudflare Turnstile secret key for backend verification
+- **Format:** `0x4AAAAAAA...`
+- **Required:** No (only if using Turnstile)
+- **Where to find:** Cloudflare Dashboard > Turnstile
+- **Cloudflare:** Mark as **Encrypted**
+
+**TURNSTILE_REQUIRED**
+- **Description:** Whether Turnstile verification is required
+- **Format:** `true` | `false`
+- **Required:** No (defaults to `false`)
+- **Note:** Set to `true` to enforce CAPTCHA on forms
+
+---
+
+### Cloudflare Access (Admin Protection)
+
+**CF_ACCESS_CLIENT_ID**
+- **Description:** Cloudflare Access service token client ID
+- **Format:** UUID
+- **Required:** No (only if protecting admin routes)
+- **Where to find:** Cloudflare Dashboard > Zero Trust > Service Tokens
+- **See:** [cloudflare-access-runbook.md](./cloudflare-access-runbook.md)
+
+**CF_ACCESS_CLIENT_SECRET**
+- **Description:** Cloudflare Access service token secret
+- **Format:** Random string
+- **Required:** No (only if protecting admin routes)
+- **Where to find:** Cloudflare Dashboard > Zero Trust > Service Tokens
+- **Cloudflare:** Mark as **Encrypted**
+
+---
+
+### E2E Testing (Optional)
+
+**E2E_TEST_EMAIL**
+- **Description:** Email for E2E test account (Account Owner role)
+- **Format:** Valid email
+- **Required:** No (only for CI/CD E2E tests)
+- **Example:** `test-owner@arrowhead.com`
+
+**E2E_TEST_PASSWORD**
+- **Description:** Password for E2E test account
+- **Format:** String
+- **Required:** No (only for CI/CD)
+- **Cloudflare:** Mark as **Encrypted** if set
+
+**E2E_TEST_MEMBER_EMAIL**
+- **Description:** Email for E2E test account (Team Member role)
+- **Format:** Valid email
+- **Required:** No (only for CI/CD)
+
+**E2E_TEST_MEMBER_PASSWORD**
+- **Description:** Password for Team Member test account
+- **Format:** String
+- **Required:** No (only for CI/CD)
+- **Cloudflare:** Mark as **Encrypted** if set
+
+---
+
+## Cloudflare Pages Configuration
+
+### Adding Environment Variables
+
+1. Go to **Cloudflare Dashboard**
+2. Navigate to **Workers & Pages** > **project-arrowhead**
+3. Click **Settings** > **Environment variables**
+4. Click **Add variable**
+5. Enter **Variable name** and **Value**
+6. Select **Environment:**
+   - `Production` - for main branch deployments
+   - `Preview` - for pull request previews
+7. **Encryption:** Mark sensitive variables as **Encrypted**
+8. Click **Save**
+
+### Which Variables to Encrypt?
+
+**Always encrypt:**
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_JWT_SECRET`
+- `DATABASE_URL`
+- `TURNSTILE_SECRET_KEY`
+- `CF_ACCESS_CLIENT_SECRET`
+- Any `*_PASSWORD` variables
+
+**Safe to leave unencrypted:**
+- `STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_PRICE_ID_TEAM_PLAN`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `PUBLIC_SITE_URL`
+- `VITE_TURNSTILE_SITE_KEY`
+
+---
+
+## Frontend (Vite) Variables
+
+Variables accessible in frontend code **must** be prefixed with `VITE_`:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_TURNSTILE_SITE_KEY`
+
+**⚠️ NEVER prefix secrets with VITE_** - they will be exposed in client bundles!
+
+---
+
+## Deployment Checklist
+
+Before deploying to production:
+
+- [ ] All **required** environment variables set
+- [ ] Stripe keys are **LIVE** keys (sk_live_, pk_live_)
+- [ ] Stripe webhook endpoint configured with production URL
+- [ ] Sensitive variables marked as **Encrypted**
+- [ ] `PUBLIC_SITE_URL` matches actual domain
+- [ ] Supabase project is in **production** mode
+- [ ] Database migrations run successfully
+- [ ] E2E tests pass with production variables (optional)
+- [ ] Sentry configured for error monitoring (optional)
+
+---
+
+## Testing Locally
+
+Create `.env.local` file (never commit):
 
 ```bash
-# ============================================
-# PROJECT ARROWHEAD - PRODUCTION ENVIRONMENT
-# ============================================
+# Supabase
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJxxx...
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
+SUPABASE_JWT_SECRET=your-jwt-secret
 
-# Database
-DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require"
-
-# Admin Panel Security (CRITICAL)
-ADMIN_SESSION_SECRET="[GENERATE_UNIQUE_64_CHAR_STRING]"
-ADMIN_COOKIE_SECRET="[GENERATE_UNIQUE_64_CHAR_STRING]"
-
-# Initial Admin User (TEMPORARY - Remove after setup)
-ADMIN_EMAIL="admin@yourcompany.com"
-ADMIN_PASSWORD="[STRONG_TEMPORARY_PASSWORD]"
-ADMIN_ROLE="super_admin"
+# Stripe (use TEST keys)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_test_...
+STRIPE_PRICE_ID_TEAM_PLAN=price_test_...
 
 # Application
-NODE_ENV="production"
-PORT="5000"
-
-# Python Backend
-PY_BACKEND_PORT="5050"
-
-# Cloudflare Access (Optional)
-# CF_ACCESS_CLIENT_ID="xxx"
-# CF_ACCESS_CLIENT_SECRET="yyy"
+PUBLIC_SITE_URL=http://localhost:5000
+DATABASE_URL=postgresql://...
 ```
 
----
-
-## Deployment Platforms
-
-### Cloudflare Pages
-
-**Set Environment Variables:**
-1. Go to Cloudflare Dashboard
-2. Pages > project-arrowhead > Settings > Environment Variables
-3. Add each variable individually
-4. Mark `ADMIN_SESSION_SECRET` and `ADMIN_COOKIE_SECRET` as **Encrypted**
-5. Save and redeploy
-
-**Build Configuration:**
-```json
-{
-  "build": {
-    "command": "npm run prebuild && npm run build",
-    "directory": "website-integration/ArrowheadSolution/dist",
-    "root_dir": "/"
-  },
-  "env": {
-    "NODE_VERSION": "20",
-    "NPM_VERSION": "10"
-  }
-}
-```
-
----
-
-### Other Platforms
-
-#### Vercel
+**Run locally:**
 ```bash
-vercel env add ADMIN_SESSION_SECRET
-vercel env add ADMIN_COOKIE_SECRET
-vercel env add DATABASE_URL
-# ... etc
-```
-
-#### Railway
-```bash
-# Via CLI
-railway variables set ADMIN_SESSION_SECRET=[value]
-
-# Or via Dashboard: Project > Variables
-```
-
-#### Heroku
-```bash
-heroku config:set ADMIN_SESSION_SECRET=[value]
-heroku config:set ADMIN_COOKIE_SECRET=[value]
-heroku config:set DATABASE_URL=[value]
-```
-
----
-
-## Security Checklist
-
-### Pre-Deployment
-- [ ] Generate unique secrets (not example values)
-- [ ] Store secrets in secure vault
-- [ ] Review .gitignore (ensure .env excluded)
-- [ ] Test with production database copy first
-- [ ] Document secret rotation schedule
-
-### Post-Deployment
-- [ ] Verify HTTPS enabled (not HTTP)
-- [ ] Test admin login works
-- [ ] Create backup admin account
-- [ ] Remove ADMIN_EMAIL/PASSWORD from environment
-- [ ] Enable audit log monitoring
-- [ ] Set up secret rotation calendar
-
-### Ongoing
-- [ ] Rotate secrets every 90 days
-- [ ] Monitor audit logs weekly
-- [ ] Review admin user list monthly
-- [ ] Update dependencies regularly
-- [ ] Backup database daily
-
----
-
-## Secret Rotation Procedure
-
-### Every 90 Days
-
-1. **Generate New Secrets**
-   ```bash
-   NEW_SESSION_SECRET=$(openssl rand -base64 48)
-   NEW_COOKIE_SECRET=$(openssl rand -base64 48)
-   ```
-
-2. **Update Environment Variables**
-   - Update in hosting platform
-   - Update in secure vault
-   - Document rotation date
-
-3. **Rolling Update** (Zero Downtime)
-   ```bash
-   # Step 1: Add new secrets alongside old
-   ADMIN_SESSION_SECRET="old-secret"
-   ADMIN_SESSION_SECRET_NEW="new-secret"
-   
-   # Step 2: Deploy with both active (supports old sessions)
-   # Step 3: After 30 minutes (session timeout), remove old
-   ADMIN_SESSION_SECRET="new-secret"
-   ```
-
-4. **Verify**
-   - Test admin login
-   - Check audit logs
-   - Confirm no errors
-
----
-
-## Environment Variable Validation
-
-### Startup Checks (Add to server/index.ts)
-
-```typescript
-// server/admin/validate-env.ts
-export function validateAdminEnv() {
-  const required = [
-    'DATABASE_URL',
-    'ADMIN_SESSION_SECRET',
-    'ADMIN_COOKIE_SECRET',
-  ];
-
-  const missing = required.filter(key => !process.env[key]);
-  
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}`
-    );
-  }
-
-  // Validate secret strength
-  if (process.env.ADMIN_SESSION_SECRET!.length < 32) {
-    throw new Error('ADMIN_SESSION_SECRET must be at least 32 characters');
-  }
-
-  if (process.env.ADMIN_COOKIE_SECRET!.length < 32) {
-    throw new Error('ADMIN_COOKIE_SECRET must be at least 32 characters');
-  }
-
-  // Warn about default values
-  if (process.env.NODE_ENV === 'production') {
-    const defaults = [
-      'changeme',
-      'example',
-      'test',
-      'demo',
-    ];
-
-    defaults.forEach(keyword => {
-      if (process.env.ADMIN_SESSION_SECRET?.includes(keyword)) {
-        throw new Error('Production secret contains insecure keyword');
-      }
-    });
-  }
-
-  console.log('✅ Environment variables validated');
-}
+npm run dev
 ```
 
 ---
 
 ## Troubleshooting
 
-### "Invalid credentials" on login
+### "Unauthorized" errors
+- Check `SUPABASE_SERVICE_ROLE_KEY` is correct
+- Verify `SUPABASE_JWT_SECRET` matches Supabase project
 
-**Check:**
-1. Admin user created? `SELECT * FROM admin_users;`
-2. Password hashed correctly? (starts with `$2a$`)
-3. User active? `is_active = true`
-4. Environment variables loaded? `console.log(process.env)`
+### Stripe webhook failures
+- Verify `STRIPE_WEBHOOK_SECRET` matches webhook endpoint
+- Check webhook URL is correct (`PUBLIC_SITE_URL/api/stripe/webhook`)
+- Ensure webhook events are selected in Stripe Dashboard
 
-### "Session expired" immediately after login
+### Build failures
+- Check all required variables are set
+- Verify no syntax errors in `.env` file
+- Ensure `VITE_` prefix on frontend variables
 
-**Check:**
-1. HTTPS enabled in production? (required for secure cookies)
-2. SESSION_SECRET set correctly?
-3. Database connection working?
-4. `session` table exists? (created by connect-pg-simple)
-
-### "Cannot connect to database"
-
-**Check:**
-1. DATABASE_URL format correct?
-2. IP whitelist includes server IP? (Supabase)
-3. SSL mode enabled? `?sslmode=require`
-4. Connection pooling limits not exceeded?
+### Frontend can't connect to Supabase
+- Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set
+- Check variables are prefixed with `VITE_`
+- Rebuild after adding new variables
 
 ---
 
-## Production Deployment Checklist
+## Security Best Practices
 
-### Phase 1: Pre-Deployment
-- [ ] Generate all secrets
-- [ ] Store in secure vault
-- [ ] Set environment variables in hosting platform
-- [ ] Test in staging environment first
-- [ ] Review security checklist
+1. **Never commit secrets to Git**
+   - Use `.env.local` for local development
+   - Add `.env.local` to `.gitignore`
 
-### Phase 2: Database Setup
-- [ ] Run migration: `009_create_admin_tables.sql`
-- [ ] Verify tables created successfully
-- [ ] Test database connection
-- [ ] Enable database backups
+2. **Rotate keys regularly**
+   - Stripe keys: every 90 days
+   - Database credentials: every 180 days
+   - Service tokens: on security incidents
 
-### Phase 3: Admin Setup
-- [ ] Create first admin user
-- [ ] Test login flow
-- [ ] Verify session persistence
-- [ ] Check audit logging works
-- [ ] Remove temp admin credentials from env
+3. **Use separate keys for test/prod**
+   - Test keys in development/staging
+   - Live keys only in production
 
-### Phase 4: Verification
-- [ ] Admin panel accessible at /admin
-- [ ] HTTPS working (not HTTP)
-- [ ] Rate limiting functional
-- [ ] Audit logs recording
-- [ ] No error logs
+4. **Encrypt sensitive variables**
+   - Mark as encrypted in Cloudflare Dashboard
+   - Prevents accidental exposure in logs
 
-### Phase 5: Cleanup
-- [ ] Remove ADMIN_EMAIL, ADMIN_PASSWORD from env
-- [ ] Document admin credentials in secure vault
-- [ ] Set up monitoring alerts
-- [ ] Schedule first secret rotation (90 days)
+5. **Principle of least privilege**
+   - Use anon key in frontend (limited access)
+   - Service role key only in backend (full access)
 
 ---
 
-## Support & References
+## Reference
 
-- **Security Best Practices:** https://cheatsheetseries.owasp.org/
-- **Environment Variables:** https://12factor.net/config
-- **Secret Management:** https://cloud.google.com/secret-manager/docs/best-practices
-- **Supabase Docs:** https://supabase.com/docs/guides/database
+- **.env.example:** Template with all variables
+- **STRIPE_SETUP_GUIDE.md:** Detailed Stripe configuration
+- **Cloudflare Docs:** https://developers.cloudflare.com/pages/platform/build-configuration/#environment-variables
 
 ---
 
-**Last Updated:** September 30, 2025  
-**Next Review:** October 30, 2025  
-**Owner:** DevOps Team
+## Revision History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.0 | 2025-10-28 | Added Stripe Team Plan variables, updated structure |
+| 1.0 | 2025-10-01 | Initial production environment documentation |
