@@ -1,5 +1,5 @@
 import "./env";
-import { debugLog } from "./debug";
+
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import fs from "fs";
@@ -7,14 +7,14 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
-import { setupAdminPanel } from "./admin/index";
+
 
 const app = express();
 
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  debugLog(`INCOMING: ${req.method} ${path}`);
+
   let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -60,12 +60,8 @@ app.use((req, res, next) => {
 })();
 
 (async () => {
-  // Setup AdminJS before routes
-  console.error('DEBUG: [server/index.ts] Before setupAdminPanel');
-  await setupAdminPanel(app);
-  console.error('DEBUG: [server/index.ts] After setupAdminPanel');
 
-  // IMPORTANT: Apply body parsers AFTER AdminJS router to be compatible with @adminjs/express
+  // Apply body parsers
   app.use(cookieParser());
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
