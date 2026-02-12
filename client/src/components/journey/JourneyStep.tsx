@@ -43,7 +43,7 @@ const getModuleName = (moduleId: string): string => {
 const handleExportModule = (moduleId: string) => {
   try {
     generateModulePDF(moduleId);
-    console.log(`${getModuleName(moduleId)} module PDF exported successfully`);
+
   } catch (error) {
     console.error(`Error exporting ${getModuleName(moduleId)} module PDF:`, error);
   }
@@ -157,12 +157,12 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
         `journey_${sessionId}_${moduleId}_step_${currentStep}`,
         JSON.stringify(answers)
       );
-      
+
       // Auto-save to backend after 2 seconds of inactivity
       const timeoutId = setTimeout(() => {
         handleAutoSave();
       }, 2000);
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [answers, sessionId, moduleId, currentStep]);
@@ -176,7 +176,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
 
   const handleAutoSave = async () => {
     if (Object.keys(answers).length === 0) return;
-    
+
     try {
       await onStepComplete({
         stepNumber: currentStep,
@@ -245,7 +245,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
             )}
           </div>
         );
-      
+
       case 'select':
         return (
           <select
@@ -263,7 +263,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
             ))}
           </select>
         );
-      
+
       default:
         return (
           <Input
@@ -303,7 +303,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
             </Button>
           </div>
         </div>
-        
+
         <StepProgress
           currentStep={currentStep}
           totalSteps={totalSteps}
@@ -376,8 +376,8 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
         <div>
           {currentStep > 1 ? (
             <Link href={`/journey/${moduleId}/step/${currentStep - 1}`}>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className={`flex items-center gap-2 ${getModuleThemeClasses(moduleId).outlineButton}`}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -386,8 +386,8 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
             </Link>
           ) : (
             <Link href="/journey">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className={`flex items-center gap-2 ${getModuleThemeClasses(moduleId).outlineButton}`}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -396,12 +396,12 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
             </Link>
           )}
         </div>
-        
+
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500">
             Step {currentStep} of {totalSteps}
           </span>
-          
+
           {currentStep < totalSteps ? (
             <Link href={`/journey/${moduleId}/step/${currentStep + 1}`}>
               <Button
@@ -422,7 +422,7 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
                 <Download className="w-4 h-4" />
                 Export {getModuleName(moduleId)}
               </Button>
-              
+
               {/* Complete Module Button */}
               <Link href={getModuleCompletionUrl(moduleId)}>
                 <Button
@@ -438,8 +438,8 @@ export const JourneyStep: React.FC<JourneyStepProps> = ({
       </div>
 
       {/* Add Task Modal */}
-      <AddTaskModal 
-        isOpen={showAddTaskModal} 
+      <AddTaskModal
+        isOpen={showAddTaskModal}
         onClose={handleCloseAddTaskModal}
         addTask={handleAddTaskFromModal}
       />

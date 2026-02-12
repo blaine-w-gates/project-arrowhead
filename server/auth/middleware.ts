@@ -77,7 +77,6 @@ export interface AuthenticatedRequest extends Request {
  * app.use('/api/teams', requireAuth, teamsRouter);
  * ```
  */
-import { debugLog } from "../debug";
 
 export async function requireAuth(
   req: AuthenticatedRequest,
@@ -85,7 +84,7 @@ export async function requireAuth(
   next: NextFunction
 ): Promise<void> {
   try {
-    debugLog(`DEBUG: requireAuth entered: ${req.method} ${req.path}`);
+    console.log(`DEBUG: requireAuth entered: ${req.method} ${req.path}`);
     // Extract JWT from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -261,8 +260,9 @@ export async function optionalAuth(
     req.userContext = userContext;
 
     next();
-  } catch {
-    // Silently continue without authentication on any error
+  } catch (error) {
+    // Silently continue without authentication on any error, but log it for debug
+    console.error('DEBUG: softAuthMiddleware error:', error);
     next();
   }
 }

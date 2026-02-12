@@ -45,6 +45,11 @@ describe('RRGT & Dial API', () => {
       innerJoin: vi.fn().mockReturnThis(),
       leftJoin: vi.fn().mockReturnThis(),
     };
+    // Ensure the first .where() call (from requireAuth) returns the builder,
+    // so that .limit() (mocked in tests) can be called on it.
+    // Subsequent .where() calls in route handlers can be overridden by tests using mockResolvedValueOnce.
+    mockDb.where.mockReturnValueOnce(mockDb);
+
     vi.mocked(dbModule.getDb).mockReturnValue(mockDb as never);
   });
 
@@ -52,18 +57,18 @@ describe('RRGT & Dial API', () => {
     it.skip('Returns user\'s RRGT data (tasks, items, dial)', async () => {
       vi.mocked(supabaseModule.verifySupabaseJwt).mockResolvedValue({ valid: true, userId: 'user-1' });
       mockDb.limit.mockResolvedValueOnce([{ id: memberId1, teamId, role: 'Team Member' }]); // Auth
-      
+
       // Task assignments
       mockDb.where.mockResolvedValueOnce([{ taskId, teamMemberId: memberId1 }]);
-      
+
       // Tasks
       mockDb.where.mockResolvedValueOnce([{ id: taskId, title: 'My Task', status: 'in_progress' }]);
-      
+
       // Items
       mockDb.where.mockResolvedValueOnce([
         { id: itemId, title: 'Sub-task 1', columnIndex: 3 }
       ]);
-      
+
       // Dial state
       mockDb.limit.mockResolvedValueOnce([{
         teamMemberId: memberId1,
@@ -108,9 +113,9 @@ describe('RRGT & Dial API', () => {
       mockDb.returning.mockImplementation(() => {
         // Return 3 plans
         return [
-            { id: 'plan-1' },
-            { id: 'plan-2' },
-            { id: 'plan-3' }
+          { id: 'plan-1' },
+          { id: 'plan-2' },
+          { id: 'plan-3' }
         ];
       });
 
@@ -132,16 +137,16 @@ describe('RRGT & Dial API', () => {
     it('Account Owner can access team member data', async () => {
       vi.mocked(supabaseModule.verifySupabaseJwt).mockResolvedValue({ valid: true, userId: 'user-1' });
       mockDb.limit.mockResolvedValueOnce([{ id: memberId1, teamId, role: 'Account Owner' }]); // Auth
-      
+
       // Task assignments
       mockDb.where.mockResolvedValueOnce([{ taskId, teamMemberId: memberId2 }]);
-      
+
       // Tasks
       mockDb.where.mockResolvedValueOnce([{ id: taskId, title: 'Member Task' }]);
-      
+
       // Items
       mockDb.where.mockResolvedValueOnce([{ id: itemId, title: 'Member Item' }]);
-      
+
       // Dial state
       mockDb.limit.mockResolvedValueOnce([{ teamMemberId: memberId2 }]);
 

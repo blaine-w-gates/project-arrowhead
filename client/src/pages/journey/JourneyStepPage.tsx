@@ -21,10 +21,10 @@ type StepCompletePayload = {
 const createStepData = (moduleId: string, stepNumber: number): JourneyStepData | null => {
   const moduleData = journeyContentData[moduleId as keyof typeof journeyContentData];
   if (!moduleData) return null;
-  
+
   const stepData = moduleData.find(step => step.step === stepNumber);
   if (!stepData) return null;
-  
+
   return {
     id: `${moduleId}_step_${stepNumber}`,
     title: stepData.title,
@@ -58,14 +58,9 @@ const JourneyStepPage: React.FC = () => {
 
   const moduleId = params.moduleId as string;
   const currentStep = parseInt(params.step as string) || 1;
-  
+
   // Debug URL parameters
-  console.log('🔍 URL Debug:', {
-    fullParams: params,
-    moduleId,
-    currentStep,
-    windowLocation: window.location.href
-  });
+
 
   // Use the journey hook for backend integration
   const {
@@ -82,18 +77,10 @@ const JourneyStepPage: React.FC = () => {
   const stepData = createStepData(moduleId, currentStep);
 
   // Debug logging
-  console.log('🔧 JourneyStepPage Debug:', {
-    moduleId,
-    currentStep,
-    moduleConfig,
-    stepData,
-    sessionId,
-    isLoading,
-    error
-  });
+
 
   if (!moduleConfig || !stepData) {
-    console.log('❌ JourneyStepPage: Missing moduleConfig or stepData');
+
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -117,7 +104,7 @@ const JourneyStepPage: React.FC = () => {
     try {
       const stepKey = `step_${currentStep}`;
       await updateSession({ [stepKey]: stepData }, currentStep);
-      
+
       toast({
         title: "Progress Saved",
         description: "Your step progress has been saved successfully.",
@@ -148,7 +135,7 @@ const JourneyStepPage: React.FC = () => {
         status: 'To Do',
         date: new Date().toLocaleDateString()
       });
-      
+
       toast({
         title: "Task Added",
         description: `Task "${taskData.title}" has been added successfully.`,

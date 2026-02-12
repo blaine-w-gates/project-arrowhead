@@ -33,13 +33,13 @@ const TaskListPage: React.FC = () => {
         status: task.status,
         date: task.date
       }));
-      
+
       const markdownContent = convertTasksToMarkdown(taskData);
       const success = await copyToClipboard(markdownContent);
-      
+
       if (success) {
         // Show success feedback (you could add a toast notification here)
-        console.log('Task list copied as Markdown to clipboard');
+
       } else {
         console.error('Failed to copy to clipboard');
       }
@@ -57,13 +57,13 @@ const TaskListPage: React.FC = () => {
         status: task.status,
         date: task.date
       }));
-      
+
       const csvContent = convertTasksToCSV(taskData);
       const success = await copyToClipboard(csvContent);
-      
+
       if (success) {
         // Show success feedback (you could add a toast notification here)
-        console.log('Task list copied as CSV to clipboard');
+
       } else {
         console.error('Failed to copy to clipboard');
       }
@@ -81,12 +81,12 @@ const TaskListPage: React.FC = () => {
         status: task.status,
         date: task.date
       }));
-      
+
       const jsonContent = convertTasksToJSON(taskData);
       const filename = `task-list-${new Date().toISOString().split('T')[0]}.json`;
       downloadFile(jsonContent, filename, 'application/json');
-      
-      console.log('Task list downloaded as JSON');
+
+
     } catch (error) {
       console.error('Error downloading JSON:', error);
     }
@@ -101,9 +101,9 @@ const TaskListPage: React.FC = () => {
         status: task.status,
         date: task.date
       }));
-      
+
       generateFullProjectPDF(taskData);
-      console.log('Full project PDF downloaded');
+
     } catch (error) {
       console.error('Error downloading full project PDF:', error);
     }
@@ -113,7 +113,7 @@ const TaskListPage: React.FC = () => {
   const handleExportBrainstorm = () => {
     try {
       generateModulePDF('brainstorm');
-      console.log('Brainstorm module PDF exported');
+
     } catch (error) {
       console.error('Error exporting brainstorm module PDF:', error);
     }
@@ -122,7 +122,7 @@ const TaskListPage: React.FC = () => {
   const handleExportDecisions = () => {
     try {
       generateModulePDF('choose');
-      console.log('Decisions module PDF exported');
+
     } catch (error) {
       console.error('Error exporting decisions module PDF:', error);
     }
@@ -131,7 +131,7 @@ const TaskListPage: React.FC = () => {
   const handleExportObjectives = () => {
     try {
       generateModulePDF('objectives');
-      console.log('Objectives module PDF exported');
+
     } catch (error) {
       console.error('Error exporting objectives module PDF:', error);
     }
@@ -212,7 +212,7 @@ const TaskListPage: React.FC = () => {
 
     // Update task manager with new order
     reorderTasks(newTasks);
-    
+
     setDraggedTask(null);
     setDragOverIndex(null);
   };
@@ -235,13 +235,11 @@ const TaskListPage: React.FC = () => {
     }
 
     return tasks.map((task, index) => (
-      <tr 
-        key={task.id} 
-        className={`group hover:bg-gray-50 transition-colors ${
-          draggedTask === task.id ? 'opacity-50' : ''
-        } ${
-          dragOverIndex === index ? 'border-t-2 border-blue-500' : ''
-        }`}
+      <tr
+        key={task.id}
+        className={`group hover:bg-gray-50 transition-colors ${draggedTask === task.id ? 'opacity-50' : ''
+          } ${dragOverIndex === index ? 'border-t-2 border-blue-500' : ''
+          }`}
         draggable
         onDragStart={(e) => handleDragStart(e, task.id)}
         onDragOver={(e) => handleDragOver(e, index)}
@@ -254,7 +252,7 @@ const TaskListPage: React.FC = () => {
             <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600">
               <GripVertical size={16} />
             </div>
-            <span 
+            <span
               className="cursor-pointer hover:text-blue-600 transition-colors"
               onClick={() => updateTaskStatus(task.id)}
             >
@@ -262,14 +260,14 @@ const TaskListPage: React.FC = () => {
             </span>
           </div>
         </td>
-        
+
         {/* Task field - inline editable */}
         <td className="pl-6 pr-4 py-3 text-gray-900 break-words whitespace-normal">
           {editingTask === task.id ? (
             <input
               type="text"
               value={editFormData.task}
-              onChange={(e) => setEditFormData({...editFormData, task: e.target.value})}
+              onChange={(e) => setEditFormData({ ...editFormData, task: e.target.value })}
               className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               autoFocus
             />
@@ -279,14 +277,14 @@ const TaskListPage: React.FC = () => {
             </span>
           )}
         </td>
-        
+
         {/* Person field - inline editable */}
         <td className="pl-6 pr-4 py-3 text-gray-700 break-words whitespace-normal">
           {editingTask === task.id ? (
             <input
               type="text"
               value={editFormData.person}
-              onChange={(e) => setEditFormData({...editFormData, person: e.target.value})}
+              onChange={(e) => setEditFormData({ ...editFormData, person: e.target.value })}
               className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           ) : (
@@ -295,14 +293,14 @@ const TaskListPage: React.FC = () => {
             </span>
           )}
         </td>
-        
+
         {/* Date field - inline editable */}
         <td className="px-4 py-3 text-gray-600">
           {editingTask === task.id ? (
             <input
               type="date"
               value={editFormData.date}
-              onChange={(e) => setEditFormData({...editFormData, date: e.target.value})}
+              onChange={(e) => setEditFormData({ ...editFormData, date: e.target.value })}
               className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           ) : (
@@ -311,7 +309,7 @@ const TaskListPage: React.FC = () => {
             </span>
           )}
         </td>
-        
+
         {/* Hover Actions */}
         <td className="px-4 py-3">
           {editingTask === task.id ? (
@@ -360,8 +358,8 @@ const TaskListPage: React.FC = () => {
         {/* Page Header */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Task List Management</h1>
-          <button 
-            id="addTaskButton" 
+          <button
+            id="addTaskButton"
             className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors flex items-center"
             onClick={handleShowAddTaskModal}
           >
@@ -421,19 +419,19 @@ const TaskListPage: React.FC = () => {
               <div>
                 <h3 className="text-md font-medium text-gray-700 mb-3">Export Task List</h3>
                 <div className="flex flex-wrap gap-3">
-                  <button 
+                  <button
                     onClick={handleCopyAsMarkdown}
                     className="px-4 py-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
                   >
                     <i className="fas fa-copy mr-2"></i>Copy as Markdown
                   </button>
-                  <button 
+                  <button
                     onClick={handleDownloadJSON}
                     className="px-4 py-2 bg-green-50 text-green-600 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
                   >
                     <i className="fas fa-download mr-2"></i>Download JSON
                   </button>
-                  <button 
+                  <button
                     onClick={handleCopyAsCSV}
                     className="px-4 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors"
                   >
@@ -441,11 +439,11 @@ const TaskListPage: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               {/* Right Side - Download All Modules */}
               <div>
                 <h3 className="text-md font-medium text-gray-700 mb-3">Download All Modules</h3>
-                <button 
+                <button
                   onClick={handleDownloadFullProject}
                   className="w-full px-6 py-3 bg-gradient-to-r from-orange-500 to-green-500 hover:from-orange-600 hover:to-green-600 text-white rounded-md font-medium transition-all duration-200 shadow-md hover:shadow-lg"
                 >
@@ -470,7 +468,7 @@ const TaskListPage: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Brainstorm Module Export */}
               <div className="text-center">
-                <button 
+                <button
                   onClick={handleExportBrainstorm}
                   className="w-full px-4 py-3 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-md hover:bg-yellow-100 transition-colors font-medium"
                 >
@@ -479,10 +477,10 @@ const TaskListPage: React.FC = () => {
                 </button>
                 <p className="text-xs text-gray-500 mt-2">5 steps of brainstorming content</p>
               </div>
-              
+
               {/* Choose Module Export */}
               <div className="text-center">
-                <button 
+                <button
                   onClick={handleExportDecisions}
                   className="w-full px-4 py-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors font-medium"
                 >
@@ -491,10 +489,10 @@ const TaskListPage: React.FC = () => {
                 </button>
                 <p className="text-xs text-gray-500 mt-2">5 steps of decision-making content</p>
               </div>
-              
+
               {/* Objectives Module Export */}
               <div className="text-center">
-                <button 
+                <button
                   onClick={handleExportObjectives}
                   className="w-full px-4 py-3 bg-green-50 text-green-700 border border-green-200 rounded-md hover:bg-green-100 transition-colors font-medium"
                 >
@@ -545,8 +543,8 @@ const TaskListPage: React.FC = () => {
       </div>
 
       {/* Add Task Modal */}
-      <AddTaskModal 
-        isOpen={showAddTaskModal} 
+      <AddTaskModal
+        isOpen={showAddTaskModal}
         onClose={handleCloseAddTaskModal}
         addTask={addTask}
       />

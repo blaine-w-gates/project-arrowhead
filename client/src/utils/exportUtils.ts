@@ -203,17 +203,17 @@ export const convertTasksToMarkdown = (tasks: TaskData[]): string => {
   let markdown = "# Task List\n\n";
   markdown += "| Status | Task | Person | Date |\n";
   markdown += "|--------|------|--------|----- |\n";
-  
+
   tasks.forEach(task => {
     // Escape pipe characters in task data to prevent table formatting issues
     const escapedTask = task.task.replace(/\|/g, '\\|');
     const escapedPerson = task.person.replace(/\|/g, '\\|');
-    
+
     markdown += `| ${task.status} | ${escapedTask} | ${escapedPerson} | ${task.date} |\n`;
   });
-  
+
   markdown += `\n*Exported on ${new Date().toLocaleString()}*`;
-  
+
   return markdown;
 };
 
@@ -226,15 +226,15 @@ export const convertTasksToCSV = (tasks: TaskData[]): string => {
   }
 
   let csv = "Status,Task,Person,Date\n";
-  
+
   tasks.forEach(task => {
     // Escape commas and quotes in CSV data
     const escapedTask = `"${task.task.replace(/"/g, '""')}"`;
     const escapedPerson = `"${task.person.replace(/"/g, '""')}"`;
-    
+
     csv += `"${task.status}",${escapedTask},${escapedPerson},"${task.date}"\n`;
   });
-  
+
   return csv;
 };
 
@@ -302,7 +302,7 @@ export const convertTasksToJSON = (tasks: TaskData[]): string => {
       }, {} as Record<string, number>)
     }
   };
-  
+
   return JSON.stringify(exportData, null, 2);
 };
 
@@ -346,7 +346,7 @@ export const generateFullProjectData = (tasks: TaskData[]): string => {
       exportVersion: '1.0'
     }
   };
-  
+
   return JSON.stringify(fullProjectData, null, 2);
 };
 
@@ -373,7 +373,7 @@ export const generateModuleExportData = (moduleId: string): string => {
       exportVersion: '1.0'
     }
   };
-  
+
   return JSON.stringify(moduleData, null, 2);
 };
 
@@ -410,7 +410,7 @@ const getModuleStepCount = (moduleId: string): number => {
 const generateModuleSteps = (moduleId: string): ModuleStepExport[] => {
   const stepCount = getModuleStepCount(moduleId);
   const steps: ModuleStepExport[] = [];
-  
+
   for (let i = 1; i <= stepCount; i++) {
     steps.push({
       stepNumber: i,
@@ -420,7 +420,7 @@ const generateModuleSteps = (moduleId: string): ModuleStepExport[] => {
       completed: false
     });
   }
-  
+
   return steps;
 };
 
@@ -429,84 +429,84 @@ const generateModuleSteps = (moduleId: string): ModuleStepExport[] => {
  */
 export const generateTaskListPDF = (tasks: TaskData[]): void => {
   const doc = new jsPDF();
-  
+
   // Professional header with logo area
   doc.setFillColor(41, 128, 185); // Professional blue
   doc.rect(0, 0, 210, 40, 'F');
-  
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.text('Task List Report', 20, 25);
-  
+
   doc.setFontSize(12);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })}`, 20, 35);
-  
+
   // Reset text color
   doc.setTextColor(0, 0, 0);
-  
+
   // Executive Summary
   doc.setFontSize(16);
   doc.text('Executive Summary', 20, 60);
-  
+
   doc.setFontSize(11);
   doc.text(`Total Tasks: ${tasks.length}`, 25, 75);
-  
+
   // Status breakdown with better formatting
   const statusBreakdown = tasks.reduce((acc, task) => {
     acc[task.status] = (acc[task.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-  
+
   let yPos = 85;
   Object.entries(statusBreakdown).forEach(([status, count]) => {
     const percentage = ((count / tasks.length) * 100).toFixed(1);
     doc.text(`• ${status}: ${count} tasks (${percentage}%)`, 25, yPos);
     yPos += 8;
   });
-  
+
   // Professional table with proper formatting
   yPos += 15;
   doc.setFontSize(16);
   doc.text('Task Details', 20, yPos);
   yPos += 15;
-  
+
   // Professional table with fixed column structure
   const tableStartX = 15;
   const tableWidth = 180;
   const colWidths = [35, 80, 40, 25]; // Status, Task, Person, Date
   const baseRowHeight = 14;
-  
+
   // Table header with proper borders
   doc.setFillColor(240, 240, 240);
   doc.rect(tableStartX, yPos - 5, tableWidth, baseRowHeight, 'F');
-  
+
   // Header borders
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
   doc.rect(tableStartX, yPos - 5, tableWidth, baseRowHeight);
-  
+
   // Column separators for header
   let currentX = tableStartX;
   for (let i = 0; i < colWidths.length - 1; i++) {
     currentX += colWidths[i];
     doc.line(currentX, yPos - 5, currentX, yPos + 9);
   }
-  
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('Status', tableStartX + 2, yPos + 4);
   doc.text('Task Description', tableStartX + colWidths[0] + 2, yPos + 4);
   doc.text('Person', tableStartX + colWidths[0] + colWidths[1] + 2, yPos + 4);
   doc.text('Date', tableStartX + colWidths[0] + colWidths[1] + colWidths[2] + 2, yPos + 4);
-  
+
   doc.setFont('helvetica', 'normal');
   yPos += 15;
-  
+
   // Task rows with dynamic text wrapping and row heights
   // Force-wrap long, unbroken strings so they don't bleed into adjacent cells
   const wrapCell = (text: string, maxWidth: number): string[] => {
@@ -621,7 +621,7 @@ export const generateTaskListPDF = (tasks: TaskData[]): void => {
     });
     yPos += dynamicRowHeight;
   });
-  
+
   // Footer
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -630,7 +630,7 @@ export const generateTaskListPDF = (tasks: TaskData[]): void => {
     doc.text(`Page ${i} of ${pageCount}`, 180, 285);
     doc.text('Arrowhead Solution - Task Management System', 20, 285);
   }
-  
+
   // Download
   const filename = `task-list-${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
@@ -640,20 +640,20 @@ export const generateTaskListPDF = (tasks: TaskData[]): void => {
  * Retrieve user answers from localStorage
  */
 const DEBUG_PDF = false;
-const dbg = (...args: unknown[]) => { if (DEBUG_PDF) console.log(...args); };
+const dbg = (...args: unknown[]) => { if (DEBUG_PDF) void 0; };
 const getUserAnswers = (moduleId: string): Record<string, string> => {
   const answers: Record<string, string> = {};
-  
+
   try {
     // DEBUG: Log all localStorage keys to understand the actual structure
     dbg('=== DEBUGGING getUserAnswers ===');
     dbg('Module ID:', moduleId);
-    
+
     const allKeys = Object.keys(localStorage);
     const journeyKeys = allKeys.filter(key => key.includes('journey'));
     dbg('All localStorage keys:', allKeys);
     dbg('Journey-related keys:', journeyKeys);
-    
+
     // Strict step key matcher to avoid '_2' erroneously matching '_12'
     const keyMatchesStep = (key: string, stepNum: number) => {
       // Match '...step_<n>' not followed by another digit OR boundary '_<n>' not followed by a digit
@@ -661,20 +661,20 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
       const re = new RegExp(`(?:^|[_-])step_${stepNum}(?!\\d)|(?:^|[_-])${stepNum}(?!\\d)(?:$|[^\\d])`);
       return re.test(key);
     };
-    
+
     // Get session ID from localStorage
     const sessionId = localStorage.getItem('journey_session_id') || 'default';
     dbg('Session ID:', sessionId);
-    
+
     // Get step count for the module
     const stepCount = getModuleStepCount(moduleId);
     dbg('Step count for', moduleId, ':', stepCount);
-    
+
     // Try only session-scoped journey key patterns to find the data (avoid legacy/non-session keys)
     const possibleKeyPatterns = [
       `journey_${sessionId}_${moduleId}_step_`
     ];
-    
+
     // Narrow journey keys to current session to prevent cross-session leakage
     const sessionScopedJourneyKeys = journeyKeys.filter(key => key.includes(`journey_${sessionId}_`));
 
@@ -682,7 +682,7 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
     for (let step = 1; step <= stepCount; step++) {
       let savedData = null;
       let foundKey = null;
-      
+
       // Try different key patterns
       for (const pattern of possibleKeyPatterns) {
         const key = `${pattern}${step}`;
@@ -693,22 +693,22 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
           break;
         }
       }
-      
+
       // If no direct key found, search through session-scoped journey keys only (avoid cross-session)
       if (!savedData) {
-        const stepKeys = sessionScopedJourneyKeys.filter(key => 
+        const stepKeys = sessionScopedJourneyKeys.filter(key =>
           key.includes(moduleId) && keyMatchesStep(key, step)
         );
-        
+
         if (stepKeys.length > 0) {
           foundKey = stepKeys[0];
           savedData = localStorage.getItem(foundKey);
           dbg(`Step ${step} found via search with key:`, foundKey);
         }
       }
-      
+
       dbg(`Step ${step} raw data:`, savedData);
-      
+
       if (savedData) {
         try {
           const parsedData = JSON.parse(savedData);
@@ -723,11 +723,11 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
 
           // Enhanced answer extraction logic
           let userAnswer = '';
-          
+
           if (typeof parsedData === 'object' && parsedData !== null) {
             const obj = parsedData as Record<string, unknown>;
             dbg(`Step ${step} analyzing object structure:`, Object.keys(obj));
-            
+
             // Strategy 1: Direct field access for common patterns
             const directFields = [
               'answer', 'response', 'value', 'text', 'content', 'userInput',
@@ -738,7 +738,7 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
               (typeof obj.step === 'number' && obj.step === step) ||
               (typeof obj.currentStep === 'number' && obj.currentStep === step) ||
               keyHasStep;
-            
+
             for (const field of directFields) {
               const val = obj[field];
               if (isStepMatch && typeof val === 'string' && val.trim() !== '') {
@@ -747,7 +747,7 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
                 break;
               }
             }
-            
+
             // Strategy 2: Check for nested answer objects
             if (!userAnswer && typeof obj.answers === 'object' && obj.answers !== null) {
               const answersObj = obj.answers as Record<string, unknown>;
@@ -766,7 +766,7 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
                 }
               }
             }
-            
+
             // Strategy 3: Check for form data structure
             if (!userAnswer && typeof obj.formData === 'object' && obj.formData !== null) {
               const formData = obj.formData as Record<string, unknown>;
@@ -794,7 +794,7 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
                 }
               }
             }
-            
+
             // Strategy 4: Look for textarea/input element IDs (e.g., brainstormStep5Input)
             const inputId = `${moduleId}Step${step}Input`;
             const dynVal = obj[inputId];
@@ -802,9 +802,9 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
               userAnswer = dynVal.trim();
               dbg(`Step ${step} found answer via input ID '${inputId}':`, userAnswer.substring(0, 100) + '...');
             }
-            
+
             // Strategy 5 removed: do not fallback to unrelated values to prevent cross-step data leakage
-            
+
             answers[step] = userAnswer || '';
             dbg(`Step ${step} final extracted answer:`, userAnswer);
           } else {
@@ -827,13 +827,13 @@ const getUserAnswers = (moduleId: string): Record<string, string> => {
         answers[step] = '';
       }
     }
-    
+
     dbg('Final answers object:', answers);
     dbg('=== END DEBUGGING getUserAnswers ===');
   } catch (error) {
     console.warn('Error retrieving user answers from localStorage:', error);
   }
-  
+
   return answers;
 };
 
@@ -970,7 +970,7 @@ const getModuleContent = (moduleId: string) => {
       }
     ]
   };
-  
+
   return journeyContent[moduleId] || [];
 };
 
@@ -983,7 +983,7 @@ export const generateModulePDF = (moduleId: string): void => {
   const moduleDescription = getModuleDescription(moduleId);
   const moduleSteps = getModuleContent(moduleId);
   const userAnswers = getUserAnswers(moduleId);
-  
+
   // Layout constants used for consistent pagination and measurements
   const PAGE_BOTTOM = 270; // keep clear of footer (rendered at y=285)
   const PAGE_TOP = 60;     // content start on continued pages (after header)
@@ -992,31 +992,31 @@ export const generateModulePDF = (moduleId: string): void => {
   const _TEXT_X = 25;       // left x for paragraph text (unused placeholder)
   const CONTENT_WIDTH = 170; // width of content boxes
   const _BOX_PADDING = 8;   // total top+bottom padding for background boxes (unused placeholder)
-  
+
   // Professional header with module-specific colors
   let headerColor = [41, 128, 185]; // Default blue
   if (moduleId === 'brainstorm') headerColor = [255, 193, 7]; // Yellow
   else if (moduleId === 'choose') headerColor = [0, 123, 255]; // Blue
   else if (moduleId === 'objectives') headerColor = [40, 167, 69]; // Green
-  
+
   doc.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
   doc.rect(0, 0, 210, 45, 'F');
-  
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.text(moduleName, 20, 25);
-  
+
   doc.setFontSize(14);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })}`, 20, 38);
-  
+
   // Reset text color
   doc.setTextColor(0, 0, 0);
-  
+
   // Continued-page header drawer for this module PDF
   const onAddPage = (d: jsPDF) => {
     d.setFillColor(headerColor[0], headerColor[1], headerColor[2]);
@@ -1026,7 +1026,7 @@ export const generateModulePDF = (moduleId: string): void => {
     d.text(moduleName, 20, 25);
     d.setTextColor(0, 0, 0);
   };
-  
+
   // Module overview
   // Descriptive copy only (no heading)
   doc.setFontSize(11);
@@ -1036,16 +1036,16 @@ export const generateModulePDF = (moduleId: string): void => {
     doc.text(line, CONTENT_X, yPos);
     yPos += LINE_HEIGHT;
   });
-  
+
   yPos += 10;
   // Simplified layout: metrics removed (Total Steps, Status)
-  
+
   // Steps content - this is the critical missing piece!
   yPos += 20;
   doc.setFontSize(16);
   doc.text('Step-by-Step Content', 20, yPos);
   yPos += 15;
-  
+
   moduleSteps.forEach((step: ModuleContentItem, _index: number) => {
     // Check if we need a new page before step header
     if (yPos > PAGE_BOTTOM - 30) {
@@ -1053,17 +1053,17 @@ export const generateModulePDF = (moduleId: string): void => {
       onAddPage(doc);
       yPos = PAGE_TOP;
     }
-    
+
     // Step header with background
     doc.setFillColor(245, 245, 245);
     doc.rect(15, yPos - 5, 180, 15, 'F');
-    
+
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text(`Step ${step.step}: ${step.title}`, 20, yPos + 5);
     doc.setFont('helvetica', 'normal');
     yPos += 20;
-    
+
     // Instructions (bulletproof renderer)
     {
       const res = renderTextBlock(doc, {
@@ -1081,7 +1081,7 @@ export const generateModulePDF = (moduleId: string): void => {
       });
       yPos = res.y;
     }
-    
+
     // Question (bulletproof renderer)
     {
       const res = renderTextBlock(doc, {
@@ -1099,7 +1099,7 @@ export const generateModulePDF = (moduleId: string): void => {
       });
       yPos = res.y;
     }
-    
+
     // User Response Area with real answers (bulletproof renderer)
     {
       const userAnswer = userAnswers[step.step];
@@ -1128,13 +1128,13 @@ export const generateModulePDF = (moduleId: string): void => {
       });
       yPos = res.y;
     }
-    
+
     doc.setFontSize(10);
-    
+
     // Add some spacing between steps
     yPos += 10;
   });
-  
+
   // Footer with page numbers
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -1143,7 +1143,7 @@ export const generateModulePDF = (moduleId: string): void => {
     doc.text(`Page ${i} of ${pageCount}`, 180, 285);
     doc.text(`${moduleName} - Arrowhead Solution`, 20, 285);
   }
-  
+
   // Download
   const filename = `${moduleId}-module-${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);
@@ -1154,70 +1154,70 @@ export const generateModulePDF = (moduleId: string): void => {
  */
 export const generateFullProjectPDF = (tasks: TaskData[]): void => {
   const doc = new jsPDF();
-  
+
   // Professional cover page with gradient-style header
   doc.setFillColor(41, 128, 185);
   doc.rect(0, 0, 210, 80, 'F');
-  
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(28);
   doc.text('Arrowhead Project Report', 20, 35);
-  
+
   doc.setFontSize(16);
   doc.text('Complete Project Export', 20, 50);
-  
+
   doc.setFontSize(12);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })}`, 20, 65);
-  
+
   // Reset text color
   doc.setTextColor(0, 0, 0);
-  
+
   // Start Task List on the first page (remove blank page); place section header below cover
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.text('Task Management Dashboard', 20, 95);
   doc.setFont('helvetica', 'normal');
-  
+
   let yPos = 110;
   // Proceed directly to task table
-  
+
   // Professional task table with consistent formatting
   const tableStartX = 15;
   const tableWidth = 180;
   const colWidths = [35, 80, 40, 25]; // Status, Task, Person, Date
   const baseRowHeight = 14;
-  
+
   // Table header with proper borders
   doc.setFillColor(240, 240, 240);
   doc.rect(tableStartX, yPos - 5, tableWidth, baseRowHeight, 'F');
-  
+
   // Header borders
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
   doc.rect(tableStartX, yPos - 5, tableWidth, baseRowHeight);
-  
+
   // Column separators for header
   let currentX = tableStartX;
   for (let i = 0; i < colWidths.length - 1; i++) {
     currentX += colWidths[i];
     doc.line(currentX, yPos - 5, currentX, yPos + 9);
   }
-  
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text('Status', tableStartX + 2, yPos + 4);
   doc.text('Task Description', tableStartX + colWidths[0] + 2, yPos + 4);
   doc.text('Person', tableStartX + colWidths[0] + colWidths[1] + 2, yPos + 4);
   doc.text('Date', tableStartX + colWidths[0] + colWidths[1] + colWidths[2] + 2, yPos + 4);
-  
+
   doc.setFont('helvetica', 'normal');
   yPos += 15;
-  
+
   // Task rows with dynamic text wrapping and row heights
   // Local helper to force-wrap long, unbroken strings to avoid overflow
   const wrapCell = (text: string, maxWidth: number): string[] => {
@@ -1327,17 +1327,17 @@ export const generateFullProjectPDF = (tasks: TaskData[]): void => {
     });
     yPos += dynamicRowHeight;
   });
-  
+
   // Add each module with full content
   const modules = [
     { id: 'brainstorm', name: 'Brainstorm Module', color: [255, 193, 7] },
     { id: 'choose', name: 'Decision Making Module', color: [0, 123, 255] },
     { id: 'objectives', name: 'Objectives Planning Module', color: [40, 167, 69] }
   ];
-  
+
   modules.forEach((module) => {
     doc.addPage();
-    
+
     // Module header
     doc.setFillColor(module.color[0], module.color[1], module.color[2]);
     doc.rect(0, 0, 210, 35, 'F');
@@ -1471,7 +1471,7 @@ export const generateFullProjectPDF = (tasks: TaskData[]): void => {
       yPos += 10;
     });
   });
-  
+
   // Professional footer with page numbers
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -1481,7 +1481,7 @@ export const generateFullProjectPDF = (tasks: TaskData[]): void => {
     doc.text(`Page ${i} of ${pageCount}`, 180, 285);
     doc.text('Arrowhead Solution - Complete Project Report', 20, 285);
   }
-  
+
   // Download
   const filename = `arrowhead-project-${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(filename);

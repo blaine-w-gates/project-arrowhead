@@ -79,11 +79,11 @@ export const supabaseAdmin: SupabaseClient = createClient(
  */
 export const supabaseClient: SupabaseClient | null = SUPABASE_ANON_KEY
   ? createClient(finalSupabaseUrl, SUPABASE_ANON_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
   : null;
 
 /**
@@ -112,10 +112,11 @@ export function getUserIdFromJwt(jwt: string): string | null {
   try {
     const payload = jwt.split('.')[1];
     if (!payload) return null;
-    
+
     const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
     return decoded.sub || null;
   } catch {
+    // Invalid JWT format, return null
     return null;
   }
 }
@@ -133,7 +134,7 @@ export async function verifySupabaseJwt(jwt: string): Promise<{
 }> {
   try {
     const { data, error } = await supabaseAdmin.auth.getUser(jwt);
-    
+
     if (error || !data.user) {
       return {
         valid: false,

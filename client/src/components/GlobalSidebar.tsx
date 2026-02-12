@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'wouter';
-import { 
-  Home, 
-  Lightbulb, 
-  Crosshair, 
-  Target, 
-  CheckSquare, 
+import {
+  Home,
+  Lightbulb,
+  Crosshair,
+  Target,
+  CheckSquare,
   Menu,
   X
 } from 'lucide-react';
@@ -26,10 +26,10 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({ className = '' }) => {
 
   // Simple toggle function - only manages state
   const toggleSidebar = () => {
-    console.log(`🔧 GlobalSidebar: Button clicked! Current state: ${isVisible}`);
+
     const newState = !isVisible;
     setIsVisible(newState);
-    console.log(`🔧 GlobalSidebar: Toggle requested, new state will be: ${newState}`);
+
   };
 
   // Close sidebar function - only manages state
@@ -41,18 +41,15 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({ className = '' }) => {
   useEffect(() => {
     if (isVisible) {
       document.body.classList.add('sidebar-visible');
-      console.log('🔧 GlobalSidebar: Added sidebar-visible class to body');
+
     } else {
       document.body.classList.remove('sidebar-visible');
-      console.log('🔧 GlobalSidebar: Removed sidebar-visible class from body');
     }
-    
-    console.log(`🔧 GlobalSidebar: Body class is now: "${document.body.className}"`);
+
   }, [isVisible]);
 
   // Set up escape key handler for closing sidebar
   useEffect(() => {
-    console.log('🔧 GlobalSidebar: Component mounted');
   }, []);
 
   // Close sidebar on escape key
@@ -73,28 +70,25 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({ className = '' }) => {
       <button
         id="sidebarToggleBtn"
         onClick={toggleSidebar}
-        className={`!fixed !top-20 !z-[9999] !p-2 !bg-blue-600 !text-white !rounded-md hover:!bg-blue-700 !transition-all !block !opacity-100 !visible !w-10 !h-10 ${
-          isVisible ? '!left-[21rem]' : '!left-4'
-        }`}
+        className={`!fixed !top-20 !z-[9999] !p-2 !bg-blue-600 !text-white !rounded-md hover:!bg-blue-700 !transition-all !block !opacity-100 !visible !w-10 !h-10 ${isVisible ? '!left-[21rem]' : '!left-4'
+          }`}
         aria-label="Toggle navigation menu"
       >
         {isVisible ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       {/* Sidebar Overlay */}
-      <div 
-        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${
-          isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+      <div
+        className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={closeSidebar}
       />
 
       {/* Global Sidebar - EXACT ID required for E2E tests */}
       <div
         id="globalSidebar"
-        className={`fixed left-0 top-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 z-50 overflow-y-auto ${
-          isVisible ? 'translate-x-0' : '-translate-x-full'
-        } ${className}`}
+        className={`fixed left-0 top-0 h-full w-80 bg-white shadow-lg transform transition-transform duration-300 z-50 overflow-y-auto ${isVisible ? 'translate-x-0' : '-translate-x-full'
+          } ${className}`}
       >
         {/* Sidebar Header - EXACT structure from original */}
         <div className="sidebar-header p-6 border-b border-gray-200">

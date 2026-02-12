@@ -13,7 +13,7 @@
 
 import { db } from '../db';
 import { adminUsers } from '@shared/schema';
-import { hashPassword } from '../admin/auth';
+import { hashPassword } from '../auth/password';
 import { eq } from 'drizzle-orm';
 
 async function createAdmin() {

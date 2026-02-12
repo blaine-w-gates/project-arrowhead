@@ -11,7 +11,7 @@ import { supabaseAdmin } from '../auth/supabase';
 import { teamMembers, teams } from '../../shared/schema/index';
 import { eq } from 'drizzle-orm';
 import { createErrorResponse } from './validation';
-import { debugLog } from "../debug";
+
 
 const router = Router();
 
@@ -38,8 +38,8 @@ router.get(
   async (req: AuthenticatedRequest, res: Response) => {
 
     try {
-      debugLog('DEBUG: ENTERING /api/auth/profile handler');
-      debugLog(`DEBUG: userContext: ${JSON.stringify(req.userContext)}`);
+      // debugLog('DEBUG: ENTERING /api/auth/profile handler');
+      // debugLog(`DEBUG: userContext: ${JSON.stringify(req.userContext)}`);
 
       const db = getDb();
       const userId = req.userContext?.userId;
