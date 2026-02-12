@@ -1,19 +1,56 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.vite/
+
+# OS files
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
-# Ignore test artifacts
-playwright-report/
-test-results/
-# Environment files with secrets
+Thumbs.db
+
+# Environment files (NEVER commit secrets)
+.env
 .env.local
 .env.*.local
-.env
+.env.local.bak
+
+# Test artifacts
+playwright-report/
+test-results/
+tmp-e2e-artifacts/
+test-output.txt
+
+# CI artifacts (should live in CI, not repo)
+_ci_artifacts/
+_ci_artifacts_pr/
+
+# Legacy / Archive (dead code from old sprints)
+legacy_archive/
+
+# AdminJS (dead integration)
+.adminjs/
 
 # Debug artifacts
 server-debug.log
-test-output.txt
-/tmp/
-.env.local.bak
+*.log
+
+# Replit (no longer used)
+.replit
+
+# Deployment artifacts
+.deployment-timestamp
+
+# Temp/junk files
+temp_mcp_config.json
+seed-report.json
+objectivetracker.zip
+attached_assets/
+
+# Vite temp files
+vite.config.ts.*
+server/public/
+
+# Compiled output
+*.tar.gz
+*.tgz

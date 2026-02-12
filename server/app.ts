@@ -2,7 +2,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import { registerRoutes } from './routes';
 import { setupVite, serveStatic, log } from './vite';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { setupAdminPanel } from './admin/index';
+
 import type { Server } from 'http';
 
 export async function createApp(options?: { withVite?: boolean }): Promise<{ app: Express; server: Server }> {
@@ -49,10 +49,7 @@ export async function createApp(options?: { withVite?: boolean }): Promise<{ app
     );
   })();
 
-  // Setup AdminJS BEFORE body parsers as required by @adminjs/express
-  await setupAdminPanel(app);
-
-  // Apply body parsers AFTER AdminJS
+  // Apply body parsers
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
 
