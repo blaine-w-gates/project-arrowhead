@@ -12,7 +12,7 @@
  * Non-dismissible: User must complete team initialization to proceed.
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -80,7 +80,7 @@ export function TeamInitializationModal() {
       // Success! Refresh profile to fetch updated team membership
       // Using refreshProfile instead of window.location.reload() to preserve session
       await refreshProfile();
-      
+
       // Explicitly navigate to dashboard to ensure proper routing
       // This prevents any potential redirect issues from stale auth state
       setLocation('/dashboard/projects');
@@ -96,8 +96,8 @@ export function TeamInitializationModal() {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {/* Non-dismissible */}}>
-      <DialogContent 
+    <Dialog open={isOpen} onOpenChange={() => {/* Non-dismissible */ }}>
+      <DialogContent
         className="sm:max-w-md"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
@@ -109,7 +109,7 @@ export function TeamInitializationModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4" noValidate>
           {error && (
             <Alert variant="destructive">
               <AlertDescription>{error}</AlertDescription>
@@ -149,9 +149,9 @@ export function TeamInitializationModal() {
             </p>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             disabled={submitting}
           >
             {submitting ? (

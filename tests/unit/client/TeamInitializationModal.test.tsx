@@ -4,6 +4,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 import { TeamInitializationModal } from '../../../client/src/components/TeamInitializationModal';
 
+import { AuthContext } from '../../../client/src/contexts/AuthContext';
+
 // --- Auth and routing mocks ---
 
 const mockRefreshProfile = vi.fn();
@@ -18,22 +20,20 @@ const mockAuthState: any = {
   refreshProfile: mockRefreshProfile,
 };
 
-vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => mockAuthState,
-}));
-
+// Mock location state
+let mockLocationPath = '';
 const mockSetLocation = vi.fn();
 vi.mock('wouter', () => ({
-  // Only the hook we need for this component
-  useLocation: () => ['', mockSetLocation],
+  useLocation: () => [mockLocationPath, mockSetLocation],
 }));
 
-describe.skip('TeamInitializationModal', () => {
+describe('TeamInitializationModal', () => {
   beforeEach(() => {
     mockAuthState.user = null;
     mockAuthState.session = null;
     mockAuthState.profile = null;
     mockAuthState.loading = false;
+    mockLocationPath = '/dashboard'; // Default to dashboard for modal to show
     mockRefreshProfile.mockReset();
     mockSetLocation.mockReset();
     (global as any).fetch = vi.fn();
@@ -42,6 +42,14 @@ describe.skip('TeamInitializationModal', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
+
+  const renderWithAuth = (ui: React.ReactNode) => {
+    return render(
+      <AuthContext.Provider value={mockAuthState}>
+        {ui}
+      </AuthContext.Provider>
+    );
+  };
 
   it('does not render when user already has profile (TI-01)', () => {
     mockAuthState.session = {
@@ -57,7 +65,7 @@ describe.skip('TeamInitializationModal', () => {
       isVirtual: false,
     };
 
-    render(<TeamInitializationModal />);
+    renderWithAuth(<TeamInitializationModal />);
 
     expect(screen.queryByText("Welcome! Let's Get Started")).toBeNull();
   });
@@ -69,7 +77,7 @@ describe.skip('TeamInitializationModal', () => {
     } as any;
     mockAuthState.profile = null;
 
-    render(<TeamInitializationModal />);
+    renderWithAuth(<TeamInitializationModal />);
 
     expect(screen.getByText("Welcome! Let's Get Started")).toBeInTheDocument();
     expect(screen.getByLabelText('Your Name')).toBeInTheDocument();
@@ -86,7 +94,8 @@ describe.skip('TeamInitializationModal', () => {
     } as any;
     mockAuthState.profile = null;
 
-    render(<TeamInitializationModal />);
+    renderWithAuth(<TeamInitializationModal />);
+
 
     const submitButton = screen.getByRole('button', { name: /get started/i });
 
@@ -120,7 +129,7 @@ describe.skip('TeamInitializationModal', () => {
     } as any;
     mockAuthState.profile = null;
 
-    render(<TeamInitializationModal />);
+    renderWithAuth(<TeamInitializationModal />);
 
     fireEvent.change(screen.getByLabelText('Your Name'), {
       target: { value: 'Owner Name' },
@@ -166,7 +175,7 @@ describe.skip('TeamInitializationModal', () => {
     } as any;
     mockAuthState.profile = null;
 
-    render(<TeamInitializationModal />);
+    renderWithAuth(<TeamInitializationModal />);
 
     fireEvent.change(screen.getByLabelText('Your Name'), {
       target: { value: 'Owner Name' },

@@ -13,7 +13,7 @@ import * as dbModule from '../../server/db';
 vi.mock('../../server/auth/supabase');
 vi.mock('../../server/db');
 
-describe.skip('Objectives API', () => {
+describe('Objectives API', () => {
   let app: Express;
   let mockDb: any;
 
@@ -42,7 +42,7 @@ describe.skip('Objectives API', () => {
       limit: vi.fn().mockReturnThis(),
       orderBy: vi.fn().mockReturnThis(),
     };
-    vi.mocked(dbModule.getDb).mockReturnValue(mockDb);
+    vi.mocked(dbModule.getDb).mockReturnValue(mockDb as never);
   });
 
   describe('POST /api/projects/:projectId/objectives', () => {
@@ -141,7 +141,7 @@ describe.skip('Objectives API', () => {
         .set('Authorization', 'Bearer jwt');
 
       expect(res.status).toBe(200);
-      expect(res.body.objectives).toHaveLength(1);
+      expect(res.body).toHaveLength(1);
     });
 
     it('Filters by journey_status=draft', async () => {
@@ -341,7 +341,7 @@ describe.skip('Objectives API', () => {
       expect(res.status).toBe(200);
     });
 
-    it('Returns 404 if no lock exists', async () => {
+    it('Returns 200 if no lock exists (idempotent)', async () => {
       vi.mocked(supabaseModule.verifySupabaseJwt).mockResolvedValue({ valid: true, userId: 'user-1' });
       mockDb.limit.mockResolvedValue([{ id: 'm-1', teamId, role: 'Project Owner' }]);
 
@@ -349,7 +349,8 @@ describe.skip('Objectives API', () => {
         .delete(`/api/objectives/${objectiveId}/lock`)
         .set('Authorization', 'Bearer jwt');
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(200);
+      expect(res.body.message).toContain('No active lock found');
     });
   });
 
