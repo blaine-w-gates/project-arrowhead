@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export function BillingTest() {
     const [loading, setLoading] = useState<string | null>(null);
-    const [result, setResult] = useState<object | null>(null);
+    const [result, setResult] = useState<Record<string, unknown> | null>(null);
     const { toast } = useToast();
 
     const handleCheckout = async () => {

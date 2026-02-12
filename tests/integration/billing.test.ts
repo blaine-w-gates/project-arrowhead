@@ -30,7 +30,15 @@ const mockStripe = {
 
 vi.mock('stripe', () => {
     return {
-        default: vi.fn(() => mockStripe),
+        default: class MockStripe {
+            customers = mockStripe.customers;
+            checkout = mockStripe.checkout;
+            billingPortal = mockStripe.billingPortal;
+            webhooks = mockStripe.webhooks;
+            constructor(_key: string, _config: any) {
+                // Constructor mock if needed
+            }
+        },
     };
 });
 
@@ -39,7 +47,11 @@ vi.mock('../../server/auth/middleware', async (importOriginal) => {
     const actual = await importOriginal<typeof middlewareModule>();
     return {
         ...actual,
-        requireAuth: vi.fn(),
+        requireAuth: vi.fn((req, res, _next) => {
+            // Default to unauthorized unless overridden
+            res.status(401).json({ error: 'Unauthorized' });
+            return Promise.resolve();
+        }),
         setDbContext: vi.fn((req, res, next) => next()),
     };
 });
