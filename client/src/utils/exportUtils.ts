@@ -640,7 +640,7 @@ export const generateTaskListPDF = (tasks: TaskData[]): void => {
  * Retrieve user answers from localStorage
  */
 const DEBUG_PDF = false;
-const dbg = (...args: unknown[]) => { if (DEBUG_PDF) void 0; };
+const dbg = (..._args: unknown[]) => { if (DEBUG_PDF) void 0; };
 const getUserAnswers = (moduleId: string): Record<string, string> => {
   const answers: Record<string, string> = {};
 

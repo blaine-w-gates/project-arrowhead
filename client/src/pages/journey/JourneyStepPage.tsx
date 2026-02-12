@@ -64,8 +64,8 @@ const JourneyStepPage: React.FC = () => {
 
   // Use the journey hook for backend integration
   const {
-    isLoading,
-    error,
+    // isLoading,
+    // error,
     updateSession,
     createTask
   } = useJourney(sessionId, moduleId, currentStep);

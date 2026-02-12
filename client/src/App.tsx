@@ -30,6 +30,7 @@ import ProjectsTab from "./pages/dashboard/ProjectsTab";
 import ObjectivesTab from "./pages/dashboard/ObjectivesTab";
 import ScoreboardTab from "./pages/dashboard/ScoreboardTab";
 import RRGTTab from "./pages/dashboard/RRGTTab";
+import { BillingTest } from "@/components/debug/BillingTest";
 
 function Router() {
   return (
@@ -49,7 +50,7 @@ function Router() {
       <Route path="/journey" component={JourneyDashboard} />
       <Route path="/journey/:moduleId/step/:step" component={JourneyStepPage} />
       <Route path="/ops" component={AdminPanel} />
-      
+
       {/* Protected Dashboard Routes */}
       <Route path="/dashboard/projects">
         <AuthGate>
@@ -87,7 +88,7 @@ function Router() {
           </ProtectedRoute>
         </AuthGate>
       </Route>
-      
+
       <Route component={NotFound} />
     </Switch>
   );
@@ -96,6 +97,22 @@ function Router() {
 function App() {
   const [location] = useLocation();
   const isDashboardRoute = location.startsWith("/dashboard");
+
+  // Debug route for billing
+  if (location === "/billing-test") {
+    return (
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <div className="min-h-screen bg-background p-4 flex items-center justify-center">
+              <BillingTest />
+              <Toaster />
+            </div>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
+    );
+  }
 
   return (
     <HelmetProvider>
