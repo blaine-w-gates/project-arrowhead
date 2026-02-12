@@ -19,9 +19,7 @@ describe('RRGT & Dial API', () => {
 
   const teamId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   const taskId = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
-  const itemId = 'item-1';
   const memberId1 = 'm-1';
-  const memberId2 = 'm-2';
 
   beforeAll(() => {
     app = express();
