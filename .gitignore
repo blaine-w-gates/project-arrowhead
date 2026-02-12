@@ -54,3 +54,4 @@ server/public/
 # Compiled output
 *.tar.gz
 *.tgz
+coverage/

@@ -5,6 +5,7 @@
  * Supports Virtual Persona mode for Manager God-view
  * 
  * Based on: SLAD v6.0 Final, Sections 4.0 & 7.0
+ * Force clean state
  */
 
 import { Request, Response, NextFunction } from 'express';
