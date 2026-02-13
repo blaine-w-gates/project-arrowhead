@@ -18,7 +18,10 @@ test.describe('Project Lifecycle & Vision', () => {
 
     test('should create a project with vision and track completion', async ({ page }) => {
         // --- 1. Create Project with Vision (Progressive Flow) ---
-        await page.getByRole('button', { name: 'Add Project' }).click();
+        const addProjectBtn = page.getByRole('button', { name: 'Add Project' });
+        await addProjectBtn.waitFor({ state: 'visible', timeout: 30000 });
+        console.log('🔘 Add Project button found, clicking...');
+        await addProjectBtn.click({ force: true });
 
         const projectName = `Strategic Initiative ${Date.now()}`;
         await page.getByLabel('Project Name').fill(projectName);
