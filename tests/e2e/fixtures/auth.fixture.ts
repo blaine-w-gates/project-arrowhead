@@ -479,6 +479,23 @@ export async function initializeTeam(
 
     await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await expect(page).toHaveURL(/\/dashboard\//, { timeout: 60000 });
+
+    // Explicitly wait for profile to load in CI/API path
+    try {
+      await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 20000 });
+    } catch (e) {
+      console.warn('⚠️ API Init: Dashboard header not found. Checking for "Please sign in" alert...');
+      if (await page.getByText('Please sign in to view projects').isVisible()) {
+        console.error('❌ API Init: Auth Context failed to load profile despite token injection.');
+        // Try to recover by reloading
+        console.log('🔄 Reloading page...');
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 20000 });
+      } else {
+        throw e;
+      }
+    }
+
     console.log('✅ Team initialized via API (CI)');
     return;
   }
@@ -591,6 +608,19 @@ export async function initializeTeam(
   if (!dialogClosed && !hasTeam) {
     throw new Error('Team initialization via UI did not complete - dialog open and teamId missing');
   }
+
+  // Verify dashboard loaded correctly
+  // Wait for either the projects header or the add project button to confirm we are authenticated and profile loaded
+  try {
+    await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 15000 });
+  } catch (e) {
+    console.warn('⚠️ Dashboard header not found. Checking for "Please sign in" alert...');
+    if (await page.getByText('Please sign in to view projects').isVisible()) {
+      throw new Error('Team initialization appeared successful, but dashboard shows "Please sign in" - Auth Context failed to load profile.');
+    }
+    throw e;
+  }
+
 
   console.log('✅ Team initialized via UI');
 }
