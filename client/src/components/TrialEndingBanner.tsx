@@ -45,10 +45,10 @@ export function TrialEndingBanner({ daysLeft }: TrialEndingBannerProps) {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <Button asChild size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              <Link href="/pricing">Subscribe Now</Link>
+              <Link href="/ops/billing">Subscribe Now</Link>
             </Button>
             <button
               onClick={() => setDismissed(true)}

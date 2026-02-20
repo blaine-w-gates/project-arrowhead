@@ -5,12 +5,50 @@
  * to continue accessing Team MVP features
  */
 
+import { useState } from 'react';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Clock, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Clock, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function PaymentRequiredPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubscribe = async () => {
+    setIsLoading(true);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      if (!token) throw new Error('No auth token');
+
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      window.location.href = data.url;
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Checkout Failed',
+        description: error instanceof Error ? error.message : 'Unable to start checkout. Please try again.',
+      });
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-2xl w-full">
@@ -66,14 +104,28 @@ export default function PaymentRequiredPage() {
 
             {/* CTA Buttons */}
             <div className="space-y-3">
-              <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" size="lg">
-                Subscribe Now
-                <ArrowRight className="ml-2 h-5 w-5" />
+              <Button
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                size="lg"
+                onClick={handleSubscribe}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Redirecting to Checkout...
+                  </>
+                ) : (
+                  <>
+                    Subscribe Now
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
               </Button>
               <p className="text-center text-sm text-muted-foreground">
                 or{' '}
-                <Link href="/pricing" className="text-primary hover:text-primary/80 font-medium">
-                  view detailed pricing
+                <Link href="/ops/billing" className="text-primary hover:text-primary/80 font-medium">
+                  view billing details
                 </Link>
               </p>
             </div>

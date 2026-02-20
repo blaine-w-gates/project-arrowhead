@@ -494,60 +494,9 @@ export async function initializeTeam(
     }
 
     await page.goto('/dashboard/projects', { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-    // Rescue Strategy: If we get redirected to /signin (Webkit) or dashboard doesn't load (Chromium), 
-    // force re-injection and reload.
-    try {
-      await expect(page).toHaveURL(/\/dashboard\//, { timeout: 10000 });
-      // Short timeout for initial check of the header
-      await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 10000 });
-    } catch (initialError) {
-      console.warn('⚠️ API Init: Auth check failed (wrong URL or missing header). implementing rescue strategy...');
-      console.log(`   Current URL: ${page.url()}`);
-
-      // Re-inject aggressively
-      const ref = getProjectRefFromSupabaseUrl(supabaseUrl) || 'project';
-      const refs = [ref, 'localhost', '127', 'project'];
-      const uniqueRefs = [...new Set(refs)];
-
-      const sessionJson = __lastSessionValueJson || JSON.stringify({
-        access_token: token,
-        token_type: 'bearer',
-        expires_in: 3600,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        currentSession: { access_token: token, token_type: 'bearer', expires_in: 3600 },
-      });
-
-      await page.evaluate(({ keys, val }: { keys: string[], val: string }) => {
-        try {
-          keys.forEach(k => {
-            localStorage.setItem(`sb-${k}-auth-token`, val);
-          });
-          // Also set a generic fallback just in case
-          localStorage.setItem('supabase.auth.token', val);
-        } catch (e) { console.error(e); }
-      }, { keys: uniqueRefs, val: sessionJson });
-
-      console.log('🔄 Reloading page after rescue injection...');
-      await page.reload({ waitUntil: 'domcontentloaded' });
-
-      // Verify again with longer timeouts
-      await expect(page).toHaveURL(/\/dashboard\//, { timeout: 30000 });
-      await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 30000 });
-    }
-
-    // Explicitly wait for profile to load in CI/API path (Redundant check if rescue succeeded, but keeps logic verification)
-    try {
-      await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 20000 });
-      // Also ensure the Add Project button is visible/interactive
-      await expect(page.getByRole('button', { name: 'Add Project' })).toBeVisible({ timeout: 20000 });
-    } catch (e) {
-      console.warn('⚠️ Dashboard header/button not found even after rescue.');
-      if (await page.getByText('Please sign in to view projects').isVisible()) {
-        throw new Error('Team initialization: Auth Context failed to load profile (Please sign in visible).');
-      }
-      throw e;
-    }
+    await expect(page).toHaveURL(/\/dashboard\//, { timeout: 30000 });
+    await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: 'Add Project' })).toBeVisible({ timeout: 20000 });
 
     console.log('✅ Team initialized via API (CI)');
     return;
