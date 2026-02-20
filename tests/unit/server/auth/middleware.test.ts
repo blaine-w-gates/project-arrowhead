@@ -477,21 +477,34 @@ describe('optionalAuth Middleware', () => {
   });
 });
 
-// TODO: These tests are skipped because asserting exact SQL template strings
-// from Drizzle's sql`` tagged template is fragile. Consider testing the
-// middleware behavior through integration tests instead.
-describe.skip('setDatabaseSessionContext', () => {
+describe('setDatabaseSessionContext', () => {
   let mockReq: Partial<AuthenticatedRequest>;
   let mockDb: any;
   let executeSpy: ReturnType<typeof vi.fn>;
+  let originalDbUrl: string | undefined;
+  let originalRlsDisable: string | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Save and override env vars that cause early returns
+    originalDbUrl = process.env.DATABASE_URL;
+    originalRlsDisable = process.env.RLS_DISABLE_SESSION_CONTEXT;
+    process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
+    delete process.env.RLS_DISABLE_SESSION_CONTEXT;
+
     executeSpy = vi.fn().mockResolvedValue(undefined);
     mockDb = {
       execute: executeSpy,
     };
     vi.mocked(dbModule.getDb).mockReturnValue(mockDb);
+  });
+
+  afterEach(() => {
+    // Restore env vars
+    if (originalDbUrl !== undefined) process.env.DATABASE_URL = originalDbUrl;
+    else delete process.env.DATABASE_URL;
+    if (originalRlsDisable !== undefined) process.env.RLS_DISABLE_SESSION_CONTEXT = originalRlsDisable;
+    else delete process.env.RLS_DISABLE_SESSION_CONTEXT;
   });
 
   it('should set session variables for authenticated user', async () => {
@@ -535,22 +548,36 @@ describe.skip('setDatabaseSessionContext', () => {
   });
 });
 
-// TODO: Same SQL template assertion issue as setDatabaseSessionContext above.
-describe.skip('setDbContext Middleware', () => {
+describe('setDbContext Middleware', () => {
   let mockReq: Partial<AuthenticatedRequest>;
   let mockRes: Partial<Response>;
   let mockNext: NextFunction;
   let jsonSpy: ReturnType<typeof vi.fn>;
   let statusSpy: ReturnType<typeof vi.fn>;
+  let originalDbUrl: string | undefined;
+  let originalRlsDisable: string | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Save and override env vars that cause early returns in setDatabaseSessionContext
+    originalDbUrl = process.env.DATABASE_URL;
+    originalRlsDisable = process.env.RLS_DISABLE_SESSION_CONTEXT;
+    process.env.DATABASE_URL = 'postgresql://localhost:5432/test';
+    delete process.env.RLS_DISABLE_SESSION_CONTEXT;
+
     jsonSpy = vi.fn();
     statusSpy = vi.fn(() => ({ json: jsonSpy }));
     mockRes = {
       status: statusSpy as unknown as Response['status'],
     };
     mockNext = vi.fn();
+  });
+
+  afterEach(() => {
+    if (originalDbUrl !== undefined) process.env.DATABASE_URL = originalDbUrl;
+    else delete process.env.DATABASE_URL;
+    if (originalRlsDisable !== undefined) process.env.RLS_DISABLE_SESSION_CONTEXT = originalRlsDisable;
+    else delete process.env.RLS_DISABLE_SESSION_CONTEXT;
   });
 
   it('should set database context and proceed', async () => {

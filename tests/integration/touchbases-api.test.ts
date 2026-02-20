@@ -13,19 +13,15 @@ import * as dbModule from '../../server/db';
 vi.mock('../../server/auth/supabase');
 vi.mock('../../server/db');
 
-// TODO: These 19 tests use an outdated mock pattern (vi.fn() chainable mock)
-// that is incompatible with the current requireAuth middleware. Other integration
-// tests use a real test DB scaffold (see scoreboard-data-flow.spec.ts). Rewrite
-// these tests using that pattern to re-enable.
-describe.skip('Touchbases API', () => {
+describe('Touchbases API', () => {
   let app: Express;
-  let mockDb: ReturnType<typeof vi.fn>;
+  let mockDb: any;
 
   const teamId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   const objectiveId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
   const touchbaseId = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
-  const memberId1 = 'm-1';
-  const memberId2 = 'm-2';
+  const memberId1 = '11111111-1111-1111-1111-111111111111';
+  const memberId2 = '22222222-2222-2222-2222-222222222222';
 
   const sampleResponses = {
     q1_working_on: 'Feature development',
@@ -58,6 +54,10 @@ describe.skip('Touchbases API', () => {
       limit: vi.fn().mockReturnThis(),
       orderBy: vi.fn().mockReturnThis(),
     };
+    // Ensure the first .where() call (from requireAuth) returns the builder,
+    // so that .limit() (mocked in tests) can be called on it.
+    mockDb.where.mockReturnValueOnce(mockDb);
+
     vi.mocked(dbModule.getDb).mockReturnValue(mockDb as never);
   });
 
