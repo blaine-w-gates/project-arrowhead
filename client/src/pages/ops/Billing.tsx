@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+
 import {
     Card,
     CardContent,
@@ -12,13 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/lib/supabase";
 
 export default function BillingPage() {
-    const { user, profile, loading: authLoading, refreshProfile } = useAuth();
-    const [location, setLocation] = useLocation();
+    const { profile, loading: authLoading, refreshProfile } = useAuth();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
