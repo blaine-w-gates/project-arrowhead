@@ -387,7 +387,7 @@ describe('requireAuth Middleware', () => {
       };
       vi.mocked(dbModule.getDb).mockReturnValue(mockDb as any);
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       await requireAuth(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
@@ -407,7 +407,7 @@ describe('requireAuth Middleware', () => {
         new Error('Supabase API error')
       );
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
       await requireAuth(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 
@@ -477,6 +477,9 @@ describe('optionalAuth Middleware', () => {
   });
 });
 
+// TODO: These tests are skipped because asserting exact SQL template strings
+// from Drizzle's sql`` tagged template is fragile. Consider testing the
+// middleware behavior through integration tests instead.
 describe.skip('setDatabaseSessionContext', () => {
   let mockReq: Partial<AuthenticatedRequest>;
   let mockDb: any;
@@ -532,6 +535,7 @@ describe.skip('setDatabaseSessionContext', () => {
   });
 });
 
+// TODO: Same SQL template assertion issue as setDatabaseSessionContext above.
 describe.skip('setDbContext Middleware', () => {
   let mockReq: Partial<AuthenticatedRequest>;
   let mockRes: Partial<Response>;
@@ -581,7 +585,7 @@ describe.skip('setDbContext Middleware', () => {
     };
     vi.mocked(dbModule.getDb).mockReturnValue(mockDb as any);
 
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
     await setDbContext(mockReq as AuthenticatedRequest, mockRes as Response, mockNext);
 

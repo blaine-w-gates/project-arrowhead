@@ -13,6 +13,10 @@ import * as dbModule from '../../server/db';
 vi.mock('../../server/auth/supabase');
 vi.mock('../../server/db');
 
+// TODO: These 19 tests use an outdated mock pattern (vi.fn() chainable mock)
+// that is incompatible with the current requireAuth middleware. Other integration
+// tests use a real test DB scaffold (see scoreboard-data-flow.spec.ts). Rewrite
+// these tests using that pattern to re-enable.
 describe.skip('Touchbases API', () => {
   let app: Express;
   let mockDb: ReturnType<typeof vi.fn>;
