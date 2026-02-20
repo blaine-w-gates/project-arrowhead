@@ -9,7 +9,7 @@ import { Response, Router } from 'express';
 import { z } from 'zod';
 import { requireAuth, setDbContext, AuthenticatedRequest } from '../auth/middleware';
 import { getDb } from '../db';
-import { tasks, taskAssignments, rrgtItems, dialStates, rrgtPlans, rrgtSubtasks, rrgtRabbits, objectives } from '../../shared/schema/index';
+import { tasks, taskAssignments, rrgtItems, dialStates, rrgtPlans, rrgtSubtasks, rrgtRabbits, objectives, teamMembers } from '../../shared/schema/index';
 import { eq, and, inArray } from 'drizzle-orm';
 import {
   createRrgtItemSchema,
@@ -131,14 +131,14 @@ router.get(
       const projectIdFilter = typeof req.query.project_id === 'string'
         ? req.query.project_id
         : typeof req.query.projectId === 'string'
-        ? req.query.projectId
-        : undefined;
+          ? req.query.projectId
+          : undefined;
 
       const objectiveIdFilter = typeof req.query.objective_id === 'string'
         ? req.query.objective_id
         : typeof req.query.objectiveId === 'string'
-        ? req.query.objectiveId
-        : undefined;
+          ? req.query.objectiveId
+          : undefined;
 
       const assignmentsRes = await db
         .select()
@@ -316,10 +316,10 @@ router.get(
           },
           rabbit: row.rabbit
             ? {
-                planId: row.rabbit.planId,
-                currentColumnIndex: row.rabbit.currentColumnIndex,
-                updatedAt: row.rabbit.updatedAt,
-              }
+              planId: row.rabbit.planId,
+              currentColumnIndex: row.rabbit.currentColumnIndex,
+              updatedAt: row.rabbit.updatedAt,
+            }
             : null,
           subtasks: subtasks.map((s) => ({
             id: s.id,
@@ -376,53 +376,120 @@ router.get(
         );
       }
 
-      // Validate team member ID (allow non-UUID in tests)
+      // Validate team member ID
       const teamMemberIdValidation = z.string().min(1).safeParse(req.params.teamMemberId);
       if (!teamMemberIdValidation.success) {
         return res.status(400).json(formatValidationError(teamMemberIdValidation.error));
       }
       const targetTeamMemberId = teamMemberIdValidation.data;
 
-      // Fetch all tasks assigned to target member
+      // Fetch member name for attribution
+      const memberRows = await db
+        .select({ name: teamMembers.name })
+        .from(teamMembers)
+        .where(eq(teamMembers.id, targetTeamMemberId))
+        .limit(1);
+      const ownerName = (Array.isArray(memberRows) && memberRows.length > 0)
+        ? memberRows[0].name
+        : 'Unknown';
+
+      // Fetch assignments for target member
       const assignmentsRes = await db
         .select()
         .from(taskAssignments)
         .where(eq(taskAssignments.teamMemberId, targetTeamMemberId));
-
       const assignments = Array.isArray(assignmentsRes) ? assignmentsRes : [];
       const taskIds = assignments.map(a => a.taskId);
 
-      let memberTasks: typeof tasks.$inferSelect[] = [];
-      if (taskIds.length > 0) {
-        const memberTasksRes = await db
-          .select()
-          .from(tasks)
-          .where(inArray(tasks.id, taskIds));
-        memberTasks = Array.isArray(memberTasksRes) ? memberTasksRes : [];
+      if (taskIds.length === 0) {
+        return res.status(200).json({ plans: [], total: 0, ownerName });
       }
 
-      // Fetch all RRGT items belonging to target member
-      const memberItemsRes = await db
-        .select()
-        .from(rrgtItems)
-        .where(eq(rrgtItems.teamMemberId, targetTeamMemberId));
-      const memberItems = Array.isArray(memberItemsRes) ? memberItemsRes : [];
+      // Fetch enriched plans with joins, read-only (no auto-create)
+      const plansWithJoinsRes = await db
+        .select({
+          plan: rrgtPlans,
+          task: tasks,
+          objective: objectives,
+          rabbit: rrgtRabbits,
+        })
+        .from(rrgtPlans)
+        .innerJoin(tasks, eq(rrgtPlans.taskId, tasks.id))
+        .innerJoin(objectives, eq(rrgtPlans.objectiveId, objectives.id))
+        .leftJoin(rrgtRabbits, eq(rrgtRabbits.planId, rrgtPlans.id))
+        .where(
+          and(
+            eq(rrgtPlans.teamMemberId, targetTeamMemberId),
+            inArray(rrgtPlans.taskId, taskIds)
+          )
+        );
+      const plansWithJoins = Array.isArray(plansWithJoinsRes) ? plansWithJoinsRes : [];
 
-      // Fetch target member's dial state
-      const dialStateRow = await fetchOneSafe<DialStateRow>(
-        db,
-        db
+      const planIds = plansWithJoins.map((row) => row.plan.id);
+
+      let subtaskRows: typeof rrgtSubtasks.$inferSelect[] = [];
+      if (planIds.length > 0) {
+        const subtasksRes = await db
           .select()
-          .from(dialStates)
-          .where(eq(dialStates.teamMemberId, targetTeamMemberId))
-      );
-      const dialState = dialStateRow || null;
+          .from(rrgtSubtasks)
+          .where(inArray(rrgtSubtasks.planId, planIds));
+        subtaskRows = Array.isArray(subtasksRes) ? subtasksRes : [];
+      }
+
+      const subtasksByPlanId = new Map<string, typeof rrgtSubtasks.$inferSelect[]>();
+      for (const sub of subtaskRows) {
+        const arr = subtasksByPlanId.get(sub.planId) || [];
+        arr.push(sub);
+        subtasksByPlanId.set(sub.planId, arr);
+      }
+
+      const enrichedPlans = plansWithJoins.map((row) => {
+        const subtasks = (subtasksByPlanId.get(row.plan.id) || [])
+          .slice()
+          .sort((a, b) => a.columnIndex - b.columnIndex);
+
+        return {
+          id: row.plan.id,
+          taskId: row.plan.taskId,
+          teamMemberId: row.plan.teamMemberId,
+          projectId: row.plan.projectId,
+          objectiveId: row.plan.objectiveId,
+          maxColumnIndex: row.plan.maxColumnIndex,
+          task: {
+            id: row.task.id,
+            objectiveId: row.task.objectiveId,
+            title: row.task.title,
+            status: row.task.status,
+            priority: row.task.priority,
+            dueDate: row.task.dueDate,
+          },
+          objective: {
+            id: row.objective.id,
+            projectId: row.objective.projectId,
+            name: row.objective.name,
+          },
+          rabbit: row.rabbit
+            ? {
+              planId: row.rabbit.planId,
+              currentColumnIndex: row.rabbit.currentColumnIndex,
+              updatedAt: row.rabbit.updatedAt,
+            }
+            : null,
+          subtasks: subtasks.map((s) => ({
+            id: s.id,
+            planId: s.planId,
+            columnIndex: s.columnIndex,
+            text: s.text,
+            createdAt: s.createdAt,
+            updatedAt: s.updatedAt,
+          })),
+        };
+      });
 
       return res.status(200).json({
-        team_member_id: targetTeamMemberId,
-        tasks: memberTasks,
-        items: memberItems,
-        dial_state: dialState,
+        plans: enrichedPlans,
+        total: enrichedPlans.length,
+        ownerName,
       });
     } catch (error) {
       console.error('Error fetching team member RRGT data:', error);

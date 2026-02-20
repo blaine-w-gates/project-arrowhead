@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -74,18 +74,18 @@ export default function RRGTTab() {
     queryKey: ['projects', profile?.teamId],
     queryFn: async () => {
       if (!profile?.teamId) throw new Error('No team ID');
-      
+
       const response = await fetch(`/api/teams/${profile.teamId}/projects`, {
         credentials: 'include',
         headers: {
           'Authorization': `Bearer ${session?.access_token ?? ''}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch projects');
       }
-      
+
       return response.json();
     },
     enabled: !!profile?.teamId,
@@ -166,9 +166,48 @@ export default function RRGTTab() {
   });
 
   const serverPlans = rrgtData?.plans ?? [];
+
+  // God View: fetch enriched plans for each selected team member
+  interface GodViewResponse {
+    plans: EnrichedPlan[];
+    total: number;
+    ownerName: string;
+  }
+
+  const memberQueries = useQueries({
+    queries: selectedMemberIds.map((memberId) => ({
+      queryKey: ['rrgt-godview', memberId],
+      queryFn: async (): Promise<GodViewResponse> => {
+        const response = await fetch(`/api/rrgt/${memberId}`, {
+          credentials: 'include',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token ?? ''}`,
+          },
+        });
+        if (!response.ok) throw new Error('Failed to fetch member RRGT data');
+        return response.json();
+      },
+      enabled: isManager && !!memberId,
+    })),
+  });
+
+  const memberPlans = useMemo(() => {
+    const plans: EnrichedPlan[] = [];
+    for (const query of memberQueries) {
+      if (query.data) {
+        for (const plan of query.data.plans) {
+          plans.push({ ...plan, ownerName: query.data.ownerName });
+        }
+      }
+    }
+    return plans;
+  }, [memberQueries]);
+
+  const isViewingMembers = selectedMemberIds.length > 0;
+
   const allPlans = useMemo(
-    () => [...serverPlans, ...incognitoPlans],
-    [serverPlans, incognitoPlans]
+    () => [...serverPlans, ...memberPlans, ...incognitoPlans],
+    [serverPlans, memberPlans, incognitoPlans]
   );
 
   const moveRabbitMutation = useMutation({
@@ -518,8 +557,8 @@ export default function RRGTTab() {
                     projectsLoading
                       ? 'Loading projects...'
                       : activeProjects.length === 0
-                      ? 'No active projects'
-                      : 'All Projects'
+                        ? 'No active projects'
+                        : 'All Projects'
                   } />
                 </SelectTrigger>
                 <SelectContent>
@@ -548,10 +587,10 @@ export default function RRGTTab() {
                     !selectedProjectId
                       ? 'Select a project first'
                       : objectivesLoading
-                      ? 'Loading objectives...'
-                      : !objectiveList || objectiveList.length === 0
-                      ? 'No objectives'
-                      : 'All Objectives'
+                        ? 'Loading objectives...'
+                        : !objectiveList || objectiveList.length === 0
+                          ? 'No objectives'
+                          : 'All Objectives'
                   } />
                 </SelectTrigger>
                 <SelectContent>
@@ -604,6 +643,11 @@ export default function RRGTTab() {
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
             RRGT Matrix (Rabbit Race)
+            {isViewingMembers && (
+              <Badge variant="outline" className="ml-2 text-xs">
+                Showing {selectedMemberIds.length} team member{selectedMemberIds.length !== 1 ? 's' : ''}
+              </Badge>
+            )}
           </CardTitle>
           <Button
             type="button"
@@ -626,16 +670,18 @@ export default function RRGTTab() {
         </CardContent>
       </Card>
 
-      {/* Dial (kept below matrix to prioritize RRGT visibility) */}
-      <Dial
-        dialState={hydratedDialState}
-        targetingSlot={targetingSlot}
-        onSlotClick={handleSlotClick}
-        onClearSlot={handleClearSlot}
-        onReset={handleResetDial}
-        onUpdate={handleUpdateDial}
-        isLoading={dialLoading || updateDialMutation.isPending}
-      />
+      {/* Dial (hidden when viewing other members — Dial is personal) */}
+      {!isViewingMembers && (
+        <Dial
+          dialState={hydratedDialState}
+          targetingSlot={targetingSlot}
+          onSlotClick={handleSlotClick}
+          onClearSlot={handleClearSlot}
+          onReset={handleResetDial}
+          onUpdate={handleUpdateDial}
+          isLoading={dialLoading || updateDialMutation.isPending}
+        />
+      )}
     </div>
   );
 }

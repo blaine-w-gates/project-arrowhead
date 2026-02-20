@@ -45,6 +45,8 @@ export interface EnrichedPlan {
   isIncognito?: boolean;
   localId?: string;
   localOrderIndex?: number;
+  // God View: name of the plan owner (for manager view)
+  ownerName?: string;
 }
 
 export interface RrgtResponse {

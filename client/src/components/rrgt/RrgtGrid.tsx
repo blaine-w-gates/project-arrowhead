@@ -57,8 +57,8 @@ export function RrgtGrid({
           (targetingSlot === 'left'
             ? ' ring-2 ring-purple-400 ring-offset-2'
             : targetingSlot === 'right'
-            ? ' ring-2 ring-blue-400 ring-offset-2'
-            : '')
+              ? ' ring-2 ring-blue-400 ring-offset-2'
+              : '')
         }
       >
         {/* Header Row */}
@@ -119,8 +119,13 @@ export function RrgtGrid({
                       </>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate mt-1">
+                  <div className="text-xs text-muted-foreground truncate mt-1 flex items-center gap-2">
                     {plan.objective?.name}
+                    {plan.ownerName && (
+                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        {plan.ownerName}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -138,25 +143,26 @@ export function RrgtGrid({
                   const cellKey = `${plan.id}-${columnIndex}`;
                   const isAssignableCell = columnIndex > 0;
                   const isTargetingMode = !!targetingSlot && !!onCellClick && isAssignableCell;
+                  const isReadOnly = !!plan.ownerName; // God View plans are read-only
 
-                  const handleDrop = onMoveRabbit
+                  const handleDrop = (onMoveRabbit && !isReadOnly)
                     ? (event: DragEvent<HTMLDivElement>) => {
-                        event.preventDefault();
-                        const dt = event.dataTransfer;
-                        if (!dt) return;
-                        const draggedPlanId =
-                          dt.getData('application/x-rrgt-plan-id') ||
-                          dt.getData('text/plain');
-                        if (draggedPlanId) {
-                          onMoveRabbit(draggedPlanId, columnIndex);
-                          if (subtask?.text && subtask.text.trim().length > 0) {
-                            setExplodingCell(cellKey);
-                            setTimeout(() => {
-                              setExplodingCell((prev) => (prev === cellKey ? null : prev));
-                            }, 500);
-                          }
+                      event.preventDefault();
+                      const dt = event.dataTransfer;
+                      if (!dt) return;
+                      const draggedPlanId =
+                        dt.getData('application/x-rrgt-plan-id') ||
+                        dt.getData('text/plain');
+                      if (draggedPlanId) {
+                        onMoveRabbit(draggedPlanId, columnIndex);
+                        if (subtask?.text && subtask.text.trim().length > 0) {
+                          setExplodingCell(cellKey);
+                          setTimeout(() => {
+                            setExplodingCell((prev) => (prev === cellKey ? null : prev));
+                          }, 500);
                         }
                       }
+                    }
                     : undefined;
 
                   const cellContent = (
@@ -165,8 +171,8 @@ export function RrgtGrid({
                         {hasRabbit && (
                           <div
                             data-testid={`rabbit-${plan.id}`}
-                            draggable={!!onMoveRabbit}
-                            onDragStart={onMoveRabbit ? (event) => {
+                            draggable={!!onMoveRabbit && !isReadOnly}
+                            onDragStart={(onMoveRabbit && !isReadOnly) ? (event) => {
                               if (event.dataTransfer) {
                                 event.dataTransfer.setData('application/x-rrgt-plan-id', plan.id);
                                 event.dataTransfer.setData('application/x-rrgt-col-index', String(columnIndex));
@@ -190,9 +196,9 @@ export function RrgtGrid({
                           <AutoSaveTextarea
                             key={`${plan.id}-${columnIndex}`}
                             initialValue={subtask?.text ?? ''}
-                            disabled={!!targetingSlot}
+                            disabled={!!targetingSlot || isReadOnly}
                             onSave={(value) => {
-                              if (onSaveSubtask) {
+                              if (onSaveSubtask && !isReadOnly) {
                                 onSaveSubtask(plan.id, columnIndex, value);
                               }
                             }}
