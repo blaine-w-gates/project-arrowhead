@@ -26,11 +26,12 @@ import TaskListPage from "./pages/TaskListPage";
 import { JourneyDashboard, JourneyStepPage } from "./pages/journey";
 import NotFound from "./pages/not-found";
 import AdminPanel from "./pages/ops/AdminPanel";
+import BillingPage from "./pages/ops/Billing";
 import ProjectsTab from "./pages/dashboard/ProjectsTab";
 import ObjectivesTab from "./pages/dashboard/ObjectivesTab";
 import ScoreboardTab from "./pages/dashboard/ScoreboardTab";
 import RRGTTab from "./pages/dashboard/RRGTTab";
-import { BillingTest } from "@/components/debug/BillingTest";
+
 
 function Router() {
   return (
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/tasks" component={TaskListPage} />
       <Route path="/journey" component={JourneyDashboard} />
       <Route path="/journey/:moduleId/step/:step" component={JourneyStepPage} />
+      <Route path="/ops/billing" component={BillingPage} />
       <Route path="/ops" component={AdminPanel} />
 
       {/* Protected Dashboard Routes */}
@@ -98,21 +100,6 @@ function App() {
   const [location] = useLocation();
   const isDashboardRoute = location.startsWith("/dashboard");
 
-  // Debug route for billing
-  if (location === "/billing-test") {
-    return (
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <div className="min-h-screen bg-background p-4 flex items-center justify-center">
-              <BillingTest />
-              <Toaster />
-            </div>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
-    );
-  }
 
   return (
     <HelmetProvider>

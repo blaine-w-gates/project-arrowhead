@@ -7,7 +7,8 @@ import {
   Target,
   CheckSquare,
   Menu,
-  X
+  X,
+  CreditCard
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -218,6 +219,17 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({ className = '' }) => {
             <Link href="/tasks" onClick={closeSidebar} className="nav-link flex items-center p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors">
               <CheckSquare className="mr-3" size={18} />
               Task List
+            </Link>
+          </div>
+
+          {/* Settings Section */}
+          <div className="nav-section mb-6">
+            <h6 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+              Settings
+            </h6>
+            <Link href="/ops/billing" onClick={closeSidebar} className="nav-link flex items-center p-3 text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md transition-colors">
+              <CreditCard className="mr-3" size={18} />
+              Billing
             </Link>
           </div>
         </div>
